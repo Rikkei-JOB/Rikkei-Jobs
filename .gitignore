@@ -63,3 +63,7 @@ web/.turbo/
 *.sw?
 .DS_Store
 Thumbs.db
+
+# Next.js auto-generated
+web/next-env.d.ts
+web/*.tsbuildinfo
