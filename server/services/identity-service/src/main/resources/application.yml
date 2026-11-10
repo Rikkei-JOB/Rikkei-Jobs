@@ -4,6 +4,9 @@ server:
 spring:
   application:
     name: identity-service
+  autoconfigure:
+    # We authenticate with our own JWT filter; no generated in-memory user.
+    exclude: org.springframework.boot.autoconfigure.security.servlet.UserDetailsServiceAutoConfiguration
   datasource:
     url: ${IDENTITY_DB_URL:jdbc:postgresql://${POSTGRES_HOST:localhost}:${POSTGRES_PORT:5432}/${POSTGRES_DB:rikkei_jobs}}
     username: ${IDENTITY_DB_USER:${POSTGRES_USER:postgres}}
@@ -12,8 +15,46 @@ spring:
     open-in-view: false
     hibernate:
       ddl-auto: validate
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+  mail:
+    host: ${MAIL_HOST:localhost}
+    port: ${MAIL_PORT:1025}
+    username: ${MAIL_USER:}
+    password: ${MAIL_PASSWORD:}
+
+app:
+  jwt:
+    secret: ${JWT_SECRET:your_super_secret_jwt_key_at_least_256_bits_long_rikkei_jobs}
+    expiration-ms: ${JWT_EXPIRATION_MS:28800000} # 8 hours
+  auth:
+    max-failed-attempts: 5
+    lock-minutes: 15
+    sso-ticket-ttl-seconds: 60
+    reset-token-ttl-minutes: 30
+  web:
+    base-url: ${WEB_BASE_URL:http://localhost:3000}
+  mail:
+    enabled: ${MAIL_ENABLED:true}
+    from: ${MAIL_FROM:no-reply@rikkei-jobs.local}
+  lms:
+    # identity-service calls the external LMS (mock/ on port 9000 in dev) with the X-Service-Key header.
+    base-url: ${LMS_BASE_URL:http://localhost:9000}
+    service-key: ${LMS_SERVICE_KEY:dev-key}
+    dev-tickets:
+      # POST /auth/dev/sso-ticket issues an SSO ticket for ANY lmsUserId without authentication.
+      # Off by default so a deployment that forgets to configure it stays safe; the "dev" profile turns it on.
+      enabled: ${LMS_DEV_TICKETS_ENABLED:false}
+  dev-data:
+    # Seeds the sample accounts of docs/conventions.md (known password Test@123). Off by default; on in the "dev" profile.
+    enabled: ${DEV_DATA_ENABLED:false}
 
 management:
+  health:
+    mail:
+      # With MAIL_ENABLED=false there is no SMTP server; do not report the service as DOWN because of it.
+      enabled: ${MAIL_ENABLED:true}
   endpoints:
     web:
       exposure:
@@ -21,4 +62,3 @@ management:
   endpoint:
     health:
       show-details: never
-
