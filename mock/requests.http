@@ -1,0 +1,58 @@
+# Rikkei Jobs mock - goi thu bang IntelliJ (mui ten xanh) hoac VS Code + REST Client (Send Request)
+# Truoc khi chay: cd mock && npm start  (mock o http://localhost:9000)
+
+### Ca 1 - Khong co khoa -> 401 INVALID_SERVICE_KEY
+GET http://localhost:9000/lms/courses
+
+### Ca 2 - Sai khoa -> 401 INVALID_SERVICE_KEY
+GET http://localhost:9000/lms/courses
+X-Service-Key: sai-key
+
+### Ca 3 - Cap ve cho candidate1 -> 201 {ticket, issuedAt}
+POST http://localhost:9000/lms/sso/tickets
+X-Service-Key: dev-key
+Content-Type: application/json
+
+{"lmsUserId": "lms-sv-001"}
+
+### Ca 4 - Doi ve lay thong tin -> 200 Nguyen Van An, CANDIDATE
+# Dan gia tri "ticket" nhan duoc o Ca 3 vao body duoi day
+POST http://localhost:9000/lms/sso/verify
+X-Service-Key: dev-key
+Content-Type: application/json
+
+{"ticket": "47f1357fcaaa8aa1c445985c7994a35b"}
+
+### Ca 5 - Chay lai dung Ca 4 voi cung ve -> van 200 (mock khong chan ve cu, backend tu chan)
+
+### Ca 6 - Ve bia -> 404 NOT_FOUND
+POST http://localhost:9000/lms/sso/verify
+X-Service-Key: dev-key
+Content-Type: application/json
+
+{"ticket": "abc123"}
+
+### Ca 7 - User khong ton tai -> 404 NOT_FOUND
+POST http://localhost:9000/lms/sso/tickets
+X-Service-Key: dev-key
+Content-Type: application/json
+
+{"lmsUserId": "lms-sv-999"}
+
+### Ca 8 - Co khoa nhung sai duong dan -> 404 ROUTE_NOT_FOUND
+GET http://localhost:9000/lms/abc
+X-Service-Key: dev-key
+
+### Ca 9 - Nhat ky request (khong can khoa) -> 200, kiem hasKey
+GET http://localhost:9000/mock/requests
+
+### Ca 10 - Nap lai data.json (khong can khoa) -> 200 {"ok": true}
+# Sua fullName cua lms-sv-001 trong data.json, goi request nay, roi chay lai Ca 3 + Ca 4 de thay ten moi
+POST http://localhost:9000/mock/reload
+
+### Ca 11 - Body JSON hong -> 400 INVALID_JSON
+POST http://localhost:9000/lms/sso/verify
+X-Service-Key: dev-key
+Content-Type: application/json
+
+{"ticket": 

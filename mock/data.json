@@ -1,0 +1,64 @@
+{
+  "users": [
+    { "lmsUserId": "lms-sv-001", "email": "candidate1@rikkeijobs.test", "fullName": "Nguyễn Văn An", "role": "CANDIDATE", "program": "Kỹ sư phần mềm", "classCode": "KS25-CNTT1", "courseName": "K25" },
+    { "lmsUserId": "lms-sv-002", "email": "candidate2@rikkeijobs.test", "fullName": "Trần Thị Bình", "role": "CANDIDATE", "program": "Kỹ sư phần mềm", "classCode": "KS25-CNTT2", "courseName": "K25" },
+    { "lmsUserId": "lms-sv-003", "email": "candidate3@rikkeijobs.test", "fullName": "Lê Minh Châu", "role": "CANDIDATE", "program": "Kỹ sư phần mềm", "classCode": "KS25-CNTT1", "courseName": "K25" },
+    { "lmsUserId": "lms-mt-001", "email": "mentor1@rikkeijobs.test", "fullName": "Phạm Quốc Dũng", "role": "MENTOR" },
+    { "lmsUserId": "lms-st-001", "email": "staff1@rikkeijobs.test", "fullName": "Hoàng Thu Hà", "role": "STAFF" },
+    { "lmsUserId": "lms-ad-001", "email": "admin1@rikkeijobs.test", "fullName": "Đỗ Thanh Hải", "role": "ADMIN" }
+  ],
+  "lmsResults": {
+    "lms-sv-001": [
+      { "subjectCode": "JAVA01", "subjectName": "Lập trình Java", "score": 8.5, "attendanceRate": 95, "homeworkRate": 90, "rpoint": 120 },
+      { "subjectCode": "SQL01", "subjectName": "Cơ sở dữ liệu", "score": 8.0, "attendanceRate": 92, "homeworkRate": 88, "rpoint": 95 },
+      { "subjectCode": "SPRING01", "subjectName": "Spring Boot", "score": 7.5, "attendanceRate": 90, "homeworkRate": 85, "rpoint": 80 },
+      { "subjectCode": "WEB01", "subjectName": "HTML/CSS/JavaScript", "score": 7.0, "attendanceRate": 88, "homeworkRate": 80, "rpoint": 60 },
+      { "subjectCode": "GIT01", "subjectName": "Git và làm việc nhóm", "score": 9.0, "attendanceRate": 100, "homeworkRate": 100, "rpoint": 50 }
+    ],
+    "lms-sv-002": [
+      { "subjectCode": "WEB01", "subjectName": "HTML/CSS/JavaScript", "score": 9.0, "attendanceRate": 98, "homeworkRate": 95, "rpoint": 110 },
+      { "subjectCode": "REACT01", "subjectName": "ReactJS", "score": 8.5, "attendanceRate": 95, "homeworkRate": 92, "rpoint": 100 },
+      { "subjectCode": "JAVA01", "subjectName": "Lập trình Java", "score": 6.5, "attendanceRate": 85, "homeworkRate": 75, "rpoint": 40 },
+      { "subjectCode": "GIT01", "subjectName": "Git và làm việc nhóm", "score": 8.0, "attendanceRate": 95, "homeworkRate": 90, "rpoint": 45 }
+    ],
+    "lms-sv-003": [
+      { "subjectCode": "JAVA01", "subjectName": "Lập trình Java", "score": 5.5, "attendanceRate": 70, "homeworkRate": 60, "rpoint": 20 },
+      { "subjectCode": "SQL01", "subjectName": "Cơ sở dữ liệu", "score": 6.0, "attendanceRate": 75, "homeworkRate": 65, "rpoint": 25 },
+      { "subjectCode": "WEB01", "subjectName": "HTML/CSS/JavaScript", "score": 5.0, "attendanceRate": 68, "homeworkRate": 55, "rpoint": 15 }
+    ]
+  },
+  "examResults": {
+    "lms-sv-001": [ { "examCode": "EX-JAVA-2026-10", "subjectCode": "JAVA01", "score": 8.0, "takenAt": "2026-10-20T08:00:00+07:00" } ],
+    "lms-sv-002": [ { "examCode": "EX-REACT-2026-10", "subjectCode": "REACT01", "score": 8.0, "takenAt": "2026-10-22T08:00:00+07:00" } ],
+    "lms-sv-003": [ { "examCode": "EX-JAVA-2026-10", "subjectCode": "JAVA01", "score": 4.5, "takenAt": "2026-10-20T08:00:00+07:00" } ]
+  },
+  "internships": {
+    "lms-sv-001": [
+      {
+        "batchId": "IOC-JB-2026-09", "batchName": "IOC Java Backend 09/2026",
+        "groupName": "Nhóm 2", "topicName": "Hệ thống đặt lịch phòng họp",
+        "mentorEmail": "mentor1@rikkeijobs.test",
+        "startDate": "2026-09-07", "endDate": "2026-10-30", "finalScore": 8.5,
+        "tasks": [
+          { "title": "API đặt phòng và kiểm trùng lịch", "acceptedScore": 9, "acceptedAt": "2026-09-25T17:00:00+07:00" },
+          { "title": "Phân quyền quản trị phòng", "acceptedScore": 8, "acceptedAt": "2026-10-09T17:00:00+07:00" },
+          { "title": "Báo cáo tần suất sử dụng phòng", "acceptedScore": 8.5, "acceptedAt": "2026-10-23T17:00:00+07:00" }
+        ]
+      }
+    ],
+    "lms-sv-002": [],
+    "lms-sv-003": []
+  },
+  "batches": [
+    { "batchId": "IOC-JB-2026-09", "batchName": "IOC Java Backend 09/2026" },
+    { "batchId": "IOC-JB-2026-12", "batchName": "IOC Java Backend 12/2026" }
+  ],
+  "courses": [
+    { "courseId": "LMS-C-JAVA-02", "name": "Java nâng cao", "skills": ["JAVA", "OOP"], "level": "Khá" },
+    { "courseId": "LMS-C-SQL-01", "name": "SQL thực hành", "skills": ["SQL"], "level": "Cơ bản" },
+    { "courseId": "LMS-C-SPRING-01", "name": "Spring Boot từ cơ bản", "skills": ["SPRING_BOOT", "REST_API"], "level": "Cơ bản" },
+    { "courseId": "LMS-C-REACT-01", "name": "ReactJS cơ bản", "skills": ["REACTJS", "JAVASCRIPT"], "level": "Cơ bản" },
+    { "courseId": "LMS-C-GIT-01", "name": "Git cho người mới", "skills": ["GIT"], "level": "Cơ bản" },
+    { "courseId": "LMS-C-DOCKER-01", "name": "Docker căn bản", "skills": ["DOCKER", "LINUX"], "level": "Cơ bản" }
+  ]
+}
