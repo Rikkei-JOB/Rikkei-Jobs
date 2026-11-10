@@ -37,6 +37,7 @@ buildNumber.properties
 
 # Node & Frontend
 web/node_modules/
+mock/node_modules/
 web/.pnp
 web/.pnp.js
 web/coverage/
