@@ -1,5 +1,10 @@
 # Backend services
 
+The team keeps backend code in `server/` and frontend code in `web/`.
+Create feature branches from `test` and target pull requests at `test`,
+with titles such as `[NT-01] Add login`. See the shared
+[repository conventions](../../docs/conventions.md#1-repository-phân-công-và-git).
+
 All eight business services use the same package layout. The API gateway is
 a separate module at `server/api-gateway/`.
 
