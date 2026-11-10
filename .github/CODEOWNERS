@@ -1,0 +1,14 @@
+# Code Owners for rikkei-jobs repository
+* @rikkei-jobs/core-team
+
+# Backend Services
+/server/ @rikkei-jobs/backend-team
+/server/api-gateway/ @rikkei-jobs/backend-team
+/server/services/ @rikkei-jobs/backend-team
+
+# Frontend Web
+/web/ @rikkei-jobs/frontend-team
+
+# Infrastructure & CI/CD
+/infra/ @rikkei-jobs/devops-team
+/.github/ @rikkei-jobs/devops-team

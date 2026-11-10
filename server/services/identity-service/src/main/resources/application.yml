@@ -1,0 +1,24 @@
+server:
+  port: ${IDENTITY_SERVICE_PORT:8081}
+
+spring:
+  application:
+    name: identity-service
+  datasource:
+    url: ${IDENTITY_DB_URL:jdbc:postgresql://${POSTGRES_HOST:localhost}:${POSTGRES_PORT:5432}/${POSTGRES_DB:rikkei_jobs}}
+    username: ${IDENTITY_DB_USER:${POSTGRES_USER:postgres}}
+    password: ${IDENTITY_DB_PASSWORD:${POSTGRES_PASSWORD:postgres}}
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus
+  endpoint:
+    health:
+      show-details: never
+
