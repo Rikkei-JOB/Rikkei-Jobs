@@ -1,6 +1,11 @@
 {
   "name": "rikkei-jobs-mock",
   "private": true,
-  "scripts": { "start": "node server.js" },
-  "dependencies": { "express": "^4.19.2" }
+  "scripts": {
+    "start": "node server.js",
+    "evaluation-links": "node send-evaluation-links.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2"
+  }
 }

@@ -1,6 +1,6 @@
 # Rikkei Jobs Platform
 
-Nền tảng tuyển dụng và phát triển sự nghiệp, sử dụng backend Spring Boot và frontend Next.js. Repo hiện có khung 8 service, trang giao diện mẫu và mock Express cho luồng LMS SSO; chưa có API nghiệp vụ backend, JWT hoặc seed tài khoản. API gateway chưa có lớp Application nên chưa khởi chạy được.
+Nền tảng tuyển dụng và phát triển sự nghiệp, sử dụng backend Spring Boot và frontend Next.js. Repo hiện có khung 8 service, trang giao diện mẫu và mock Express đủ 11 endpoint hệ thống ngoài (LMS, Khảo thí, lms-pm, Rikkei Meet); chưa có API nghiệp vụ backend, JWT hoặc seed tài khoản. API gateway chưa có lớp Application nên chưa khởi chạy được.
 
 Nhóm giữ cấu trúc `server/`, `web/` và dùng **`test`** làm nhánh tích hợp. Tạo `feature/<mã>-<tên>` từ `test`, mở PR vào `test` với tiêu đề `[NT-01] ...`. Xem [quy ước chung](docs/conventions.md).
 
@@ -50,7 +50,8 @@ rikkei-jobs/
 │   └── package.json
 │
 ├── mock/                                  # Mock ngoài, chạy độc lập cổng 9000
-│   ├── server.js                          # SSO, kiểm tra service key, công cụ test
+│   ├── server.js                          # 11 endpoint, kiểm tra service key, công cụ test /mock/*
+│   ├── send-evaluation-links.js           # Script TT-04: lms-pm gọi ngược backend
 │   ├── data.json                          # Fixture LMS, khảo thí, thực tập, khóa học
 │   ├── requests.http                      # Request mẫu cho IntelliJ / REST Client
 │   ├── package.json
@@ -68,7 +69,8 @@ rikkei-jobs/
 │   ├── api/                               # OpenAPI / Swagger specs
 │   ├── database/                          # ERD & Database migrations scripts
 │   ├── decisions/                         # Architecture Decision Records (ADRs)
-│   └── conventions.md                     # Git/PR, API, tài khoản mẫu, hợp đồng mock
+│   ├── conventions.md                     # Git/PR, API, vai trò, tài khoản mẫu, kỹ năng
+│   └── mock-contract.md                   # Hợp đồng API mock hệ thống ngoài
 │
 ├── .github/                               # CI/CD Workflows & Quản lý repository
 │   ├── workflows/                         # GitHub Actions pipelines
@@ -79,7 +81,7 @@ rikkei-jobs/
 └── README.md                              # Hướng dẫn tổng quan dự án
 ```
 
-Các thư mục khung có thể chỉ chứa `.gitkeep`. Mock đã có một phần endpoint; cách chạy và trạng thái từng endpoint xem [mock README](mock/README.md), hợp đồng mục tiêu xem [conventions](docs/conventions.md#5-mock-hệ-thống-ngoài).
+Các thư mục khung có thể chỉ chứa `.gitkeep`. Mock đã đủ 11 endpoint; cách chạy xem [mock README](mock/README.md), hợp đồng API xem [docs/mock-contract.md](docs/mock-contract.md).
 
 ---
 
@@ -270,7 +272,7 @@ npm start
 
 Mặc định server chạy tại `http://localhost:9000`, key `X-Service-Key: dev-key`. Có thể đổi bằng biến môi trường `PORT`, `SERVICE_KEY` trong terminal chạy mock; server không tự đọc `.env` ở gốc. Chỉ backend gọi mock, không đưa service key vào frontend.
 
-Đã có `POST /lms/sso/tickets`, `POST /lms/sso/verify`, `GET /mock/requests`, `POST /mock/reload`. Chín endpoint nghiệp vụ còn lại (hồ sơ/kết quả LMS, courses, enrollments, khảo thí, lms-pm, Meet) và công cụ reset vẫn chưa có handler. Có fixture không có nghĩa endpoint đã hoạt động; xem [bảng trạng thái](mock/README.md#endpoint).
+Mock có đủ 11 endpoint (LMS SSO, hồ sơ, kết quả môn, khoá học, ghi danh; Khảo thí; lms-pm; Rikkei Meet) và 4 công cụ test `/mock/reload`, `/mock/requests`, `/mock/enrollments`, `/mock/reset`. Danh sách đầy đủ xem [mock README](mock/README.md#endpoint) và [docs/mock-contract.md](docs/mock-contract.md).
 
 Thử luồng SSO ở terminal PowerShell khác:
 
@@ -282,7 +284,16 @@ Invoke-RestMethod -Method Post -Uri http://localhost:9000/lms/sso/verify -Header
 
 Cấp vé trả `201 {ticket, issuedAt}`, verify trả `200` với candidate1. Mock cho phép verify lại cùng vé và không tự kiểm tra hạn vé; backend phải xử lý chống dùng lại/hết hạn. Fixture dùng ID `lms-sv-001`, `lms-sv-002`, `lms-sv-003`. Các request thử khác nằm trong [mock/requests.http](mock/requests.http).
 
-Với request có JSON hợp lệ, thiếu/sai key trả `401 INVALID_SERVICE_KEY`. Request JSON hỏng trả `400 INVALID_JSON` từ middleware parse body, có thể xảy ra trước kiểm tra key. `/mock/*` là công cụ local không yêu cầu key; `POST /mock/reload` chỉ nạp lại fixture, không xóa vé hoặc nhật ký. Dừng bằng `Ctrl+C`, khởi động lại để xóa trạng thái trong bộ nhớ.
+Với request có JSON hợp lệ, thiếu/sai key trả `401 INVALID_SERVICE_KEY`. Request JSON hỏng trả `400 INVALID_JSON` từ middleware parse body, có thể xảy ra trước kiểm tra key. `/mock/*` là công cụ local không yêu cầu key; `POST /mock/reload` chỉ nạp lại fixture, `POST /mock/reset` xoá vé, ghi danh, thành viên đợt và nhật ký (gọi trước mỗi lần demo). Dừng bằng `Ctrl+C`.
+
+Script TT-04 (lms-pm gọi ngược backend lấy link phiếu đánh giá), cần backend đang chạy:
+
+```sh
+cd mock
+npm run evaluation-links -- IOC-JB-2026-09
+```
+
+Đổi địa chỉ backend bằng biến môi trường `BACKEND_URL` (mặc định `http://localhost:8080`).
 
 ### 7. Email và tài khoản demo
 
@@ -307,6 +318,6 @@ docker compose --env-file .env -f infra/compose.yaml down
 
 ### Trạng thái kiểm tra hướng dẫn
 
-Đã đối chiếu đường dẫn, script npm, module/parent POM và kiểm tra cú pháp Compose bằng `.env.example`. Mock đã cài bằng `npm ci` và kiểm tra HTTP trên cổng 9000: key sai/thiếu trả `401`, SSO cho 3 ứng viên, verify lại vé, vé không tồn tại, JSON hỏng, logs/reload và 9 endpoint TODO trả `404`.
+Đã đối chiếu đường dẫn, script npm, module/parent POM và kiểm tra cú pháp Compose bằng `.env.example`. Mock đã cài bằng `npm ci` và kiểm tra HTTP trên cổng 9000: key sai/thiếu trả `401`; đủ 11 endpoint trả dữ liệu cho 3 ứng viên; các ca lỗi `400`, `404`, `409 ALREADY_ENROLLED`, `409 ALREADY_MEMBER`; công cụ requests/reload/enrollments/reset; script TT-04 với backend giả và khi backend tắt.
 
-Chưa xác nhận chạy toàn hệ thống: máy kiểm tra chưa có Maven trên `PATH`; lần thử `npm ci` của frontend chưa hoàn tất và có cảnh báo peer dependency nêu trên, nên chưa chạy build/lint/frontend server. Gateway, API nghiệp vụ backend, seed và các endpoint mock TODO vẫn cần được triển khai.
+Chưa xác nhận chạy toàn hệ thống: máy kiểm tra chưa có Maven trên `PATH`; lần thử `npm ci` của frontend chưa hoàn tất và có cảnh báo peer dependency nêu trên, nên chưa chạy build/lint/frontend server. Gateway, API nghiệp vụ backend và seed vẫn cần được triển khai.
