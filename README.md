@@ -230,6 +230,8 @@ Mở terminal mới từ gốc repo:
 
 ```sh
 cd web
+
+Các trang đăng nhập (NT-01): `/login` (tab "Qua LMS" và "Doanh nghiệp"), `/sso-callback?ticket=`, `/change-password`, `/forgot-password`, `/reset-password/<token>`. Khi bật `NEXT_PUBLIC_LMS_MOCK=true`, tab "Qua LMS" có 6 người dùng LMS mẫu để đăng nhập thử (cần chạy `mock/` ở cổng 9000; backend xin vé hộ qua `POST /api/v1/auth/dev/sso-ticket`). HR mẫu `hr1@rikkeijobs.test`, `hr2@rikkeijobs.test` mật khẩu `Test@123`; `hr-new@rikkeijobs.test` phải đổi mật khẩu lần đầu. Chi tiết: [docs/api/NT-01-authentication.md](docs/api/NT-01-authentication.md).
 npm ci
 npm run dev -- --port 3000
 ```
