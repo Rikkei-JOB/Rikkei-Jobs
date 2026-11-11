@@ -10,6 +10,8 @@ tags:
   - name: auth
   - name: dev
     description: Dev/demo only (LMS_DEV_TICKETS_ENABLED=true)
+  - name: internal
+    description: API nội bộ cho company-service (DN-01). Không đi qua gateway - gọi thẳng http://localhost:8081, bảo vệ bằng header X-Internal-Key.
 paths:
   /auth/sso:
     post:
@@ -163,8 +165,82 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Error' }
+  /internal/users:
+    post:
+      tags: [internal]
+      summary: Tạo tài khoản HR (company-service gọi)
+      description: Không đi qua gateway - gọi thẳng http://localhost:8081/internal/users. Tạo user role HR với companyId, mật khẩu tạm ngẫu nhiên, mustChangePassword=true và gửi email mật khẩu tạm; mật khẩu không nằm trong response hay log. Gửi email lỗi thì rollback, không để lại user. Hiện chỉ chấp nhận role HR kèm companyId.
+      servers:
+        - url: http://localhost:8081
+          description: Gọi thẳng identity-service (không qua gateway)
+      security: [{ internalKey: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/InternalCreateUserRequest' }
+      responses:
+        '201':
+          description: Đã tạo
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/InternalUserResponse' }
+        '400':
+          description: VALIDATION_ERROR (email/họ tên sai, role khác HR hoặc thiếu companyId)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '401':
+          description: INVALID_SERVICE_KEY - thiếu hoặc sai X-Internal-Key (khoá cấu hình rỗng thì từ chối mọi request)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '409':
+          description: EMAIL_EXISTS - email đã có. errors gồm userId, role, companyId (nếu có) của user hiện tại để company-service nối tiếp lần gọi bị timeout.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '503':
+          description: MAIL_UNAVAILABLE - không gửi được email mật khẩu tạm, user không được tạo
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+  /internal/users/{id}:
+    delete:
+      tags: [internal]
+      summary: Xoá tài khoản HR (hoàn tác khi company-service ghi liên kết lỗi)
+      description: Không đi qua gateway - gọi thẳng http://localhost:8081/internal/users/{id}. Chỉ xoá được user có role HR.
+      servers:
+        - url: http://localhost:8081
+          description: Gọi thẳng identity-service (không qua gateway)
+      security: [{ internalKey: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        '204':
+          description: Đã xoá
+        '401':
+          description: INVALID_SERVICE_KEY
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '404':
+          description: NOT_FOUND - không có user
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '409':
+          description: CONFLICT - user không phải HR
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
 components:
   securitySchemes:
+    internalKey:
+      type: apiKey
+      in: header
+      name: X-Internal-Key
+      description: Khoá dịch vụ nội bộ (INTERNAL_SERVICE_KEY, mặc định dev-internal-key). Chỉ cho /internal/**; không bao giờ đưa ra frontend.
     bearerAuth:
       type: http
       scheme: bearer
@@ -228,6 +304,22 @@ components:
       properties:
         message: { type: string }
         accessToken: { type: string }
+    InternalCreateUserRequest:
+      type: object
+      required: [email, fullName, role, companyId]
+      properties:
+        email: { type: string, format: email, maxLength: 255 }
+        fullName: { type: string, maxLength: 255 }
+        role: { type: string, enum: [HR], description: Hiện chỉ HR }
+        companyId: { type: string, format: uuid }
+    InternalUserResponse:
+      type: object
+      properties:
+        userId: { type: string, format: uuid }
+        email: { type: string }
+        fullName: { type: string }
+        role: { $ref: '#/components/schemas/Role' }
+        companyId: { type: string, format: uuid, nullable: true }
     Message:
       type: object
       properties:
@@ -237,4 +329,4 @@ components:
       properties:
         code: { type: string, example: TICKET_EXPIRED }
         message: { type: string }
-        errors: { description: A message, or a map of field/detail values (e.g. minutesRemaining) }
+        errors: { description: 'A message, or a map of field/detail values (e.g. minutesRemaining)' }

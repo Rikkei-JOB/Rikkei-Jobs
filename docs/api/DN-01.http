@@ -1,0 +1,143 @@
+# DN-01 - request mau (IntelliJ HTTP Client hoac VS Code REST Client).
+# Chay truoc: mock (9000), identity va company-service voi profile dev, gateway (8080). Xem docs/api/DN-01-company-hr.md muc "Cach chay".
+# Moi request trong file duoc doi chieu voi cac ca nghiem thu cua DN-01-company-hr.md.
+
+@gw = http://localhost:8080/api/v1
+@B = 00000000-0000-0000-0000-0000000000b2
+
+############################## 1. Token cua staff1 (SSO) ##############################
+
+### 1a. Xin ve SSO cho staff1 (chi dev) -> 200 {ticket, issuedAt}
+# @name staffTicket
+POST {{gw}}/auth/dev/sso-ticket
+Content-Type: application/json
+
+{ "lmsUserId": "lms-st-001" }
+
+### 1b. Doi ve lay token (trong 60 giay, dung mot lan) -> 200 {accessToken, user}
+# @name staffSso
+POST {{gw}}/auth/sso
+Content-Type: application/json
+
+{ "ticket": "{{staffTicket.response.body.ticket}}" }
+
+############################## 2. Cong ty va tai khoan HR ##############################
+
+### 2a. Tao cong ty -> 201 CompanyResponse (ma so thue moi lan chay can khac: doi taxCode neu da co -> 409)
+# @name createCompany
+POST {{gw}}/staff/companies
+Authorization: Bearer {{staffSso.response.body.accessToken}}
+Content-Type: application/json
+
+{ "name": "Cong ty Demo DN-01", "taxCode": "0312345678", "industry": "Phan mem", "size": "51-200", "city": "Ha Noi", "website": "https://demo.example.com" }
+
+### 2b. Tao tai khoan HR -> 201 HrAccountResponse; MailHog (http://localhost:8025) nhan email mat khau tam
+# @name createHr
+POST {{gw}}/staff/companies/{{createCompany.response.body.id}}/hr-accounts
+Authorization: Bearer {{staffSso.response.body.accessToken}}
+Content-Type: application/json
+
+{ "email": "hr-demo@rikkeijobs.test", "fullName": "HR Demo" }
+
+### 2c. Tao lai cung email -> 409 CONFLICT "Email đã được sử dụng"
+POST {{gw}}/staff/companies/{{createCompany.response.body.id}}/hr-accounts
+Authorization: Bearer {{staffSso.response.body.accessToken}}
+Content-Type: application/json
+
+{ "email": "hr-demo@rikkeijobs.test", "fullName": "HR Demo" }
+
+### 2d. Ma so thue sai -> 400 VALIDATION_ERROR, errors.taxCode
+POST {{gw}}/staff/companies
+Authorization: Bearer {{staffSso.response.body.accessToken}}
+Content-Type: application/json
+
+{ "name": "Cong ty sai MST", "taxCode": "12345" }
+
+### 2e. Tao trung ma so thue -> 409 CONFLICT
+POST {{gw}}/staff/companies
+Authorization: Bearer {{staffSso.response.body.accessToken}}
+Content-Type: application/json
+
+{ "name": "Cong ty trung MST", "taxCode": "0312345678" }
+
+############################## 3. HR tu sua cong ty cua minh ##############################
+
+### 3a. hr1 dang nhap -> 200 {accessToken, user, mustChangePassword}
+# @name hr1Login
+POST {{gw}}/auth/login
+Content-Type: application/json
+
+{ "email": "hr1@rikkeijobs.test", "password": "Test@123" }
+
+### 3b. hr1 xem cong ty cua minh -> 200 "Cong ty A"
+GET {{gw}}/companies/me
+Authorization: Bearer {{hr1Login.response.body.accessToken}}
+
+### 3c. hr1 gui PUT /companies/me kem id cong ty B -> 200, chi Cong ty A doi; id trong body bi bo qua
+PUT {{gw}}/companies/me
+Authorization: Bearer {{hr1Login.response.body.accessToken}}
+Content-Type: application/json
+
+{ "id": "{{B}}", "name": "Cong ty A (da sua)", "industry": "Phan mem", "size": "51-200", "city": "Ha Noi" }
+
+### 3d. hr1 goi PUT /companies/{B} -> 404 NOT_FOUND (khong co route nhu vay)
+PUT {{gw}}/companies/{{B}}
+Authorization: Bearer {{hr1Login.response.body.accessToken}}
+Content-Type: application/json
+
+{ "name": "Dap pha cong ty B" }
+
+### 3e. hr2 dang nhap
+# @name hr2Login
+POST {{gw}}/auth/login
+Content-Type: application/json
+
+{ "email": "hr2@rikkeijobs.test", "password": "Test@123" }
+
+### 3f. hr2 xem cong ty cua minh -> 200 van la "Cong ty B", khong doi
+GET {{gw}}/companies/me
+Authorization: Bearer {{hr2Login.response.body.accessToken}}
+
+############################## 4. Logo ##############################
+
+### 4a. hr1 tai logo (thay logo.png bang anh PNG/JPG <= 2MB) -> 200, logoUrl = /companies/logos/<uuid>.png
+# @name uploadLogo
+POST {{gw}}/companies/me/logo
+Authorization: Bearer {{hr1Login.response.body.accessToken}}
+Content-Type: multipart/form-data; boundary=WebAppBoundary
+
+--WebAppBoundary
+Content-Disposition: form-data; name="file"; filename="logo.png"
+Content-Type: image/png
+
+< ./logo.png
+--WebAppBoundary--
+
+### 4b. Anh > 2MB -> 400 FILE_TOO_LARGE (tao tep bang: head -c 2097153 /dev/zero > big.png ; tep khong phai anh nhung bi chan vi kich thuoc truoc)
+POST {{gw}}/companies/me/logo
+Authorization: Bearer {{hr1Login.response.body.accessToken}}
+Content-Type: multipart/form-data; boundary=WebAppBoundary
+
+--WebAppBoundary
+Content-Disposition: form-data; name="file"; filename="big.png"
+Content-Type: image/png
+
+< ./big.png
+--WebAppBoundary--
+
+### 4c. Xem logo cong khai (khong can token) -> 200 image/png
+GET http://localhost:8080/api/v1{{uploadLogo.response.body.logoUrl}}
+
+############################## 5. API noi bo (KHONG qua gateway) ##############################
+
+### 5a. Thieu khoa -> 401 INVALID_SERVICE_KEY
+POST http://localhost:8081/internal/users
+Content-Type: application/json
+
+{ "email": "x@rikkeijobs.test", "fullName": "X", "role": "HR", "companyId": "00000000-0000-0000-0000-0000000000a1" }
+
+### 5b. Qua gateway thi khong co route -> 404 NOT_FOUND
+POST {{gw}}/internal/users
+Content-Type: application/json
+
+{}

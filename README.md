@@ -1,11 +1,11 @@
 # Rikkei Jobs Platform
 
 
-Nền tảng tuyển dụng và phát triển sự nghiệp, sử dụng backend Spring Boot và frontend Next.js. Repo có khung 8 service, gateway, mock Express, luồng đăng nhập NT-01 và backend Skill Profile HS-01. Các nghiệp vụ khác tiếp tục được phát triển theo task.
+Nền tảng tuyển dụng và phát triển sự nghiệp, sử dụng backend Spring Boot và frontend Next.js. Repo có khung 8 service, gateway, mock Express, luồng đăng nhập NT-01, backend Skill Profile HS-01 và hồ sơ doanh nghiệp / tài khoản HR DN-01. Các nghiệp vụ khác tiếp tục được phát triển theo task.
 
-Hướng dẫn đăng nhập và tài khoản mẫu: [NT-01](docs/api/NT-01-authentication.md). API kỹ năng, migration và cách chạy dữ liệu demo: [HS-01 backend](docs/hs01-independent-backend.md). Với hai task này, dùng hướng dẫn chuyên biệt thay cho các ghi chú trạng thái khung bên dưới.
+Hướng dẫn đăng nhập và tài khoản mẫu: [NT-01](docs/api/NT-01-authentication.md). API kỹ năng, migration và cách chạy dữ liệu demo: [HS-01 backend](docs/hs01-independent-backend.md). Hồ sơ doanh nghiệp, tài khoản HR, logo: [DN-01](docs/api/DN-01-company-hr.md) (OpenAPI [company-openapi.yaml](docs/api/company-openapi.yaml), request mẫu [DN-01.http](docs/api/DN-01.http)). Với ba task này, dùng hướng dẫn chuyên biệt thay cho các ghi chú trạng thái khung bên dưới.
 
-Nền tảng tuyển dụng và phát triển sự nghiệp, sử dụng backend Spring Boot và frontend Next.js. Repo hiện có khung 8 service, trang giao diện mẫu và mock Express đủ 11 endpoint hệ thống ngoài (LMS, Khảo thí, lms-pm, Rikkei Meet); chưa có API nghiệp vụ backend, JWT hoặc seed tài khoản. API gateway chưa có lớp Application nên chưa khởi chạy được.
+Nền tảng tuyển dụng và phát triển sự nghiệp, sử dụng backend Spring Boot và frontend Next.js. Repo hiện có khung 8 service, trang giao diện mẫu và mock Express đủ 11 endpoint hệ thống ngoài (LMS, Khảo thí, lms-pm, Rikkei Meet); API gateway đã có `GatewayApplication` và routes tới các service; `identity-service` đã cấp JWT, có Flyway và seed tài khoản mẫu (profile `dev`); `company-service` đã có API doanh nghiệp / HR (DN-01). Các service còn lại mới là khung.
 
 
 Nhóm giữ cấu trúc `server/`, `web/` và dùng **`test`** làm nhánh tích hợp. Tạo `feature/<mã>-<tên>` từ `test`, mở PR vào `test` với tiêu đề `[NT-01] ...`. Xem [quy ước chung](docs/conventions.md).
@@ -18,11 +18,11 @@ Nhóm giữ cấu trúc `server/`, `web/` và dùng **`test`** làm nhánh tích
 rikkei-jobs/
 │
 ├── server/                                # Backend Microservices (Spring Boot / Java 21)
-│   ├── api-gateway/                       # Khung gateway; chưa có Application/routes
+│   ├── api-gateway/                       # Gateway (Spring Cloud Gateway): GatewayApplication + routes tới các service
 │   ├── services/
 │   │   ├── identity-service/              # Đăng nhập, LMS SSO, quản lý định danh và phân quyền
 │   │   ├── profile-service/               # Skill Profile, CV, Portfolio, bằng chứng
-│   │   ├── company-service/               # Doanh nghiệp, tài khoản HR liên quan, JD
+│   │   ├── company-service/               # Doanh nghiệp, tài khoản HR liên quan, JD (DN-01: hồ sơ công ty, HR, logo)
 │   │   ├── internship-service/            # Thực tập IOC, ghép ứng viên, nghiệm thu
 │   │   ├── assessment-service/            # Phiếu đánh giá mentor, tự đánh giá, chỉ số năng lực
 │   │   ├── learning-service/              # Skill gap, gợi ý môn học bổ sung qua LMS
@@ -107,7 +107,7 @@ Các thư mục khung có thể chỉ chứa `.gitkeep`. Mock đã đủ 11 endp
 
 Đây là phạm vi nghiệp vụ dự kiến, chưa phải các tính năng đã triển khai.
 Tám service nghiệp vụ hiện có lớp Application và khung thư mục; API gateway
-hiện mới có POM và các thư mục nguồn rỗng. Hướng dẫn cấu trúc, biến môi trường
+có `GatewayApplication` và routes. Hướng dẫn cấu trúc, biến môi trường
 và Dockerfile: [Backend services](server/services/README.md).
 
 Các ranh giới dữ liệu cần giữ khi triển khai:
@@ -124,11 +124,11 @@ Các ranh giới dữ liệu cần giữ khi triển khai:
   `ai-service` dùng Gemini để gợi ý nghề nghiệp, hỗ trợ CV và phỏng vấn.
 
 Các kết nối LMS, IOC và Gemini sẽ được triển khai trong package `client/`
-của service phụ trách; hiện chưa có client gọi hệ thống ngoài.
+của service phụ trách; hiện chỉ identity-service có client gọi LMS (`HttpLmsClient`, gắn `X-Service-Key`); các client còn lại chưa có.
 
 ## Hướng dẫn khởi chạy
 
-Mỗi phần bên dưới bắt đầu từ **thư mục gốc repo**, dùng terminal riêng cho từng tiến trình chạy lâu. Frontend mẫu có thể chạy độc lập; chưa có chức năng đăng nhập hoặc gọi API nghiệp vụ.
+Mỗi phần bên dưới bắt đầu từ **thư mục gốc repo**, dùng terminal riêng cho từng tiến trình chạy lâu. Frontend có thể chạy độc lập; đăng nhập (NT-01) và trang hồ sơ công ty của HR (DN-01, `/hr/company`) cần backend và gateway đang chạy.
 
 ### 1. Chuẩn bị môi trường
 
@@ -225,9 +225,17 @@ java -jar server/services/ai-service/target/ai-service-1.0.0-SNAPSHOT.jar
 
 Health: `http://localhost:8088/actuator/health`. Chưa có Gemini client, nên chưa cần API key Gemini để chạy phần khung này.
 
-Chạy service khác bằng cách thay tên ở cả lệnh build lẫn đường dẫn JAR, dùng cổng trong bảng phạm vi service. **Chưa chạy gateway bằng `mvn spring-boot:run`** vì module thiếu main class. `identity-service` còn Spring Security mặc định, chưa xác thực bằng JWT hoặc tài khoản mẫu.
+Chạy service khác bằng cách thay tên ở cả lệnh build lẫn đường dẫn JAR, dùng cổng trong bảng phạm vi service. Gateway chạy được: `mvn -f server/pom.xml -pl api-gateway -am spring-boot:run` (cổng 8080). `identity-service` đã cấp JWT; chạy kèm seed tài khoản mẫu bằng `-Dspring-boot.run.profiles=dev`.
 
-Các service JPA dùng `ddl-auto: validate`; thư mục migration còn là placeholder, chưa có Flyway hoặc seed. Không có lệnh tạo bảng nghiệp vụ/tài khoản mẫu ở thời điểm hiện tại.
+Các service JPA dùng `ddl-auto: validate`; identity-service, profile-service và company-service đã có Flyway migration (company-service tạo schema Postgres riêng `company`); các service còn lại chưa có bảng. Dữ liệu mẫu chỉ có khi chạy profile `dev`.
+
+**company-service (DN-01).** Chạy sau khi Postgres và identity-service (profile `dev`) đã lên; profile `dev` seed Công ty A, Công ty B và liên kết HR mẫu:
+
+```sh
+mvn -f server/pom.xml -pl services/company-service -am spring-boot:run -Dspring-boot.run.profiles=dev   # :8085
+```
+
+Biến môi trường mới (đã có trong `.env.example`): `INTERNAL_SERVICE_KEY` (khoá `X-Internal-Key` company-service gửi khi gọi `/internal/**` của identity, mặc định `dev-internal-key`, hai bên phải giống nhau), `IDENTITY_SERVICE_URL` (mặc định `http://localhost:8081`), `COMPANY_UPLOAD_DIR` (thư mục lưu logo, mặc định `./data/uploads`, đã được `.gitignore` bỏ qua), `COMPANY_DB_SCHEMA` (mặc định `company`), `DEV_DATA_ENABLED`. Hướng dẫn đầy đủ và kịch bản kiểm thử: [DN-01](docs/api/DN-01-company-hr.md).
 
 Kiểm tra biên dịch/test toàn backend từ gốc repo:
 
@@ -331,4 +339,4 @@ docker compose --env-file .env -f infra/compose.yaml down
 
 Đã đối chiếu đường dẫn, script npm, module/parent POM và kiểm tra cú pháp Compose bằng `.env.example`. Mock đã cài bằng `npm ci` và kiểm tra HTTP trên cổng 9000: key sai/thiếu trả `401`; đủ 11 endpoint trả dữ liệu cho 3 ứng viên; các ca lỗi `400`, `404`, `409 ALREADY_ENROLLED`, `409 ALREADY_MEMBER`; công cụ requests/reload/enrollments/reset; script TT-04 với backend giả và khi backend tắt.
 
-Chưa xác nhận chạy toàn hệ thống: máy kiểm tra chưa có Maven trên `PATH`; lần thử `npm ci` của frontend chưa hoàn tất và có cảnh báo peer dependency nêu trên, nên chưa chạy build/lint/frontend server. Gateway, API nghiệp vụ backend và seed vẫn cần được triển khai.
+Ghi chú trạng thái này viết ở giai đoạn khung và đã cũ: gateway, JWT/seed của identity và API DN-01 hiện đã có (xem các hướng dẫn NT-01, HS-01, DN-01). Kết quả kiểm tra DN-01 trên nhánh này: [docs/api/DN-01-company-hr.md](docs/api/DN-01-company-hr.md#9-trạng-thái-xác-minh).
