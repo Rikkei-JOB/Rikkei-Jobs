@@ -1,6 +1,6 @@
 # Rikkei Jobs Platform
 
-Nền tảng tuyển dụng và phát triển sự nghiệp, sử dụng backend Spring Boot và frontend Next.js. Repo hiện có khung 8 service, trang giao diện mẫu và mock Express cho luồng LMS SSO; chưa có API nghiệp vụ backend, JWT hoặc seed tài khoản. API gateway chưa có lớp Application nên chưa khởi chạy được.
+Nền tảng tuyển dụng và phát triển sự nghiệp, sử dụng backend Spring Boot và frontend Next.js. Repo hiện có khung 8 service sau API gateway (`/api/v1`), đăng nhập SSO/HR bằng JWT (NT-01), khung phân quyền theo vai trò, Swagger UI `/api/docs` và layout theo vai trò ở frontend (NT-02), cùng mock Express cho luồng LMS SSO. API nghiệp vụ của từng service do các task sau bổ sung.
 
 Nhóm giữ cấu trúc `server/`, `web/` và dùng **`test`** làm nhánh tích hợp. Tạo `feature/<mã>-<tên>` từ `test`, mở PR vào `test` với tiêu đề `[NT-01] ...`. Xem [quy ước chung](docs/conventions.md).
 
@@ -214,14 +214,27 @@ java -jar server/services/ai-service/target/ai-service-1.0.0-SNAPSHOT.jar
 
 Health: `http://localhost:8088/actuator/health`. Chưa có Gemini client, nên chưa cần API key Gemini để chạy phần khung này.
 
-Chạy service khác bằng cách thay tên ở cả lệnh build lẫn đường dẫn JAR, dùng cổng trong bảng phạm vi service. **Chưa chạy gateway bằng `mvn spring-boot:run`** vì module thiếu main class. `identity-service` còn Spring Security mặc định, chưa xác thực bằng JWT hoặc tài khoản mẫu.
+Chạy service khác bằng cách thay tên ở cả lệnh build lẫn đường dẫn JAR, dùng cổng trong bảng phạm vi service. Gateway chạy bằng `mvn -f server/pom.xml -pl api-gateway -am spring-boot:run` (cổng 8080, mọi API dưới `/api/v1`).
 
-Các service JPA dùng `ddl-auto: validate`; thư mục migration còn là placeholder, chưa có Flyway hoặc seed. Không có lệnh tạo bảng nghiệp vụ/tài khoản mẫu ở thời điểm hiện tại.
+Bảng và dữ liệu mẫu do Flyway tạo khi service khởi động (`ddl-auto: validate`). Hiện có migration của `identity-service` (`users`, NT-01) và `company-service` (`companies`, NT-02, trong schema `company`). Chạy với profile `dev` để seed 8 tài khoản mẫu (+ `hr-new`) và Công ty A/B:
 
-Kiểm tra biên dịch/test toàn backend từ gốc repo:
+```sh
+mvn -f server/pom.xml -pl services/identity-service -am spring-boot:run -Dspring-boot.run.profiles=dev
+mvn -f server/pom.xml -pl services/company-service -am spring-boot:run -Dspring-boot.run.profiles=dev
+```
+
+Tài liệu API của mọi service (Swagger UI): `http://localhost:8080/api/docs`. Bấm **Authorize**, dán `accessToken` lấy từ `POST /auth/login` để thử API cần đăng nhập. Sơ đồ bảng: [docs/database/erd.md](docs/database/erd.md).
+
+Kiểm tra biên dịch/test toàn backend từ gốc repo (dùng H2, không cần Docker):
 
 ```sh
 mvn -f server/pom.xml clean test
+```
+
+Riêng test phân quyền (NT-02): guard dùng chung cho 5 vai trò, và tiêu chí "candidate gọi API của HR → 403, hr1 đọc Công ty B → 404":
+
+```sh
+mvn -f server/pom.xml -pl libs/common-core,services/company-service -am test -Dtest='RoleGuardTest*,CompanyAuthorizationTest' -Dsurefire.failIfNoSpecifiedTests=false
 ```
 
 ### 5. Chạy frontend mẫu
@@ -230,13 +243,15 @@ Mở terminal mới từ gốc repo:
 
 ```sh
 cd web
-
-Các trang đăng nhập (NT-01): `/login` (tab "Qua LMS" và "Doanh nghiệp"), `/sso-callback?ticket=`, `/change-password`, `/forgot-password`, `/reset-password/<token>`. Khi bật `NEXT_PUBLIC_LMS_MOCK=true`, tab "Qua LMS" có 6 người dùng LMS mẫu để đăng nhập thử (cần chạy `mock/` ở cổng 9000; backend xin vé hộ qua `POST /api/v1/auth/dev/sso-ticket`). HR mẫu `hr1@rikkeijobs.test`, `hr2@rikkeijobs.test` mật khẩu `Test@123`; `hr-new@rikkeijobs.test` phải đổi mật khẩu lần đầu. Chi tiết: [docs/api/NT-01-authentication.md](docs/api/NT-01-authentication.md).
+cp .env.example .env.local
 npm ci
 npm run dev -- --port 3000
 ```
 
-Truy cập `http://localhost:3000`. Trang hiện tại nằm tại `web/src/app/(pages)/(home)/page.tsx`; các nhóm route trong ngoặc không xuất hiện trong URL. Giao diện có ô tìm công việc và nút tìm kiếm mẫu, chưa xử lý tìm kiếm hoặc kết nối backend.
+Truy cập `http://localhost:3000/login`. Các nhóm route trong ngoặc không xuất hiện trong URL.
+
+- Đăng nhập (NT-01): `/login` (tab "Qua LMS" và "Doanh nghiệp"), `/sso-callback?ticket=`, `/change-password`, `/forgot-password`, `/reset-password/<token>`. Khi bật `NEXT_PUBLIC_LMS_MOCK=true`, tab "Qua LMS" có 6 người dùng LMS mẫu (cần chạy `mock/` ở cổng 9000; backend xin vé hộ qua `POST /api/v1/auth/dev/sso-ticket`). HR mẫu `hr1@rikkeijobs.test`, `hr2@rikkeijobs.test` mật khẩu `Test@123`; `hr-new@rikkeijobs.test` phải đổi mật khẩu lần đầu. Chi tiết: [docs/api/NT-01-authentication.md](docs/api/NT-01-authentication.md).
+- Sau đăng nhập (NT-02): layout chung với menu theo vai trò tại `/candidate`, `/hr`, `/mentor`, `/staff`, `/admin`. Mở trang của vai trò khác hiện trang 403; chưa đăng nhập thì về `/login`. Menu khai báo ở `web/src/config/menu.ts`. Chi tiết: [docs/api/NT-02-phan-quyen.md](docs/api/NT-02-phan-quyen.md).
 
 Frontend đã có `package-lock.json`, dùng `npm ci` để cài đúng phiên bản đã khóa. Sau khi cài, kiểm tra từ thư mục `web/`:
 
@@ -258,7 +273,7 @@ Khi triển khai API client, tạo `web/.env.local` với nội dung sau rồi k
 NEXT_PUBLIC_API_URL=http://localhost:8080/api/v1
 ```
 
-`.env` ở gốc không tự áp dụng cho Next.js trong `web/`. Giá trị `/api` trong `.env.example` hiện chưa khớp quy ước `/api/v1`; mã frontend hiện chưa đọc biến này và gateway chưa có API để gọi.
+`.env` ở gốc không tự áp dụng cho Next.js trong `web/`; frontend đọc `web/.env.local` (mẫu ở `web/.env.example`).
 
 ### 6. Chạy mock ngoài
 
@@ -288,7 +303,7 @@ Với request có JSON hợp lệ, thiếu/sai key trả `401 INVALID_SERVICE_KE
 
 ### 7. Email và tài khoản demo
 
-Chưa có Mailpit/MailHog, `email_outbox` hoặc seed tài khoản backend. Sáu định danh trong `mock/data.json` phục vụ SSO, không phải các tài khoản backend đã có mật khẩu. Yêu cầu 8 tài khoản demo và 20 kỹ năng nằm trong [conventions](docs/conventions.md).
+Email dev đi qua MailHog: `docker compose --env-file .env -f infra/compose.yaml up -d mailhog`, xem thư ở `http://localhost:8025`. Tài khoản demo và Công ty A/B được seed khi chạy `identity-service` và `company-service` với profile `dev` (bảng ở [NT-01-authentication.md](docs/api/NT-01-authentication.md#9-dữ-liệu-mẫu)). Sáu định danh trong `mock/data.json` phục vụ SSO. 20 kỹ năng trong [conventions](docs/conventions.md) chưa được seed.
 
 ### 8. Dừng và xử lý lỗi
 
@@ -311,4 +326,4 @@ docker compose --env-file .env -f infra/compose.yaml down
 
 Đã đối chiếu đường dẫn, script npm, module/parent POM và kiểm tra cú pháp Compose bằng `.env.example`. Mock đã cài bằng `npm ci` và kiểm tra HTTP trên cổng 9000: key sai/thiếu trả `401`, SSO cho 3 ứng viên, verify lại vé, vé không tồn tại, JSON hỏng, logs/reload và 9 endpoint TODO trả `404`.
 
-Chưa xác nhận chạy toàn hệ thống: máy kiểm tra chưa có Maven trên `PATH`; lần thử `npm ci` của frontend chưa hoàn tất và có cảnh báo peer dependency nêu trên, nên chưa chạy build/lint/frontend server. Gateway, API nghiệp vụ backend, seed và các endpoint mock TODO vẫn cần được triển khai.
+NT-01 và NT-02 đã chạy thử toàn luồng: gateway, identity/company-service (profile `dev`), mock, MailHog và frontend; `mvn clean test` toàn backend đạt. API nghiệp vụ của các service khác và các endpoint mock TODO vẫn cần được triển khai.

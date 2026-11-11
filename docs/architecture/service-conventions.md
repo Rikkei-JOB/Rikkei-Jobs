@@ -59,15 +59,24 @@ Lỗi không lường trước trả 500 (không gộp vào 400 để khỏi che
 - Mọi endpoint cần JWT, trừ `/actuator/health`, `/actuator/info`, `/actuator/prometheus`.
 - JWT do identity-service cấp, HS256, claims: `sub` (userId), `role`, `companyId`, và `mustChangePassword` (chỉ khi `true`). Mọi service phải dùng chung `JWT_SECRET`. Token có `mustChangePassword` bị `JwtAuthenticationFilter` chặn với 403 `MUST_CHANGE_PASSWORD` trước khi vào controller; service không cần tự kiểm tra.
 - Lấy người gọi: `@AuthenticationPrincipal AuthPrincipal principal` (có `getUserId()`, `getRole()`, `getCompanyId()`).
-- Phân quyền theo role bằng `@PreAuthorize`, kiểm ở API, không chỉ ẩn trên giao diện:
+- Phân quyền theo role bằng `@PreAuthorize` trên từng method controller, kiểm ở API, không chỉ ẩn trên giao diện. Sai vai trò → 403 `FORBIDDEN`:
 
 ```java
 @PreAuthorize(Roles.HR)                // hasRole('HR')
 @PreAuthorize(Roles.STAFF_OR_ADMIN)    // STAFF hoặc ADMIN
+@PreAuthorize(Roles.HR_STAFF_ADMIN)    // HR, STAFF hoặc ADMIN
 @PreAuthorize("hasAnyRole('MENTOR','ADMIN')")
 ```
 
-- Quyền theo dữ liệu (ví dụ "JD của mình", "ứng viên được giao") kiểm trong service, so `principal.companyId()` / `principal.userId()` với chủ sở hữu rồi ném `ForbiddenException`. Ma trận quyền đầy đủ nằm ở [NT-01-authentication.md](../api/NT-01-authentication.md).
+- Quyền theo dữ liệu kiểm trong service bằng `OwnershipGuard` (common-core): HR chỉ dữ liệu có `company_id` của mình, ứng viên chỉ dữ liệu của mình, STAFF/ADMIN thấy tất cả. Dữ liệu của người khác trả **404 `NOT_FOUND`**, giống hệt khi id không tồn tại (không trả 403, tránh dò id):
+
+```java
+OwnershipGuard.requireCompany(principal, job.getCompanyId(), "Không tìm thấy JD");   // HR
+OwnershipGuard.requireOwner(principal, cv.getCandidateId(), "Không tìm thấy CV");     // ứng viên
+```
+
+  Lấy `companyId`/`userId` từ `AuthPrincipal`, không từ request. Mẫu đầy đủ: `CompanyController` / `CompanyServiceImpl` của company-service. Ma trận quyền theo tính năng ở [NT-01-authentication.md](../api/NT-01-authentication.md); khung phân quyền ở [NT-02-phan-quyen.md](../api/NT-02-phan-quyen.md).
+- Tài liệu API sinh từ code (springdoc) tại `/<khu>/api-docs`, xem gộp ở Swagger UI `http://localhost:8080/api/docs`. Ghi vai trò được gọi và các mã lỗi bằng `@Operation`, `@ApiResponse`.
 - Một service cần luật bảo mật riêng thì khai báo bean `SecurityFilterChain` của chính nó, bean mặc định của `common-core` sẽ nhường chỗ.
 
 ## 5. Cấu trúc mỗi service
@@ -87,11 +96,11 @@ com.rikkei.jobs.<service>/
 
 Thêm một chức năng:
 
-1. Entity + migration (`src/main/resources/db/migration/V<n>__<mô_tả>.sql`; thêm `flyway-core` và `flyway-database-postgresql` vào pom của service khi cần, mẫu ở identity-service).
+1. Entity + migration (`src/main/resources/db/migration/V001__<mô_tả>.sql`, `V002__`...; thêm `flyway-core` và `flyway-database-postgresql` vào pom, và đặt schema riêng cho service như company-service, xem [ERD](../database/erd.md)). Cập nhật ERD.
 2. Repository, DTO request/response, mapper.
 3. Interface service + impl, ném `ResourceNotFoundException`, `BadRequestException`, `ConflictException`, `ForbiddenException` của `common-core` khi vi phạm nghiệp vụ.
-4. Controller trả thẳng DTO, gắn `@PreAuthorize`.
-5. Test (mẫu: `*PingControllerTest`; sinh token bằng `JwtUtils.generateJwtToken(userId, role, companyId)`).
+4. Controller trả thẳng DTO, gắn `@PreAuthorize` và `@Operation`; kiểm sở hữu bằng `OwnershipGuard`.
+5. Test, mỗi vai trò ít nhất 1 ca được phép + 1 ca bị chặn (mẫu: `CompanyAuthorizationTest`; sinh token bằng `JwtUtils.generateJwtToken(userId, role, companyId)`).
 
 ## 6. Cấu hình
 
@@ -99,4 +108,4 @@ Mỗi service đọc `JWT_SECRET` (khoá HS256, ≥ 32 byte), cổng `<TÊN>_SER
 
 ## 7. Chưa làm
 
-- Các service chưa có entity, migration nào. `ddl-auto: validate` sẽ báo lỗi ngay khi có entity mà chưa có migration.
+- Ngoài identity-service (`users`...) và company-service (`companies` bản tối thiểu), các service chưa có entity, migration nào. `ddl-auto: validate` sẽ báo lỗi ngay khi có entity mà chưa có migration.
