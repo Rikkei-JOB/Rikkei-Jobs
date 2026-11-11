@@ -13,6 +13,11 @@ spring:
     hibernate:
       ddl-auto: validate
 
+app:
+  jwt:
+    # Must equal identity-service's JWT_SECRET: tokens are issued there and only verified here.
+    secret: ${JWT_SECRET:your_super_secret_jwt_key_at_least_256_bits_long_rikkei_jobs}
+
 management:
   endpoints:
     web:
