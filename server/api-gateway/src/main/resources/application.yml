@@ -58,3 +58,23 @@ management:
   endpoint:
     health:
       show-details: never
+
+# Swagger UI for every service: http://localhost:8080/api/docs
+# Each service publishes its own OpenAPI JSON at /<area>/api-docs, reached here through the normal /api/v1 routes.
+# A new service only needs a line below and springdoc.api-docs.path in its application.yml.
+springdoc:
+  api-docs:
+    path: /api/docs/gateway-api-docs
+  swagger-ui:
+    path: /api/docs
+    persist-authorization: true
+    urls-primary-name: identity-service
+    urls:
+      - { name: identity-service, url: /api/v1/auth/api-docs }
+      - { name: company-service, url: /api/v1/company/api-docs }
+      - { name: profile-service, url: /api/v1/profile/api-docs }
+      - { name: recruitment-service, url: /api/v1/recruitment/api-docs }
+      - { name: learning-service, url: /api/v1/learning/api-docs }
+      - { name: internship-service, url: /api/v1/internship/api-docs }
+      - { name: assessment-service, url: /api/v1/assessment/api-docs }
+      - { name: ai-service, url: /api/v1/ai/api-docs }
