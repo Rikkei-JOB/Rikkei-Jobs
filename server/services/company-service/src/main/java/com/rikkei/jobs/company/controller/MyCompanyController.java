@@ -9,7 +9,11 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -34,5 +38,12 @@ public class MyCompanyController {
     public CompanyResponse update(@Valid @RequestBody UpdateCompanyRequest request,
                                   @AuthenticationPrincipal AuthPrincipal principal) {
         return companyService.updateMine(principal.getUserId(), request);
+    }
+
+    @PostMapping(value = "/logo", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PreAuthorize(Roles.HR)
+    public CompanyResponse uploadLogo(@RequestParam("file") MultipartFile file,
+                                      @AuthenticationPrincipal AuthPrincipal principal) {
+        return companyService.updateMyLogo(principal.getUserId(), file);
     }
 }
