@@ -72,3 +72,6 @@ web/*.tsbuildinfo
 
 # Local development processes, logs and isolated database
 .runtime/
+
+# Tệp tải lên khi chạy cục bộ (logo công ty)
+data/
