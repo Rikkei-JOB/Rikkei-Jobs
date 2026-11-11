@@ -2,11 +2,11 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { ArrowLeft, LogOut } from "lucide-react";
 import { Button } from "@/app/components/ui/button";
 import { useAuthGuard } from "@/hooks/use-auth-guard";
 import { useAuthStore } from "@/hooks/use-auth-store";
+import { useLogout } from "@/hooks/use-logout";
 import { ROLE_HOME } from "@/config/roles";
 import { SkillProfile } from "@/app/components/skills/skill-profile";
 
@@ -16,19 +16,13 @@ export default function CandidateProfilePage({
   params: Promise<{ userId: string }>;
 }) {
   const { userId } = React.use(params);
-  const router = useRouter();
   const allowed = useAuthGuard();
   const user = useAuthStore((s) => s.user);
-  const clear = useAuthStore((s) => s.clear);
+  const logout = useLogout();
 
   if (!allowed || !user) return null;
 
   const homePath = ROLE_HOME[user.role] ?? "/";
-
-  function logout() {
-    clear();
-    router.replace("/login");
-  }
 
   return (
     <div className="min-h-screen bg-muted/20">
