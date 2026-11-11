@@ -11,10 +11,12 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.UUID;
+import com.rikkei.jobs.company.client.IdentityClient;
 import org.junit.jupiter.api.BeforeEach;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
@@ -39,6 +41,7 @@ public abstract class CompanyApiTestSupport {
     @Autowired protected JwtUtils jwt;
     @Autowired protected CompanyRepository companies;
     @Autowired protected CompanyHrRepository companyHrs;
+    @MockBean protected IdentityClient identity;
 
     @DynamicPropertySource
     static void uploadDir(DynamicPropertyRegistry registry) {
