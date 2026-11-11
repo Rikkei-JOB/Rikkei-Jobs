@@ -35,6 +35,9 @@ import java.util.List;
 @EnableConfigurationProperties(JwtProperties.class)
 public class SecurityConfig {
 
+    /** Tài liệu OpenAPI của service ({@code /<khu>/api-docs}), để Swagger UI ở gateway đọc được mà không cần JWT. */
+    public static final String[] API_DOCS_PATHS = {"/*/api-docs", "/*/api-docs/**"};
+
     @Bean
     @ConditionalOnMissingBean
     public JwtUtils jwtUtils(JwtProperties jwtProperties) {
@@ -77,6 +80,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .requestMatchers("/actuator/health/**", "/actuator/info", "/actuator/prometheus").permitAll()
+                        .requestMatchers(API_DOCS_PATHS).permitAll()
                         .anyRequest().authenticated()
                 );
 

@@ -3,6 +3,7 @@ package com.rikkei.jobs.identity.config.security.config;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.rikkei.jobs.common.config.security.config.AccessDeniedExceptionHandler;
 import com.rikkei.jobs.common.config.security.config.AuthenticationEntryPointHandler;
+import com.rikkei.jobs.common.config.security.config.SecurityConfig;
 import com.rikkei.jobs.common.config.security.jwt.JwtUtils;
 import com.rikkei.jobs.identity.config.AppProperties;
 import com.rikkei.jobs.identity.config.security.jwt.IdentityJwtAuthenticationFilter;
@@ -62,6 +63,7 @@ public class IdentitySecurityConfig {
                         .requestMatchers("/auth/sso", "/auth/login", "/auth/forgot-password", "/auth/reset-password",
                                 "/auth/dev/sso-ticket").permitAll()
                         .requestMatchers("/actuator/health/**", "/actuator/info", "/actuator/prometheus").permitAll()
+                        .requestMatchers(SecurityConfig.API_DOCS_PATHS).permitAll()
                         .anyRequest().authenticated()
                 );
 

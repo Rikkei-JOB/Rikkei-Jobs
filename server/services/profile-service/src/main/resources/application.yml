@@ -27,3 +27,8 @@ management:
     health:
       show-details: never
 
+
+# OpenAPI JSON for this service; the gateway Swagger UI (/api/docs) reads it through /api/v1/profile/api-docs.
+springdoc:
+  api-docs:
+    path: /profile/api-docs
