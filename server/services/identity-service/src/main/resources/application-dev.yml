@@ -1,0 +1,11 @@
+# Local development / demo only. Activate with SPRING_PROFILES_ACTIVE=dev
+# or: mvn -pl services/identity-service -am spring-boot:run -Dspring-boot.run.profiles=dev
+# Never activate this profile on a shared or production environment.
+app:
+  lms:
+    dev-tickets:
+      # Login page "Qua LMS" tab: the backend asks the mock LMS for a ticket on behalf of the browser.
+      enabled: ${LMS_DEV_TICKETS_ENABLED:true}
+  dev-data:
+    # Seeds the sample accounts (@rikkeijobs.test, password Test@123).
+    enabled: ${DEV_DATA_ENABLED:true}

@@ -1,0 +1,240 @@
+openapi: 3.0.3
+info:
+  title: Rikkei Jobs - identity-service
+  version: 1.0.0
+  description: NT-01 authentication (LMS SSO ticket + HR email/password). Follows docs/conventions.md - success bodies are returned as-is (not wrapped) and every error is { code, message, errors? }. The external LMS is the mock in mock/ (port 9000), called by the backend with X-Service-Key.
+servers:
+  - url: http://localhost:8080/api/v1
+    description: Through the gateway (the gateway strips /api/v1, identity-service itself serves /auth/...)
+tags:
+  - name: auth
+  - name: dev
+    description: Dev/demo only (LMS_DEV_TICKETS_ENABLED=true)
+paths:
+  /auth/sso:
+    post:
+      tags: [auth]
+      summary: Exchange an LMS SSO ticket for an access token
+      description: Ticket is single-use and valid 60 seconds from its issuedAt. Creates the user on first login.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/SsoRequest' }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SsoResponse' }
+        '401':
+          description: INVALID_TICKET, TICKET_EXPIRED or TICKET_ALREADY_USED
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+  /auth/login:
+    post:
+      tags: [auth]
+      summary: HR sign-in
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/LoginRequest' }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/LoginResponse' }
+        '401':
+          description: INVALID_CREDENTIALS
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '429':
+          description: ACCOUNT_LOCKED (5 wrong attempts, 15 minutes). errors.minutesRemaining is set.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+  /auth/change-password:
+    post:
+      tags: [auth]
+      summary: Change password (clears must_change_password)
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ChangePasswordRequest' }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ChangePasswordResponse' }
+        '400':
+          description: VALIDATION_ERROR (weak password), INVALID_OLD_PASSWORD or SAME_PASSWORD
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '401':
+          description: UNAUTHORIZED
+  /auth/forgot-password:
+    post:
+      tags: [auth]
+      summary: Email a reset link (valid 30 minutes, single use)
+      description: Always 200, whether or not the email exists.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ForgotPasswordRequest' }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Message' }
+  /auth/reset-password:
+    post:
+      tags: [auth]
+      summary: Set a new password with a reset token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ResetPasswordRequest' }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Message' }
+        '400':
+          description: RESET_TOKEN_INVALID (expired or already used) or VALIDATION_ERROR
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+  /auth/me:
+    get:
+      tags: [auth]
+      summary: Current user
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/User' }
+        '401':
+          description: UNAUTHORIZED
+  /auth/dev/sso-ticket:
+    post:
+      tags: [dev]
+      summary: Ask the mock LMS to issue an SSO ticket (dev/demo only)
+      description: Simulates pressing the login button inside the LMS. The backend calls POST /lms/sso/tickets on the mock with X-Service-Key; the frontend never calls the mock directly.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [lmsUserId]
+              properties:
+                lmsUserId: { type: string, example: lms-sv-001 }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ticket: { type: string }
+                  issuedAt: { type: string, format: date-time }
+        '401':
+          description: INVALID_TICKET - unknown lmsUserId
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '502':
+          description: LMS_UNAVAILABLE - mock is down or X-Service-Key is wrong
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Claims - sub (userId), role, companyId, mustChangePassword (only when true). Expires after 8 hours. A token with mustChangePassword is answered with 403 MUST_CHANGE_PASSWORD by every service outside /auth/**.
+  schemas:
+    Role:
+      type: string
+      enum: [CANDIDATE, HR, MENTOR, STAFF, ADMIN]
+    User:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        email: { type: string }
+        fullName: { type: string }
+        role: { $ref: '#/components/schemas/Role' }
+        companyId: { type: string, format: uuid, nullable: true }
+        mustChangePassword: { type: boolean }
+    SsoRequest:
+      type: object
+      required: [ticket]
+      properties:
+        ticket: { type: string }
+    SsoResponse:
+      type: object
+      properties:
+        accessToken: { type: string }
+        user: { $ref: '#/components/schemas/User' }
+    LoginRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email: { type: string, format: email }
+        password: { type: string }
+    LoginResponse:
+      type: object
+      properties:
+        accessToken: { type: string }
+        user: { $ref: '#/components/schemas/User' }
+        mustChangePassword: { type: boolean }
+    ChangePasswordRequest:
+      type: object
+      required: [oldPassword, newPassword]
+      properties:
+        oldPassword: { type: string }
+        newPassword: { type: string, minLength: 8, description: At least 8 characters with a letter and a digit }
+    ForgotPasswordRequest:
+      type: object
+      required: [email]
+      properties:
+        email: { type: string, format: email }
+    ResetPasswordRequest:
+      type: object
+      required: [token, newPassword]
+      properties:
+        token: { type: string }
+        newPassword: { type: string, minLength: 8 }
+    ChangePasswordResponse:
+      type: object
+      description: accessToken replaces the old token (the old one may carry mustChangePassword and is rejected by other services).
+      properties:
+        message: { type: string }
+        accessToken: { type: string }
+    Message:
+      type: object
+      properties:
+        message: { type: string }
+    Error:
+      type: object
+      properties:
+        code: { type: string, example: TICKET_EXPIRED }
+        message: { type: string }
+        errors: { description: A message, or a map of field/detail values (e.g. minutesRemaining) }
