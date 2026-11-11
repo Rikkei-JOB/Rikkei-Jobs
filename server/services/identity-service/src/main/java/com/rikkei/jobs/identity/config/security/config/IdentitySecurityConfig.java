@@ -64,7 +64,7 @@ public class IdentitySecurityConfig {
                         .requestMatchers("/auth/sso", "/auth/login", "/auth/forgot-password", "/auth/reset-password",
                                 "/auth/dev/sso-ticket").permitAll()
                         // /internal/** không dùng JWT: InternalKeyFilter kiểm tra X-Internal-Key.
-                        .requestMatchers("/internal/**").permitAll()
+                        .requestMatchers(InternalKeyFilter.INTERNAL_PATTERN).permitAll()
                         .requestMatchers("/actuator/health/**", "/actuator/info", "/actuator/prometheus").permitAll()
                         .anyRequest().authenticated()
                 );

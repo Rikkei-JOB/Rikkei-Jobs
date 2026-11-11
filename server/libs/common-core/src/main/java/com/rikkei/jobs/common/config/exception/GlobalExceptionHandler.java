@@ -121,7 +121,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> handleGlobalException(Exception ex) throws Exception {
-        // Lỗi của Spring MVC (404, 405, 415 ...) giữ nguyên cách xử lý mặc định.
+        // Các lỗi Spring MVC khác (ngoài 404, 405, 415 đã xử lý ở trên) giữ nguyên cách xử lý mặc định.
         if (ex instanceof org.springframework.web.ErrorResponse) {
             throw ex;
         }

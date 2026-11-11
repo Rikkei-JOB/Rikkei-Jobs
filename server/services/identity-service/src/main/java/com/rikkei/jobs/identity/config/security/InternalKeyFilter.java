@@ -25,7 +25,9 @@ public class InternalKeyFilter extends OncePerRequestFilter {
     private static final String CODE = "INVALID_SERVICE_KEY";
     private static final String MESSAGE = "Thiếu hoặc sai khoá dịch vụ nội bộ";
 
-    private static final AntPathRequestMatcher INTERNAL_PATH = new AntPathRequestMatcher("/internal/**");
+    /** Mẫu đường dẫn duy nhất của API nội bộ; IdentitySecurityConfig dùng lại để khỏi lệch nhau. */
+    public static final String INTERNAL_PATTERN = "/internal/**";
+    private static final AntPathRequestMatcher INTERNAL_PATH = new AntPathRequestMatcher(INTERNAL_PATTERN);
 
     private final String serviceKey;
     private final ObjectMapper objectMapper;

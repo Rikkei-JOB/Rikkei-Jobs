@@ -42,7 +42,7 @@ export function CompanyProfileForm({ company, disabled, onSaved }: CompanyProfil
     handleSubmit,
     reset,
     setError,
-    formState: { errors },
+    formState: { errors, isDirty },
   } = useForm<CompanyProfileValues>({
     resolver: zodResolver(companyProfileSchema),
     defaultValues: toFormValues(company),
@@ -51,9 +51,9 @@ export function CompanyProfileForm({ company, disabled, onSaved }: CompanyProfil
   const [saved, setSaved] = React.useState(false);
   const [formError, setFormError] = React.useState<string | null>(null);
 
-  // Đồng bộ form khi dữ liệu từ server (hoặc sau khi đổi logo) thay đổi.
+  // Đồng bộ form khi dữ liệu từ server (hoặc sau khi đổi logo) thay đổi, nhưng giữ các ô HR đang sửa dở.
   React.useEffect(() => {
-    reset(toFormValues(company));
+    reset(toFormValues(company), { keepDirtyValues: true });
   }, [company, reset]);
 
   function onSubmit(values: CompanyProfileValues) {
@@ -61,6 +61,8 @@ export function CompanyProfileForm({ company, disabled, onSaved }: CompanyProfil
     setFormError(null);
     update.mutate(toUpdatePayload(values), {
       onSuccess: (updated) => {
+        // Form về trạng thái sạch với giá trị server vừa lưu (không còn "dirty" cũ).
+        reset(toFormValues(updated));
         setSaved(true);
         onSaved(updated);
       },
@@ -132,7 +134,7 @@ export function CompanyProfileForm({ company, disabled, onSaved }: CompanyProfil
           </FormField>
 
           {formError ? <Alert variant="destructive">{formError}</Alert> : null}
-          {saved ? <Alert variant="success">Đã lưu</Alert> : null}
+          {saved && !isDirty ? <Alert variant="success">Đã lưu</Alert> : null}
 
           <Button type="submit" disabled={disabled || update.isPending}>
             {update.isPending ? "Đang lưu..." : "Lưu thay đổi"}
