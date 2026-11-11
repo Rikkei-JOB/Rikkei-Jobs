@@ -243,11 +243,11 @@ Nhóm chọn một cách, ghi lệnh khởi động/kiểm tra trong README:
 - Mailpit/MailHog: backend gửi SMTP tới Mailpit (không thuộc mock), mentor xem thư qua hộp thư local.
 - Bảng `email_outbox`: lưu tối thiểu `id`, `toEmail`, `subject`, `body`, `status`, `createdAt`; có migration và cách truy vấn người nhận/nội dung.
 
-Demo không gửi email thật. Repo chưa triển khai lựa chọn nào.
+Demo không gửi email thật. **Nhóm chọn MailHog**: service `mailhog` trong `infra/compose.yaml`, SMTP `localhost:1025`, hộp thư `http://localhost:8025`. Backend cấu hình qua `MAIL_ENABLED`, `MAIL_HOST`, `MAIL_PORT`, `MAIL_FROM` (xem `.env.example`).
 
 ## 6. Danh mục kỹ năng và bậc năng lực
 
-Seed khoảng 20 kỹ năng; nhóm thống nhất 20 mục sau, mã ổn định và không trùng:
+Seed đúng **20 mã kỹ năng** theo tài liệu hướng dẫn mock của mentor. Bộ mã này dùng chung cho cả 3 nhóm và khớp trường `skills` của khoá học trong `mock/data.json`, nên **không đổi tên mã**. Muốn thêm kỹ năng ngoài danh sách thì thêm mã mới, không thay mã có sẵn.
 
 | Mã | Tên kỹ năng |
 | --- | --- |
@@ -258,19 +258,19 @@ Seed khoảng 20 kỹ năng; nhóm thống nhất 20 mục sau, mã ổn định
 | `REST_API` | REST API |
 | `HTML_CSS` | HTML/CSS |
 | `JAVASCRIPT` | JavaScript |
-| `TYPESCRIPT` | TypeScript |
 | `REACTJS` | ReactJS |
-| `NEXTJS` | Next.js |
 | `DOCKER` | Docker |
+| `ENGLISH` | Tiếng Anh |
+| `TESTING` | Kiểm thử phần mềm |
 | `LINUX` | Linux |
 | `OOP` | Lập trình hướng đối tượng |
-| `DATA_STRUCTURES_ALGORITHMS` | Cấu trúc dữ liệu và giải thuật |
-| `UNIT_TESTING` | Kiểm thử đơn vị |
-| `CI_CD` | CI/CD |
-| `ENGLISH` | Tiếng Anh |
-| `COMMUNICATION` | Giao tiếp |
+| `DSA` | Cấu trúc dữ liệu và giải thuật |
+| `CLEAN_CODE` | Clean code |
 | `TEAMWORK` | Làm việc nhóm |
-| `PROBLEM_SOLVING` | Giải quyết vấn đề |
+| `COMMUNICATION` | Giao tiếp |
+| `AGILE` | Agile/Scrum |
+| `SECURITY` | Bảo mật |
+| `CLOUD` | Điện toán đám mây |
 
 Chuỗi bậc trong đề bài được hiểu là khoảng **0–39, 40–69, 70–84, 85–100**, bao gồm hai đầu mút, trên thang 100:
 
@@ -291,5 +291,5 @@ Nhóm quy ước điểm thập phân: `0 <= score < 40`, `40 <= score < 70`, `7
 - Mock thiếu/sai key với JSON hợp lệ trả `401`; đúng key cần đọc được dữ liệu cho `lms-sv-001`, `lms-sv-002`, `lms-sv-003` trên LMS, khảo thí, lms-pm.
 - SSO tạo ticket → verify trả đúng ứng viên; enrollment POST → GET đọc lại; thêm thành viên batch và tạo Meet room kiểm tra được.
 - Timestamp có timezone; điểm biên `39/40`, `69/70`, `84/85`, `100` cho đúng bậc.
-- Kiểm tra được email qua hộp thư local hoặc `email_outbox`.
+- Kiểm tra được email qua hộp thư MailHog `http://localhost:8025`.
 - PR base `test`, tiêu đề bắt đầu `[<mã task>]`, có bằng chứng kiểm tra và review.

@@ -89,7 +89,7 @@ Script `mock/send-evaluation-links.js <batchId>` (hoặc `npm run evaluation-lin
 
 ## Backend gọi mock thế nào
 
-- Cấu hình (không gõ cứng `localhost:9000` trong code): `EXTERNAL_BASE_URL=http://localhost:9000`, `EXTERNAL_SERVICE_KEY=dev-key`.
+- Cấu hình (không gõ cứng `localhost:9000` trong code): nhóm dùng `LMS_BASE_URL=http://localhost:9000`, `LMS_SERVICE_KEY=dev-key` (xem `.env.example`; tài liệu mentor gọi là `EXTERNAL_BASE_URL`, `EXTERNAL_SERVICE_KEY`). Khảo thí, lms-pm, Meet chạy chung địa chỉ mock nên dùng lại hai biến này.
 - Một client dùng chung (ví dụ `ExternalApiClient`) tự gắn `X-Service-Key`, timeout 5 giây, thử lại 2 lần khi lỗi mạng. Các module NT-01, HS-02, NT-05, TT-01, TT-02, DT-02, UT-06 đều gọi qua client này.
 - Đổi lỗi: mock trả 404 → lỗi nghiệp vụ tương ứng (vé sai → 401); mock tắt hoặc quá thời gian → backend trả `503 {"code":"EXTERNAL_UNAVAILABLE"}`. Không để lộ lỗi 500 ra ngoài.
 - Không chép dữ liệu mock vào backend. Backend luôn lấy qua HTTP; dữ liệu lưu lại (ví dụ `external_records` của NT-05) là kết quả đồng bộ, không phải seed gõ tay.

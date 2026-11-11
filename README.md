@@ -174,7 +174,7 @@ Từ gốc repo:
 
 ```sh
 docker compose --env-file .env -f infra/compose.yaml config --quiet
-docker compose --env-file .env -f infra/compose.yaml up -d postgres redis rabbitmq
+docker compose --env-file .env -f infra/compose.yaml up -d postgres redis rabbitmq mailhog
 docker compose --env-file .env -f infra/compose.yaml ps
 docker compose --env-file .env -f infra/compose.yaml exec postgres pg_isready -U postgres -d rikkei_jobs
 ```
@@ -187,8 +187,11 @@ Chờ PostgreSQL báo `accepting connections` trước khi chạy service JPA. N
 | Redis | `localhost:6379` | Chưa đặt mật khẩu trong Compose |
 | RabbitMQ AMQP | `localhost:5672` | `guest`/`guest` |
 | RabbitMQ Management | `http://localhost:15672` | `guest`/`guest` |
+| MailHog SMTP | `localhost:1025` | Không cần đăng nhập; backend gửi email dev vào đây |
+| MailHog hộp thư | `http://localhost:8025` | Xem email backend đã gửi (quên mật khẩu, thông báo...) |
+| Grafana (tuỳ chọn) | `http://localhost:3001` | `admin`/`admin`; bật bằng `up -d prometheus grafana` |
 
-Không dùng `docker compose up -d` cho toàn bộ stack ở bước này: **Grafana đang ánh xạ cổng 3000, trùng frontend**. `GRAFANA_PORT` và `PROMETHEUS_PORT` trong `.env.example` chưa điều khiển port mapping vì Compose ghi cứng cổng. Nếu cần Grafana cùng web, sửa mapping Grafana thành `3001:3000` trước khi bật. Nginx trỏ tới gateway chưa hoàn thiện nên chưa cần bật. Script `scripts/setup.sh` hiện bật toàn bộ stack; dùng các lệnh chọn service ở trên cho luồng local này.
+Grafana chạy ở cổng **3001** (đổi bằng `GRAFANA_PORT`), Prometheus ở 9090 (`PROMETHEUS_PORT`), không còn trùng frontend 3000. Script `scripts/setup.sh` bật toàn bộ stack, kể cả nginx; luồng local nên bật từng service như lệnh ở trên.
 
 ### 4. Build và chạy một backend service
 
@@ -260,7 +263,7 @@ Khi triển khai API client, tạo `web/.env.local` với nội dung sau rồi k
 NEXT_PUBLIC_API_URL=http://localhost:8080/api/v1
 ```
 
-`.env` ở gốc không tự áp dụng cho Next.js trong `web/`. Giá trị `/api` trong `.env.example` hiện chưa khớp quy ước `/api/v1`; mã frontend hiện chưa đọc biến này và gateway chưa có API để gọi.
+`.env` ở gốc không tự áp dụng cho Next.js trong `web/`. `.env.example` dùng đúng tiền tố `/api/v1`; nếu không đặt biến, frontend mặc định gọi `http://localhost:8080/api/v1` (xem `web/src/config/env.ts`).
 
 ### 6. Chạy mock ngoài
 
@@ -299,7 +302,7 @@ npm run evaluation-links -- IOC-JB-2026-09
 
 ### 7. Email và tài khoản demo
 
-Chưa có Mailpit/MailHog, `email_outbox` hoặc seed tài khoản backend. Sáu định danh trong `mock/data.json` phục vụ SSO, không phải các tài khoản backend đã có mật khẩu. Yêu cầu 8 tài khoản demo và 20 kỹ năng nằm trong [conventions](docs/conventions.md).
+Email dev dùng **MailHog** (service `mailhog` trong `infra/compose.yaml`, bật ở bước 3): backend gửi SMTP tới `localhost:1025` theo `MAIL_HOST`, `MAIL_PORT`, `MAIL_FROM` trong `.env.example`; mở `http://localhost:8025` để xem thư. Không có thư nào được gửi ra ngoài thật. Sáu định danh trong `mock/data.json` phục vụ SSO, không phải các tài khoản backend đã có mật khẩu. Yêu cầu 8 tài khoản demo và 20 kỹ năng nằm trong [conventions](docs/conventions.md).
 
 ### 8. Dừng và xử lý lỗi
 
@@ -313,7 +316,7 @@ docker compose --env-file .env -f infra/compose.yaml down
 - Docker báo không kết nối daemon: bật Docker Desktop/Engine rồi kiểm tra lại `docker version`.
 - DB connection refused: kiểm tra `ps`, chờ `pg_isready`, đối chiếu biến DB trong terminal Java với Compose.
 - Đổi mật khẩu `.env` nhưng DB vẫn từ chối: volume PostgreSQL cũ giữ tài khoản khởi tạo trước đó; dùng cấu hình tương ứng hoặc cập nhật tài khoản DB. Không mặc định xóa volume.
-- Cổng 3000 bận do Grafana: chạy `docker compose --env-file .env -f infra/compose.yaml stop grafana` trước khi bật web.
+- Cổng 3000 bận khi chạy web: Grafana đã chuyển sang 3001; nếu vẫn bận, tìm tiến trình đang chiếm cổng (`netstat -ano | findstr :3000` trên Windows) hoặc chạy web ở cổng khác bằng `npm run dev -- --port 3002`.
 - Build web lỗi tải font Inter: kiểm tra kết nối tới Google Fonts; layout hiện dùng `next/font/google`.
 - `npm ci` báo lockfile không đồng bộ: người sửa dependency cần chạy `npm install` và commit cả `package.json`, `package-lock.json`; sau đó máy mentor chạy lại `npm ci`.
 - `npm ci` cảnh báo hoặc báo lỗi peer dependency: lockfile hiện có ESLint `10.14.0`, trong khi `eslint-plugin-import@2.32.0` khai báo hỗ trợ đến ESLint 9. Nếu cài đặt/lint thất bại, nhóm cần đồng bộ phiên bản ESLint và các plugin rồi cập nhật lockfile; không coi cảnh báo này là bằng chứng build đã thành công.
