@@ -15,7 +15,10 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.web.servlet.MockMvc;
 
 @SpringBootTest(properties = {
-    "spring.autoconfigure.exclude=org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration,org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration,org.springframework.boot.autoconfigure.data.jpa.JpaRepositoriesAutoConfiguration,org.springframework.boot.autoconfigure.jdbc.DataSourceTransactionManagerAutoConfiguration",
+    "spring.datasource.url=${HS01_TEST_DB_URL:jdbc:h2:mem:hs01_ping;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DB_CLOSE_DELAY=-1}",
+    "spring.datasource.username=${HS01_TEST_DB_USER:sa}",
+    "spring.datasource.password=${HS01_TEST_DB_PASSWORD:}",
+    "logging.level.root=WARN",
     "app.jwt.secret=test_secret_test_secret_test_secret_test_secret"
 })
 @AutoConfigureMockMvc

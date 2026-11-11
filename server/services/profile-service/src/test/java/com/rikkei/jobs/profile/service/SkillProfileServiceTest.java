@@ -34,11 +34,9 @@ import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.reset;
 
 @DataJpaTest(showSql = false, properties = {
-        "spring.datasource.url=jdbc:h2:mem:hs01;MODE=PostgreSQL;DB_CLOSE_DELAY=-1",
+        "spring.datasource.url=jdbc:h2:mem:hs01;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DB_CLOSE_DELAY=-1",
         "spring.jpa.hibernate.ddl-auto=validate",
-        "spring.sql.init.mode=always",
-        "spring.sql.init.schema-locations=classpath:db/hs01/schema.sql",
-        "spring.sql.init.data-locations=classpath:db/hs01/catalog.sql",
+        "spring.sql.init.mode=never",
         "spring.jpa.show-sql=false",
         "debug=false",
         "logging.level.root=WARN",
@@ -173,7 +171,13 @@ class SkillProfileServiceTest {
     @Test
     void catalogCanBeSeededAgainWithoutDuplicateSkillsOrMappings() {
         long mappingCount = mappings.count();
-        new ResourceDatabasePopulator(new ClassPathResource("db/hs01/catalog.sql")).execute(dataSource);
+        var populator = new ResourceDatabasePopulator(new ClassPathResource("db/migration/V2__skill_catalog.sql"));
+        try (var connection = dataSource.getConnection()) {
+            connection.setSchema("profile");
+            populator.populate(connection);
+        } catch (java.sql.SQLException ex) {
+            throw new IllegalStateException(ex);
+        }
 
         assertThat(skills.count()).isEqualTo(20);
         assertThat(mappings.count()).isEqualTo(mappingCount).isGreaterThan(5);

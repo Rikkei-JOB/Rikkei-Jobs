@@ -1,5 +1,5 @@
--- Prepared HS-01 schema, deliberately outside Flyway discovery until NT-01 integration.
--- user_id references identity UUIDs; a cross-service FK/migration policy is deferred.
+-- HS-01 tables in Flyway's isolated profile schema; user IDs are identity UUIDs.
+-- There is no cross-service FK so identity and profile can migrate independently.
 CREATE TABLE IF NOT EXISTS skills (
     id UUID PRIMARY KEY,
     code VARCHAR(100) NOT NULL UNIQUE,

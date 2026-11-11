@@ -1,6 +1,8 @@
 # Rikkei Jobs Platform
 
-Nền tảng tuyển dụng và phát triển sự nghiệp, sử dụng backend Spring Boot và frontend Next.js. Repo hiện có khung 8 service, trang giao diện mẫu và mock Express cho luồng LMS SSO; chưa có API nghiệp vụ backend, JWT hoặc seed tài khoản. API gateway chưa có lớp Application nên chưa khởi chạy được.
+Nền tảng tuyển dụng và phát triển sự nghiệp, sử dụng backend Spring Boot và frontend Next.js. Repo có khung 8 service, gateway, mock Express, luồng đăng nhập NT-01 và backend Skill Profile HS-01. Các nghiệp vụ khác tiếp tục được phát triển theo task.
+
+Hướng dẫn đăng nhập và tài khoản mẫu: [NT-01](docs/api/NT-01-authentication.md). API kỹ năng, migration và cách chạy dữ liệu demo: [HS-01 backend](docs/hs01-independent-backend.md). Với hai task này, dùng hướng dẫn chuyên biệt thay cho các ghi chú trạng thái khung bên dưới.
 
 Nhóm giữ cấu trúc `server/`, `web/` và dùng **`test`** làm nhánh tích hợp. Tạo `feature/<mã>-<tên>` từ `test`, mở PR vào `test` với tiêu đề `[NT-01] ...`. Xem [quy ước chung](docs/conventions.md).
 

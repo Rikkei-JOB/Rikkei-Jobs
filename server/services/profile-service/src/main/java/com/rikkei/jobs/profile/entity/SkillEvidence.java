@@ -26,6 +26,9 @@ public class SkillEvidence {
     @Column(name = "skill_id", nullable = false)
     private UUID skillId;
 
+    @Column(name = "external_record_id")
+    private UUID externalRecordId;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     private EvidenceSource source;

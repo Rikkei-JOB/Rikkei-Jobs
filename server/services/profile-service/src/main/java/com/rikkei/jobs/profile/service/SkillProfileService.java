@@ -10,6 +10,7 @@ import com.rikkei.jobs.profile.service.SkillScoreCalculator.ScoreEvidence;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.annotation.Isolation;
 
 import java.time.Clock;
 import java.time.Instant;
@@ -17,7 +18,7 @@ import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-/** Internal business service. HTTP callers must be authorized before invoking it after NT-01 integration. */
+/** Calculation/import business logic; HTTP access is checked by SkillProfileAccessService. */
 @Service
 @Transactional(readOnly = true)
 public class SkillProfileService {
@@ -27,17 +28,22 @@ public class SkillProfileService {
     private final SkillScoreRepository scores;
     private final SkillScoreCalculator calculator;
     private final Clock clock;
+    private final ExternalSkillRecordRepository external;
+    private final SkillProfileStateRepository states;
 
     public SkillProfileService(SkillRepository skills, SkillMappingRepository mappings,
                                SkillEvidenceRepository evidences, SkillScoreRepository scores,
                                SkillScoreCalculator calculator,
-                               @Qualifier("skillProfileClock") Clock clock) {
+                               @Qualifier("skillProfileClock") Clock clock,
+                               ExternalSkillRecordRepository external, SkillProfileStateRepository states) {
         this.skills = skills;
         this.mappings = mappings;
         this.evidences = evidences;
         this.scores = scores;
         this.calculator = calculator;
         this.clock = clock;
+        this.external = external;
+        this.states = states;
     }
 
     /** Incremental import: absent records are retained; corrections use the same stable sourceRef. */
@@ -47,6 +53,13 @@ public class SkillProfileService {
         if (records == null || records.stream().anyMatch(Objects::isNull)) {
             throw new IllegalArgumentException("Verified records must not contain null");
         }
+        lockProfile(userId);
+        applyRecords(userId, records, Map.of());
+        return recomputeFromEvidences(userId);
+    }
+
+    private Set<EvidenceKey> applyRecords(UUID userId, List<VerifiedSkillRecord> records,
+                                          Map<SourceReference, UUID> externalIds) {
         Map<MappingKey, List<SkillMapping>> mappingBySource = mappings.findAll().stream()
                 .collect(Collectors.groupingBy(m -> new MappingKey(m.getSource(), m.getSourceCode())));
         Map<EvidenceKey, SkillEvidence> existing = evidences.findAllByUserId(userId).stream()
@@ -72,16 +85,32 @@ public class SkillProfileService {
                 evidence.setWeight(mapping.getWeight());
                 evidence.setRecordedAt(record.recordedAt());
                 evidence.setVerified(true);
+                UUID externalId = externalIds.get(new SourceReference(record.source(), record.sourceRef()));
+                if (externalId != null) {
+                    evidence.setExternalRecordId(externalId);
+                }
                 changed.put(key, evidence);
             }
         }
         evidences.saveAll(changed.values());
-        return recomputeSkills(userId);
+        return changed.keySet();
     }
 
     @Transactional
     public List<SkillProfileView> recomputeSkills(UUID userId) {
         requireUser(userId);
+        lockProfile(userId);
+        List<ExternalSkillRecord> inputs = external.findAllByUserIdAndVerifiedTrue(userId);
+        Map<SourceReference, UUID> externalIds = inputs.stream().collect(Collectors.toMap(
+                r -> new SourceReference(r.getSource(), r.getSourceRef()), ExternalSkillRecord::getId));
+        Set<EvidenceKey> active = applyRecords(userId,
+                inputs.stream().map(ExternalSkillRecord::normalized).toList(), externalIds);
+        evidences.deleteAll(evidences.findAllByUserId(userId).stream()
+                .filter(e -> e.getExternalRecordId() != null && !active.contains(key(e))).toList());
+        return recomputeFromEvidences(userId);
+    }
+
+    private List<SkillProfileView> recomputeFromEvidences(UUID userId) {
         Instant now = clock.instant();
         Map<UUID, List<SkillEvidence>> bySkill = evidences.findAllByUserId(userId).stream()
                 .collect(Collectors.groupingBy(SkillEvidence::getSkillId));
@@ -111,6 +140,7 @@ public class SkillProfileService {
         return getSkills(userId);
     }
 
+    @Transactional(readOnly = true, isolation = Isolation.REPEATABLE_READ)
     public List<SkillProfileView> getSkills(UUID userId) {
         requireUser(userId);
         Map<UUID, SkillScore> bySkill = scores.findAllByIdUserId(userId).stream()
@@ -140,10 +170,16 @@ public class SkillProfileService {
         }
     }
 
+    private void lockProfile(UUID userId) {
+        states.ensureExists(userId);
+        states.lockByUserId(userId).orElseThrow();
+    }
+
     private static EvidenceKey key(SkillEvidence evidence) {
         return new EvidenceKey(evidence.getSkillId(), evidence.getSource(), evidence.getSourceRef());
     }
 
     private record MappingKey(MappingSource source, String code) { }
     private record EvidenceKey(UUID skillId, EvidenceSource source, String reference) { }
+    private record SourceReference(MappingSource source, String reference) { }
 }

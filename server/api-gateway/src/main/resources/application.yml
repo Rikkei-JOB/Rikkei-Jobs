@@ -23,7 +23,7 @@ spring:
           filters: [StripPrefix=2]
         - id: profile
           uri: ${PROFILE_SERVICE_URL:http://localhost:8082}
-          predicates: [Path=/api/v1/profile/**]
+          predicates: ["Path=/api/v1/profile/**,/api/v1/profiles/**"]
           filters: [StripPrefix=2]
         - id: recruitment
           uri: ${RECRUITMENT_SERVICE_URL:http://localhost:8083}
