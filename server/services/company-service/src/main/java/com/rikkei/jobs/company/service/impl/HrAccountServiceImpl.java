@@ -42,6 +42,7 @@ public class HrAccountServiceImpl implements HrAccountService {
         String fullName = request.getFullName().trim();
 
         UUID userId;
+        boolean createdHere = true;
         try {
             userId = identity.createHrUser(email, fullName, companyId).userId();
         } catch (EmailExistsException e) {
@@ -52,13 +53,24 @@ public class HrAccountServiceImpl implements HrAccountService {
                 throw new ConflictException("Email đã được sử dụng");
             }
             userId = e.userId();
+            createdHere = false;
         }
 
         try {
             companyHrRepository.saveAndFlush(new CompanyHr(userId, companyId));
         } catch (RuntimeException cause) {
-            rollbackIdentityUser(userId);
-            throw new IllegalStateException("Không ghi được liên kết HR với công ty", cause);
+            if (!createdHere) {
+                // Nhánh nối lại: user không do request này tạo nên tuyệt đối không xoá. Có thể request song song
+                // vừa nối xong thì coi là thành công, ngược lại là xung đột.
+                boolean linkedHere = companyHrRepository.findById(userId)
+                        .map(link -> companyId.equals(link.getCompanyId())).orElse(false);
+                if (!linkedHere) {
+                    throw new ConflictException("Email đã được sử dụng");
+                }
+            } else {
+                rollbackIdentityUser(userId);
+                throw new IllegalStateException("Không ghi được liên kết HR với công ty", cause);
+            }
         }
         return HrAccountResponse.builder()
                 .userId(userId).email(email).fullName(fullName).companyId(companyId).build();
