@@ -8,6 +8,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
+import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
@@ -24,13 +25,15 @@ public class InternalKeyFilter extends OncePerRequestFilter {
     private static final String CODE = "INVALID_SERVICE_KEY";
     private static final String MESSAGE = "Thiếu hoặc sai khoá dịch vụ nội bộ";
 
+    private static final AntPathRequestMatcher INTERNAL_PATH = new AntPathRequestMatcher("/internal/**");
+
     private final String serviceKey;
     private final ObjectMapper objectMapper;
 
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
-        String path = request.getRequestURI().substring(request.getContextPath().length());
-        return !path.startsWith("/internal/");
+        // Dùng đúng matcher như authorizeHttpRequests (đường dẫn đã giải mã) để "/%69nternal/..." không lọt qua.
+        return !INTERNAL_PATH.matches(request);
     }
 
     @Override

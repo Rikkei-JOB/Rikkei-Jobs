@@ -171,6 +171,26 @@ class InternalUserApiTest {
     }
 
     @Test
+    void percentEncodedPathDoesNotBypassKey() throws Exception {
+        String payload = json.writeValueAsString(body("hr11@example.com", "HR 11", "HR", UUID.randomUUID()));
+        mvc.perform(post(java.net.URI.create("/%69nternal/users"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(payload))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.code").value("INVALID_SERVICE_KEY"));
+        assertThat(users.existsByEmail("hr11@example.com")).isFalse();
+
+        String res = postUser(body("hr12@example.com", "HR 12", "HR", UUID.randomUUID()), KEY)
+                .andExpect(status().isCreated())
+                .andReturn().getResponse().getContentAsString();
+        UUID id = UUID.fromString(json.readTree(res).get("userId").asText());
+        mvc.perform(delete(java.net.URI.create("/%69nternal/users/" + id)))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.code").value("INVALID_SERVICE_KEY"));
+        assertThat(users.findById(id)).isPresent();
+    }
+
+    @Test
     void deleteRemovesHr() throws Exception {
         String res = postUser(body("hr9@example.com", "HR Chin", "HR", UUID.randomUUID()), KEY)
                 .andExpect(status().isCreated())
