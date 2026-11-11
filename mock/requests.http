@@ -1,58 +1,204 @@
 # Rikkei Jobs mock - goi thu bang IntelliJ (mui ten xanh) hoac VS Code + REST Client (Send Request)
 # Truoc khi chay: cd mock && npm start  (mock o http://localhost:9000)
+# Nen goi "Reset" (cuoi file) truoc moi lan demo.
+
+############################## KHOA DICH VU ##############################
 
 ### Ca 1 - Khong co khoa -> 401 INVALID_SERVICE_KEY
-GET http://localhost:9000/lms/courses
+GET http://localhost:9000/lms/students/lms-sv-001
 
 ### Ca 2 - Sai khoa -> 401 INVALID_SERVICE_KEY
-GET http://localhost:9000/lms/courses
+GET http://localhost:9000/lms/students/lms-sv-001
 X-Service-Key: sai-key
 
-### Ca 3 - Cap ve cho candidate1 -> 201 {ticket, issuedAt}
+############################## LMS - SSO ##############################
+
+### 1. Cap ve cho candidate1 -> 201 {ticket, issuedAt}
 POST http://localhost:9000/lms/sso/tickets
 X-Service-Key: dev-key
 Content-Type: application/json
 
 {"lmsUserId": "lms-sv-001"}
 
-### Ca 4 - Doi ve lay thong tin -> 200 Nguyen Van An, CANDIDATE
-# Dan gia tri "ticket" nhan duoc o Ca 3 vao body duoi day
+### 2. Doi ve lay thong tin -> 200 Nguyen Van An, CANDIDATE
+# Dan gia tri "ticket" nhan duoc o request 1 vao body. Goi lai lan 2 voi cung ve -> van 200 (backend tu chan).
 POST http://localhost:9000/lms/sso/verify
 X-Service-Key: dev-key
 Content-Type: application/json
 
-{"ticket": "47f1357fcaaa8aa1c445985c7994a35b"}
+{"ticket": "DAN_VE_O_REQUEST_1_VAO_DAY"}
 
-### Ca 5 - Chay lai dung Ca 4 voi cung ve -> van 200 (mock khong chan ve cu, backend tu chan)
-
-### Ca 6 - Ve bia -> 404 NOT_FOUND
-POST http://localhost:9000/lms/sso/verify
-X-Service-Key: dev-key
-Content-Type: application/json
-
-{"ticket": "abc123"}
-
-### Ca 7 - User khong ton tai -> 404 NOT_FOUND
+### 1. Loi - user khong ton tai -> 404
 POST http://localhost:9000/lms/sso/tickets
 X-Service-Key: dev-key
 Content-Type: application/json
 
 {"lmsUserId": "lms-sv-999"}
 
-### Ca 8 - Co khoa nhung sai duong dan -> 404 ROUTE_NOT_FOUND
+### 2. Loi - ve bia -> 404
+POST http://localhost:9000/lms/sso/verify
+X-Service-Key: dev-key
+Content-Type: application/json
+
+{"ticket": "abc123"}
+
+############################## LMS - HO SO, DIEM ##############################
+
+### 3. Ho so candidate1 -> 200
+GET http://localhost:9000/lms/students/lms-sv-001
+X-Service-Key: dev-key
+
+### 3. Ho so candidate2 -> 200
+GET http://localhost:9000/lms/students/lms-sv-002
+X-Service-Key: dev-key
+
+### 3. Ho so candidate3 -> 200
+GET http://localhost:9000/lms/students/lms-sv-003
+X-Service-Key: dev-key
+
+### 3. Loi - mentor khong phai CANDIDATE -> 404
+GET http://localhost:9000/lms/students/lms-mt-001
+X-Service-Key: dev-key
+
+### 4. Ket qua mon candidate1 -> 200 (5 mon)
+GET http://localhost:9000/lms/students/lms-sv-001/results
+X-Service-Key: dev-key
+
+### 4. Ket qua mon candidate2 -> 200 (4 mon)
+GET http://localhost:9000/lms/students/lms-sv-002/results
+X-Service-Key: dev-key
+
+### 4. Ket qua mon candidate3 -> 200 (3 mon)
+GET http://localhost:9000/lms/students/lms-sv-003/results
+X-Service-Key: dev-key
+
+############################## LMS - KHOA HOC, GHI DANH ##############################
+
+### 5. Tat ca khoa hoc -> 200 (6 khoa)
+GET http://localhost:9000/lms/courses
+X-Service-Key: dev-key
+
+### 5. Loc theo ky nang JAVA -> 200 (1 khoa)
+GET http://localhost:9000/lms/courses?skill=JAVA
+X-Service-Key: dev-key
+
+### 6. Ghi danh candidate3 vao Java nang cao -> 201 status ENROLLED
+POST http://localhost:9000/lms/enrollments
+X-Service-Key: dev-key
+Content-Type: application/json
+
+{"lmsUserId": "lms-sv-003", "courseId": "LMS-C-JAVA-02"}
+
+### 6. Loi - ghi danh lai cung khoa -> 409 ALREADY_ENROLLED
+POST http://localhost:9000/lms/enrollments
+X-Service-Key: dev-key
+Content-Type: application/json
+
+{"lmsUserId": "lms-sv-003", "courseId": "LMS-C-JAVA-02"}
+
+### 6. Loi - khoa hoc khong ton tai -> 404
+POST http://localhost:9000/lms/enrollments
+X-Service-Key: dev-key
+Content-Type: application/json
+
+{"lmsUserId": "lms-sv-003", "courseId": "LMS-C-KHONG-CO"}
+
+### 7. Danh sach ghi danh cua candidate3 -> 200
+GET http://localhost:9000/lms/enrollments/lms-sv-003
+X-Service-Key: dev-key
+
+############################## KHAO THI ##############################
+
+### 8. Diem thi candidate1 -> 200
+GET http://localhost:9000/exam/students/lms-sv-001/results
+X-Service-Key: dev-key
+
+### 8. Diem thi candidate2 -> 200
+GET http://localhost:9000/exam/students/lms-sv-002/results
+X-Service-Key: dev-key
+
+### 8. Diem thi candidate3 -> 200
+GET http://localhost:9000/exam/students/lms-sv-003/results
+X-Service-Key: dev-key
+
+############################## LMS-PM ##############################
+
+### 9. Thuc tap candidate1 -> 200 (1 dot, 3 task)
+GET http://localhost:9000/pm/students/lms-sv-001/internships
+X-Service-Key: dev-key
+
+### 9. Thuc tap candidate2 -> 200 []
+GET http://localhost:9000/pm/students/lms-sv-002/internships
+X-Service-Key: dev-key
+
+### 9. Thuc tap candidate3 -> 200 []
+GET http://localhost:9000/pm/students/lms-sv-003/internships
+X-Service-Key: dev-key
+
+### 10. Them candidate3 vao dot 12/2026 -> 201 {batchId, lmsUserId, addedAt}
+POST http://localhost:9000/pm/batches/IOC-JB-2026-12/members
+X-Service-Key: dev-key
+Content-Type: application/json
+
+{"lmsUserId": "lms-sv-003"}
+
+### 10. Loi - them lai -> 409 ALREADY_MEMBER
+POST http://localhost:9000/pm/batches/IOC-JB-2026-12/members
+X-Service-Key: dev-key
+Content-Type: application/json
+
+{"lmsUserId": "lms-sv-003"}
+
+### 10. Loi - dot khong ton tai -> 404
+POST http://localhost:9000/pm/batches/IOC-KHONG-CO/members
+X-Service-Key: dev-key
+Content-Type: application/json
+
+{"lmsUserId": "lms-sv-003"}
+
+############################## RIKKEI MEET ##############################
+
+### 11. Tao phong hop -> 201 {roomId, roomUrl, title, startAt, endAt}
+POST http://localhost:9000/meet/rooms
+X-Service-Key: dev-key
+Content-Type: application/json
+
+{"title": "Phong van candidate1", "startAt": "2026-11-12T09:00:00+07:00", "endAt": "2026-11-12T10:00:00+07:00"}
+
+### 11. Loi - thieu truong -> 400 VALIDATION_ERROR
+POST http://localhost:9000/meet/rooms
+X-Service-Key: dev-key
+Content-Type: application/json
+
+{"title": "Thieu thoi gian"}
+
+############################## LOI CHUNG ##############################
+
+### Sai duong dan (co khoa) -> 404 ROUTE_NOT_FOUND
 GET http://localhost:9000/lms/abc
 X-Service-Key: dev-key
 
-### Ca 9 - Nhat ky request (khong can khoa) -> 200, kiem hasKey
-GET http://localhost:9000/mock/requests
-
-### Ca 10 - Nap lai data.json (khong can khoa) -> 200 {"ok": true}
-# Sua fullName cua lms-sv-001 trong data.json, goi request nay, roi chay lai Ca 3 + Ca 4 de thay ten moi
-POST http://localhost:9000/mock/reload
-
-### Ca 11 - Body JSON hong -> 400 INVALID_JSON
+### Body JSON hong -> 400 INVALID_JSON
 POST http://localhost:9000/lms/sso/verify
 X-Service-Key: dev-key
 Content-Type: application/json
 
 {"ticket": 
+
+############################## CONG CU TEST (khong can khoa) ##############################
+
+### Nhat ky 100 request gan nhat -> 200, kiem hasKey
+GET http://localhost:9000/mock/requests
+
+### Nap lai data.json -> 200 {"ok": true}
+# Sua diem trong data.json, goi request nay, roi goi lai request 4 de thay diem moi
+POST http://localhost:9000/mock/reload
+
+### Chuyen ghi danh candidate3 sang hoan thanh -> 200 (can chay request 6 truoc)
+PATCH http://localhost:9000/mock/enrollments
+Content-Type: application/json
+
+{"lmsUserId": "lms-sv-003", "courseId": "LMS-C-JAVA-02", "progress": 100, "score": 8, "status": "COMPLETED"}
+
+### Reset ve, ghi danh, thanh vien dot, phong hop, nhat ky -> 200 {"ok": true}
+POST http://localhost:9000/mock/reset

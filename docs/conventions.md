@@ -15,7 +15,7 @@ docs/        # Quy ước, API, ERD, kiến trúc, quyết định kỹ thuật
 scripts/     # Script hỗ trợ phát triển
 ```
 
-Nhóm giữ nguyên cấu trúc hiện tại, dùng `server/` cho backend, `web/` cho frontend và `mock/` cho mock hệ thống ngoài. Mock đã có luồng LMS SSO; các endpoint LMS khác, khảo thí, lms-pm và Meet còn là TODO. Đường dẫn trong build, CI, Docker, script và tài liệu phải khớp cấu trúc đã thống nhất.
+Nhóm giữ nguyên cấu trúc hiện tại, dùng `server/` cho backend, `web/` cho frontend và `mock/` cho mock hệ thống ngoài. Mock đã có đủ 11 endpoint LMS, Khảo thí, lms-pm và Rikkei Meet theo [mock-contract.md](mock-contract.md). Đường dẫn trong build, CI, Docker, script và tài liệu phải khớp cấu trúc đã thống nhất.
 
 Trưởng nhóm chia task có mã (ví dụ `NT-01`), người phụ trách, đầu ra và tiêu chí nghiệm thu. Cả nhóm cùng dựng và kiểm tra luồng chạy trong buổi đầu. Mỗi task cập nhật tài liệu hoặc hợp đồng API nếu có thay đổi liên quan.
 
@@ -151,11 +151,11 @@ Seed phải tạo đủ hai doanh nghiệp, liên kết đúng HR, 8 tài khoả
 - Công cụ local `/mock/*` không yêu cầu key; backend không gọi các công cụ này.
 - Backend giữ key trong cấu hình server; không nhúng vào biến frontend `NEXT_PUBLIC_*`.
 - Đường dẫn giữ nguyên `/lms`, `/exam`, `/pm`, `/meet`, **không thêm `/api/v1`**.
-- Body POST dùng JSON. Mock hiện có lỗi parse JSON `400`, key `401`, tài nguyên/route `404`, lỗi nội bộ `500`. Validation nghiệp vụ và lỗi xung đột `409` cho các endpoint TODO là hợp đồng mục tiêu, chưa được triển khai.
+- Body POST dùng JSON. Mock trả lỗi parse JSON `400 INVALID_JSON`, thiếu trường `400 VALIDATION_ERROR`, key `401`, tài nguyên/route `404`, trùng `409 ALREADY_ENROLLED` / `409 ALREADY_MEMBER`, lỗi nội bộ `500`.
 - Dữ liệu GET cho 3 ứng viên phải cố định và nhất quán. Khởi động lại mock đưa fixture về ban đầu; dữ liệu tạo từ POST có thể giữ trong bộ nhớ ở chế độ dev.
 - Email cấu hình riêng bằng Mailpit/MailHog hoặc `email_outbox`, không bắt buộc giả lập SMTP qua HTTP cổng 9000.
 
-**Trạng thái hiện tại:** đã có cấp/verify ticket SSO, `GET /mock/requests` và `POST /mock/reload`. Chín endpoint nghiệp vụ còn lại trong hợp đồng bên dưới chưa có handler, gọi với đúng key sẽ trả `404 ROUTE_NOT_FOUND`. `PATCH /mock/enrollments` và `POST /mock/reset` cũng chưa có. Reload chỉ nạp lại `data.json`, không xóa trạng thái trong bộ nhớ; cần khởi động lại tiến trình để xóa trạng thái.
+**Trạng thái hiện tại:** mock đã có đủ 11 endpoint nghiệp vụ, 4 công cụ `/mock/*` và script TT-04. Hợp đồng chi tiết (body, kết quả, mã lỗi, task dùng) nằm ở **[mock-contract.md](mock-contract.md)**, chép từ tài liệu hướng dẫn mock của mentor. Đây là nguồn duy nhất: muốn đổi hợp đồng thì cả nhóm thống nhất và sửa file đó trước. Các bảng dưới chỉ tóm tắt.
 
 Ví dụ thiếu/sai key:
 
@@ -165,17 +165,17 @@ Ví dụ thiếu/sai key:
 
 ### LMS
 
-| Method | Path | JSON request | JSON response thành công |
-| --- | --- | --- | --- |
-| `POST` | `/lms/sso/tickets` | `{lmsUserId}` | `201 {ticket, issuedAt}` — đã có |
-| `POST` | `/lms/sso/verify` | `{ticket}` | `200 {lmsUserId, email, fullName, role, issuedAt}` — đã có |
-| `GET` | `/lms/students/{id}` | — | `{program, classCode, courseName}` |
-| `GET` | `/lms/students/{id}/results` | — | `[{subjectCode, subjectName, score, attendanceRate, homeworkRate, rpoint}]` |
-| `GET` | `/lms/courses` | — | `[{courseId, name, skills: [], level}]` |
-| `POST` | `/lms/enrollments` | Nhóm quy ước `{lmsUserId, courseId}` | Nhóm quy ước `{id, lmsUserId, courseId, status}` |
-| `GET` | `/lms/enrollments/{id}` | — | Nhóm quy ước `{id, lmsUserId, courseId, status}` |
+| Method | Path | JSON request | Thành công | Lỗi |
+| --- | --- | --- | --- | --- |
+| `POST` | `/lms/sso/tickets` | `{lmsUserId}` | `201 {ticket, issuedAt}` | `404` user không có |
+| `POST` | `/lms/sso/verify` | `{ticket}` | `200 {lmsUserId, email, fullName, role, issuedAt}` | `404` vé không có |
+| `GET` | `/lms/students/{lmsUserId}` | — | `200 {lmsUserId, fullName, email, program, classCode, courseName}` | `404` không có hoặc không phải `CANDIDATE` |
+| `GET` | `/lms/students/{lmsUserId}/results` | — | `200 [{subjectCode, subjectName, score, attendanceRate, homeworkRate, rpoint}]` | — |
+| `GET` | `/lms/courses?skill=JAVA` | — | `200 [{courseId, name, skills: [], level}]`, có `skill` thì lọc | — |
+| `POST` | `/lms/enrollments` | `{lmsUserId, courseId}` | `201 {lmsUserId, courseId, progress: 0, score: null, status: "ENROLLED", enrolledAt}` | `404` user/khoá không có; `409 ALREADY_ENROLLED` |
+| `GET` | `/lms/enrollments/{lmsUserId}` | — | `200` mảng ghi danh; `status` là `ENROLLED`, `IN_PROGRESS` hoặc `COMPLETED` | — |
 
-Các dòng không ghi “đã có” là hợp đồng mục tiêu. `{id}` trong URL student là `lmsUserId`. Đề bài chưa quy định schema enrollment; tài liệu đề xuất `status: "ENROLLED"`, POST trả `201`, GET trả `200`, đăng ký trùng trả `409`, tra cứu theo ID lượt ghi danh. Trong mã mock hiện chỉ có mảng enrollment dự kiến chứa `{lmsUserId, courseId, progress, score, status, enrolledAt}`, chưa có `id` hoặc handler; cần thống nhất schema/ID khi triển khai, chưa thể kiểm tra POST → GET hiện nay.
+Lượt ghi danh được xác định bằng cặp `lmsUserId` + `courseId`, không có ID riêng. Muốn chuyển trạng thái (ví dụ hoàn thành khoá học cho DT-02, DT-03) thì gọi công cụ `PATCH /mock/enrollments`.
 
 Luồng SSO mô phỏng bấm nút từ LMS:
 
@@ -184,73 +184,39 @@ Luồng SSO mô phỏng bấm nút từ LMS:
 3. Backend gọi `POST /lms/sso/verify` với ticket và service key, nhận định danh LMS.
 4. Backend ánh xạ/tạo tài khoản theo chính sách SSO rồi phát JWT nội bộ. Ticket mock không phải JWT.
 
-Cấp vé trả `201`, verify trả `200` khi hợp lệ; user/ticket không tồn tại trả `404 NOT_FOUND`. Mock cố ý cho phép verify lại cùng vé và không tự kiểm tra tuổi vé để kiểm tra backend xử lý SSO. Backend phải triển khai kiểm tra hết hạn/chống dùng lại theo chính sách xác thực; mock hiện không trả `409` cho vé đã dùng. `issuedAt` là thời điểm cấp vé thực tế theo ISO 8601.
-
-Ví dụ verify (timestamp minh họa):
-
-```json
-{
-  "lmsUserId": "lms-sv-001",
-  "email": "candidate1@rikkeijobs.test",
-  "fullName": "Nguyễn Văn An",
-  "role": "CANDIDATE",
-  "issuedAt": "2026-11-01T08:00:00Z"
-}
-```
+Mock cố ý cho phép verify lại cùng vé và không tự kiểm tra tuổi vé. Backend phải tự chặn vé đã dùng và vé quá 60 giây (NT-01). `issuedAt` là thời điểm cấp vé thực tế theo ISO 8601.
 
 ### Khảo thí
 
-`GET /exam/students/{id}/results` chưa có handler. Khi triển khai, trả mảng kết quả theo fixture, ví dụ candidate1:
-
-```json
-[
-  {"examCode": "EX-JAVA-2026-10", "subjectCode": "JAVA01", "score": 8.0, "takenAt": "2026-10-20T08:00:00+07:00"}
-]
-```
+`GET /exam/students/{lmsUserId}/results` → `200 [{examCode, subjectCode, score, takenAt}]`, không có dữ liệu thì `[]`.
 
 ### lms-pm
 
-`GET /pm/students/{id}/internships` chưa có handler. Dữ liệu mục tiêu theo fixture candidate1 (có thể có thêm field như ngày bắt đầu/kết thúc):
+| Method | Path | JSON request | Thành công | Lỗi |
+| --- | --- | --- | --- | --- |
+| `GET` | `/pm/students/{lmsUserId}/internships` | — | `200 [{batchId, batchName, groupName, topicName, mentorEmail, finalScore, tasks: [{title, acceptedScore, acceptedAt}]}]` | — |
+| `POST` | `/pm/batches/{batchId}/members` | `{lmsUserId}` | `201 {batchId, lmsUserId, addedAt}` | `404` đợt/user không có; `409 ALREADY_MEMBER` |
 
-```json
-[
-  {
-    "batchId": "IOC-JB-2026-09",
-    "batchName": "IOC Java Backend 09/2026",
-    "groupName": "Nhóm 2",
-    "topicName": "Hệ thống đặt lịch phòng họp",
-    "mentorEmail": "mentor1@rikkeijobs.test",
-    "finalScore": 8.5,
-    "tasks": [
-      {"title": "API đặt phòng và kiểm trùng lịch", "acceptedScore": 9, "acceptedAt": "2026-09-25T17:00:00+07:00"},
-      {"title": "Phân quyền quản trị phòng", "acceptedScore": 8, "acceptedAt": "2026-10-09T17:00:00+07:00"},
-      {"title": "Báo cáo tần suất sử dụng phòng", "acceptedScore": 8.5, "acceptedAt": "2026-10-23T17:00:00+07:00"}
-    ]
-  }
-]
-```
+Bản ghi thực tập trong fixture có thêm `startDate`, `endDate`. Học viên đã có bản ghi thực tập của đợt trong fixture được coi là đã là thành viên.
 
-`POST /pm/batches/{id}/members` chưa có handler. Ví dụ mục tiêu: thêm `{"lmsUserId":"lms-sv-003"}` vào batch `IOC-JB-2026-12` có trong fixture. Đề xuất trả `201 {batchId, lmsUserId}`, thêm trùng trả `409`, batch/ứng viên không tồn tại trả `404`; cần hoàn thiện xử lý trước nghiệm thu.
+TT-04 đi chiều ngược lại: script `mock/send-evaluation-links.js <batchId>` gọi backend `POST /api/v1/integrations/pm/evaluation-links {mentorEmail, lmsUserId, batchId}` kèm `X-Service-Key`, rồi in link nhận được.
 
 ### Rikkei Meet
 
-`POST /meet/rooms` chưa có handler; hợp đồng request mục tiêu:
+`POST /meet/rooms` với `{title, startAt, endAt}` → `201 {roomId, roomUrl, title, startAt, endAt}`. Thiếu trường, thời gian không phải ISO 8601 hoặc `endAt <= startAt` → `400 VALIDATION_ERROR`. `roomUrl` là URL giả lập, không có phòng họp thật.
 
-```json
-{"title": "Phỏng vấn candidate1", "startAt": "2026-11-12T02:00:00Z", "endAt": "2026-11-12T03:00:00Z"}
-```
+### Công cụ test `/mock/*`
 
-Nhóm quy ước trả `201`:
-
-```json
-{"roomUrl": "https://meet.rikkeijobs.test/rooms/demo-001"}
-```
-
-Kiểm tra `title` không rỗng, timestamp hợp lệ và `endAt > startAt`, sai trả `400`. `roomUrl` là URL giả lập, không yêu cầu có phòng họp thật.
+| Endpoint | Việc nó làm |
+| --- | --- |
+| `POST /mock/reload` | Đọc lại `data.json` mà không tắt mock |
+| `GET /mock/requests` | 100 request gần nhất: thời điểm, method, path, body, có khoá hay không |
+| `PATCH /mock/enrollments` | Sửa `progress`, `score`, `status` của một lượt ghi danh `{lmsUserId, courseId, ...}` |
+| `POST /mock/reset` | Xoá vé, ghi danh, thành viên đợt, phòng họp và nhật ký request trong bộ nhớ |
 
 ### Fixture cố định cho 3 ứng viên
 
-Nguồn dữ liệu là [mock/data.json](../mock/data.json). Fixture đã có dữ liệu học tập, khảo thí và thực tập, nhưng các GET tương ứng chưa được triển khai. Ví dụ môn đầu tiên của mỗi ứng viên:
+Nguồn dữ liệu là [mock/data.json](../mock/data.json). Các GET học tập, khảo thí và thực tập trả đúng dữ liệu này. Ví dụ môn đầu tiên của mỗi ứng viên:
 
 | `lmsUserId` | `program` | `classCode` | `courseName` | Môn học | `score` | `attendanceRate` | `homeworkRate` | `rpoint` |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
@@ -274,14 +240,14 @@ Sáu khóa học có ID `LMS-C-JAVA-02`, `LMS-C-SQL-01`, `LMS-C-SPRING-01`, `LMS
 
 Nhóm chọn một cách, ghi lệnh khởi động/kiểm tra trong README:
 
-- Mailpit/MailHog: backend gửi SMTP tới mock, mentor xem thư qua hộp thư local.
+- Mailpit/MailHog: backend gửi SMTP tới Mailpit (không thuộc mock), mentor xem thư qua hộp thư local.
 - Bảng `email_outbox`: lưu tối thiểu `id`, `toEmail`, `subject`, `body`, `status`, `createdAt`; có migration và cách truy vấn người nhận/nội dung.
 
-Demo không gửi email thật. Repo chưa triển khai lựa chọn nào.
+Demo không gửi email thật. **Nhóm chọn MailHog**: service `mailhog` trong `infra/compose.yaml`, SMTP `localhost:1025`, hộp thư `http://localhost:8025`. Backend cấu hình qua `MAIL_ENABLED`, `MAIL_HOST`, `MAIL_PORT`, `MAIL_FROM` (xem `.env.example`).
 
 ## 6. Danh mục kỹ năng và bậc năng lực
 
-Seed khoảng 20 kỹ năng; nhóm thống nhất 20 mục sau, mã ổn định và không trùng:
+Seed đúng **20 mã kỹ năng** theo tài liệu hướng dẫn mock của mentor. Bộ mã này dùng chung cho cả 3 nhóm và khớp trường `skills` của khoá học trong `mock/data.json`, nên **không đổi tên mã**. Muốn thêm kỹ năng ngoài danh sách thì thêm mã mới, không thay mã có sẵn.
 
 | Mã | Tên kỹ năng |
 | --- | --- |
@@ -292,19 +258,19 @@ Seed khoảng 20 kỹ năng; nhóm thống nhất 20 mục sau, mã ổn định
 | `REST_API` | REST API |
 | `HTML_CSS` | HTML/CSS |
 | `JAVASCRIPT` | JavaScript |
-| `TYPESCRIPT` | TypeScript |
 | `REACTJS` | ReactJS |
-| `NEXTJS` | Next.js |
 | `DOCKER` | Docker |
+| `ENGLISH` | Tiếng Anh |
+| `TESTING` | Kiểm thử phần mềm |
 | `LINUX` | Linux |
 | `OOP` | Lập trình hướng đối tượng |
-| `DATA_STRUCTURES_ALGORITHMS` | Cấu trúc dữ liệu và giải thuật |
-| `UNIT_TESTING` | Kiểm thử đơn vị |
-| `CI_CD` | CI/CD |
-| `ENGLISH` | Tiếng Anh |
-| `COMMUNICATION` | Giao tiếp |
+| `DSA` | Cấu trúc dữ liệu và giải thuật |
+| `CLEAN_CODE` | Clean code |
 | `TEAMWORK` | Làm việc nhóm |
-| `PROBLEM_SOLVING` | Giải quyết vấn đề |
+| `COMMUNICATION` | Giao tiếp |
+| `AGILE` | Agile/Scrum |
+| `SECURITY` | Bảo mật |
+| `CLOUD` | Điện toán đám mây |
 
 Chuỗi bậc trong đề bài được hiểu là khoảng **0–39, 40–69, 70–84, 85–100**, bao gồm hai đầu mút, trên thang 100:
 
@@ -322,8 +288,8 @@ Nhóm quy ước điểm thập phân: `0 <= score < 40`, `40 <= score < 70`, `7
 - Chạy từ clone sạch theo README, không phụ thuộc file riêng trên máy thành viên.
 - API giữ đúng `/api/v1`, JSON, JWT, role, phân trang và lỗi đã quy định.
 - Đủ 8 tài khoản, HR thuộc đúng Công ty A/B, 3 ID LMS khớp fixture và 20 kỹ năng.
-- Mock thiếu/sai key với JSON hợp lệ trả `401`; đúng key cần đọc được dữ liệu cho `lms-sv-001`, `lms-sv-002`, `lms-sv-003` trên LMS, khảo thí, lms-pm khi các endpoint TODO được hoàn thiện.
+- Mock thiếu/sai key với JSON hợp lệ trả `401`; đúng key cần đọc được dữ liệu cho `lms-sv-001`, `lms-sv-002`, `lms-sv-003` trên LMS, khảo thí, lms-pm.
 - SSO tạo ticket → verify trả đúng ứng viên; enrollment POST → GET đọc lại; thêm thành viên batch và tạo Meet room kiểm tra được.
 - Timestamp có timezone; điểm biên `39/40`, `69/70`, `84/85`, `100` cho đúng bậc.
-- Kiểm tra được email qua hộp thư local hoặc `email_outbox`.
+- Kiểm tra được email qua hộp thư MailHog `http://localhost:8025`.
 - PR base `test`, tiêu đề bắt đầu `[<mã task>]`, có bằng chứng kiểm tra và review.

@@ -69,3 +69,6 @@ Thumbs.db
 # Next.js auto-generated
 web/next-env.d.ts
 web/*.tsbuildinfo
+
+# Local development processes, logs and isolated database
+.runtime/
