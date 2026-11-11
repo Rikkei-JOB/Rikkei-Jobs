@@ -1,0 +1,206 @@
+openapi: 3.0.3
+info:
+  title: Rikkei Jobs - HS-01 Skill Profile
+  version: 1.0.0
+  description: |
+    Backend HS-01. Success responses are JSON arrays without a wrapper.
+    Scores and evidence belong to the internal UUID from the identity JWT, not lmsUserId.
+    Verified imports, publication consent and profile approval have no HTTP mutation endpoints in HS-01.
+servers:
+  - url: http://localhost:8080/api/v1
+    description: Gateway strips /api/v1; profile-service receives /profiles/...
+tags:
+  - name: skills
+security:
+  - bearerAuth: []
+paths:
+  /profiles/me/skills:
+    get:
+      tags: [skills]
+      operationId: getOwnSkills
+      summary: Read the authenticated candidate's skills
+      description: Requires CANDIDATE. Uses JWT sub exclusively; client-supplied userId cannot select another owner. An owner with no skill data receives an empty array.
+      responses:
+        '200':
+          $ref: '#/components/responses/SkillList'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+  /profiles/{userId}/skills:
+    get:
+      tags: [skills]
+      operationId: getProfileSkills
+      summary: Read an owner's or a published profile's skills
+      description: |
+        Requires a valid JWT. The owner can always read their own skills.
+        Other users can read only when profile.skill_profile_states has consented=true AND approved=true.
+        Missing and private profiles produce the same 404 response. Roles do not bypass this privacy rule.
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          description: Internal identity UUID, never an external ID such as lms-sv-001.
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          $ref: '#/components/responses/SkillList'
+        '400':
+          description: Malformed userId (BAD_REQUEST).
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          description: NOT_FOUND; the profile does not exist or is not visible to this viewer.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+              example: { code: NOT_FOUND, message: Profile not found }
+  /profiles/me/skills/recompute:
+    post:
+      tags: [skills]
+      operationId: recomputeOwnSkills
+      summary: Recompute the authenticated candidate's skills from stored records
+      description: |
+        Requires CANDIDATE. Send no request body. Ownership comes from JWT sub.
+        Reads verified rows from profile.external_records; normalizes score / scoreMax * 100,
+        maps LMS/EXAM/PM to skills and persists recalculated scores in one transaction.
+        PM becomes INTERNSHIP evidence. Removed, revoked or unmapped source rows lose their linked evidence.
+        Existing internal imports without external_record_id are retained.
+        SELF and MENTOR evidence is preserved; selfScore stays separate from verifiedScore.
+        This endpoint never accepts client-provided verified evidence or publication flags.
+      responses:
+        '200':
+          $ref: '#/components/responses/SkillList'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          description: CONFLICT; a database constraint prevented the operation.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT issued by identity-service; all services must share JWT_SECRET. A mustChangePassword=true token is rejected with 403 MUST_CHANGE_PASSWORD before the controller.
+  responses:
+    SkillList:
+      description: Skills ordered by group and code, with evidence ordered by date descending. No pagination or response wrapper.
+      content:
+        application/json:
+          schema:
+            type: array
+            items: { $ref: '#/components/schemas/SkillProfile' }
+          example:
+            - skill:
+                id: 00000000-0000-0000-0001-000000000001
+                code: JAVA
+                name: Java
+                group: Backend
+              verifiedScore: 82.058824
+              selfScore: null
+              level: GOOD
+              evidences:
+                - source: EXAM
+                  title: Thi Java (mẫu điểm chính thức)
+                  score: 80
+                  recordedAt: '2026-10-20T01:00:00Z'
+                  verified: true
+                - source: LMS
+                  title: Lập trình Java (mẫu đã chốt)
+                  score: 85
+                  recordedAt: '2026-10-01T08:00:00Z'
+                  verified: true
+            - skill:
+                id: 00000000-0000-0000-0001-000000000017
+                code: ENGLISH
+                name: Tiếng Anh
+                group: Soft skills
+              verifiedScore: null
+              selfScore: 65
+              level: null
+              evidences:
+                - source: SELF
+                  title: Tự đánh giá tiếng Anh (mẫu)
+                  score: 65
+                  recordedAt: '2026-10-20T00:00:00Z'
+                  verified: false
+    Unauthorized:
+      description: UNAUTHORIZED; missing, invalid, wrong-signature or expired bearer token.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    Forbidden:
+      description: FORBIDDEN for a non-CANDIDATE using a candidate-only route; MUST_CHANGE_PASSWORD for a restricted token.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+  schemas:
+    SkillProfile:
+      type: object
+      required: [skill, verifiedScore, selfScore, level, evidences]
+      properties:
+        skill: { $ref: '#/components/schemas/Skill' }
+        verifiedScore:
+          type: number
+          nullable: true
+          minimum: 0
+          maximum: 100
+          description: Weighted verified score, rounded to six decimal places. Null when there is no verified evidence.
+        selfScore:
+          type: number
+          nullable: true
+          minimum: 0
+          maximum: 100
+          description: Self-reported score stored separately; never added to verifiedScore.
+        level:
+          type: string
+          nullable: true
+          enum: [BASIC, FAIR, GOOD, EXCELLENT, null]
+          description: Calculated from the unrounded verified score; null when verifiedScore is null.
+        evidences:
+          type: array
+          items: { $ref: '#/components/schemas/SkillEvidence' }
+    Skill:
+      type: object
+      required: [id, code, name, group]
+      properties:
+        id: { type: string, format: uuid }
+        code: { type: string, example: JAVA }
+        name: { type: string, example: Java }
+        group: { type: string, example: Backend }
+    SkillEvidence:
+      type: object
+      required: [source, title, score, recordedAt, verified]
+      properties:
+        source:
+          type: string
+          enum: [LMS, EXAM, INTERNSHIP, MENTOR, SELF]
+        title: { type: string }
+        score: { type: number, minimum: 0, maximum: 100 }
+        recordedAt:
+          type: string
+          format: date-time
+          description: Original evidence timestamp including timezone, maximum microsecond precision; never replaced by import time.
+        verified:
+          type: boolean
+          description: SELF is always false. Only true evidence contributes to verifiedScore.
+    Error:
+      type: object
+      required: [code, message]
+      properties:
+        code: { type: string }
+        message: { type: string }
+        errors:
+          description: Optional field-level or other structured error details.
