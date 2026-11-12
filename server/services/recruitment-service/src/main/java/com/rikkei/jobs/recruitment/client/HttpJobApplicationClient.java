@@ -25,7 +25,7 @@ public class HttpJobApplicationClient implements JobApplicationClient {
     }
     @Override public JobApplicationContext getContext(UUID jobId) {
         if (serviceKey == null || serviceKey.isBlank()) throw new RecruitmentDependencyException(503, "DEPENDENCY_NOT_CONFIGURED", "Kết nối dịch vụ JD chưa được cấu hình.");
-        try { return client.get().uri(path, jobId).header("X-Service-Key", serviceKey).retrieve().body(JobApplicationContext.class); }
+        try { return client.get().uri(path, jobId).header("X-Internal-Key", serviceKey).retrieve().body(JobApplicationContext.class); }
         catch (RestClientException ex) { throw RecruitmentHttpSupport.failure(ex, false); }
     }
 }

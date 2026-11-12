@@ -18,6 +18,7 @@
 - [x] Giao diện chọn CV, ứng tuyển, theo dõi/lịch sử/rút và đường ứng tuyển lại.
 - [x] Kiểm thử PostgreSQL thật, gateway, trình duyệt desktop/mobile, type-check/lint/build.
 - [x] Review độc lập; sửa trường hợp mất phản hồi commit có thể xoá nhầm PDF và liên kết JD không theo cấu hình, có regression RED→GREEN.
+- [x] Đồng bộ origin/test `fae21dc`; clean test toàn bộ backend: 454 tests/0 lỗi/1 skipped có sẵn; recruitment 38 test; frontend 9 browser test và type-check/lint/build qua.
 - [ ] Tích hợp thật HS-04/DN-04, xác minh QR/public và job_views sau khi các task phụ thuộc được cung cấp.
 - [ ] Xác minh kết quả CI trên GitHub và bàn giao PR vào `test`.
 

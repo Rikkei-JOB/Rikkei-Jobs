@@ -41,10 +41,10 @@ class ApplicationDependencyClientsTest {
     @Test void jobContextUsesInternalEndpointAndCredential() {
         var builder = RestClient.builder().baseUrl("http://company");
         var mock = MockRestServiceServer.bindTo(builder).build();
-        var client = new HttpJobApplicationClient(builder.build(), "/company/internal/jobs/{jobId}/application-context", "test-key");
+        var client = new HttpJobApplicationClient(builder.build(), "/internal/jobs/{jobId}/application-context", "test-key");
         var id = UUID.randomUUID();
-        mock.expect(requestTo("http://company/company/internal/jobs/" + id + "/application-context"))
-            .andExpect(header("X-Service-Key", "test-key"))
+        mock.expect(requestTo("http://company/internal/jobs/" + id + "/application-context"))
+            .andExpect(header("X-Internal-Key", "test-key"))
             .andRespond(withSuccess("{\"jobId\":\"" + id + "\",\"companyId\":\"" + UUID.randomUUID()
                 + "\",\"jobTitle\":\"Java\",\"companyName\":\"Company\",\"status\":\"APPROVED\",\"deadline\":\"2030-01-01T00:00:00Z\",\"companyLocked\":false,\"hrEmails\":[]}", MediaType.APPLICATION_JSON));
         assertThat(client.getContext(id).jobId()).isEqualTo(id);

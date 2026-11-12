@@ -22,7 +22,7 @@ Lỗi giữ `{code,message}`: 400 validation; 401 token; 403 quyền; 404 tài n
 
 **HS-04 và DN-04 chưa có trong checkout tại lúc triển khai.** Các URL dưới đây là default đề xuất, cấu hình được; owner cần đối chiếu khi tích hợp. Không có production fixture fallback hoặc truy cập bảng của service khác.
 
-- Company: GET `${COMPANY_SERVICE_URL}${RECRUITMENT_JOB_CONTEXT_PATH}`, default path `/company/internal/jobs/{jobId}/application-context`, header `X-Service-Key: ${RECRUITMENT_COMPANY_SERVICE_KEY}`. Chỉ endpoint nội bộ được xác thực mới được trả `hrEmails`; không public endpoint qua gateway và không ghi job_views.
+- Company: GET `${COMPANY_SERVICE_URL}${RECRUITMENT_JOB_CONTEXT_PATH}`, default path `/internal/jobs/{jobId}/application-context`, header `X-Internal-Key` dùng `RECRUITMENT_COMPANY_SERVICE_KEY`, hoặc `INTERNAL_SERVICE_KEY` nếu biến riêng chưa được đặt. Cấu hình khoá rỗng bị từ chối. Theo quy ước nội bộ mới nhất trên nhánh test, endpoint `/internal/**` chỉ gọi trực tiếp service, không đi qua route gateway. Chỉ endpoint nội bộ được xác thực mới được trả `hrEmails`; không ghi job_views.
 - Body: `{jobId, companyId, jobTitle, companyName, status, deadline, companyLocked, hrEmails: ["hr@company.test"]}`. IDs UUID; deadline ISO 8601 có offset; HR phải thuộc công ty và còn hoạt động. Thiếu hoặc sai dữ liệu phải bị từ chối, không coi là APPROVED.
 - Profile: GET `${PROFILE_SERVICE_URL}${RECRUITMENT_CV_PDF_PATH}`, default `/profile/cvs/{cvId}/pdf`, chuyển tiếp JWT ứng viên. HS-04 phải xác minh CV ownership; response `application/pdf`, bytes PDF hoàn chỉnh. Không dùng public CV URL.
 - FE: list CV từ `NEXT_PUBLIC_CV_API_PATH`, default `/profile/cvs`, trả mảng hoặc PageResponse có item `{id,name,targetPosition}`. `NEXT_PUBLIC_CV_PAGE_PATH` default `/candidate/cvs`; `NEXT_PUBLIC_JOB_PAGE_PATH` default `/jobs`. Chỉ dùng các route thật khi HS-04/DN-04 cung cấp.
@@ -77,3 +77,11 @@ npm run test:e2e
 ```
 
 Windows có Edge sẵn: đặt `$env:UT01_BROWSER_CHANNEL='msedge'` để dùng Edge headless. CI mặc định dùng Chromium. Browser tests dùng API test doubles qua Playwright; PostgreSQL tests chạy services/transactions thật với mock ở ranh giới JD/PDF. Chúng không chứng minh HS-04/DN-04 live hoặc QR PUBLIC integration đã hoàn tất.
+
+### Kết quả xác minh 2026-11-12
+
+- Đã hợp nhất `origin/test` tại `fae21dc` vào feature UT-01; giữ nguyên thay đổi DN-01 và shared conventions của nhóm.
+- `mvn -f server/pom.xml clean test`: 454 tests, 0 failures, 0 errors, 1 test có sẵn skipped; 12 module đều SUCCESS. Recruitment riêng có 38 test, dùng PostgreSQL 18 local riêng trên port 55439; CI dùng Testcontainers PostgreSQL khi không đặt UT01_TEST_DB_URL.
+- Frontend: type-check, lint và production build đều qua; 9 Playwright test qua trên Edge headless, gồm ứng tuyển, giữ thư khi lỗi, chưa có CV, auth, lọc giữ sau F5, rút đơn, OFFER, ứng tuyển lại và viewport mobile. Suite cũng qua khi đổi JD root thành `/vacancies`.
+- Review độc lập đã thực hiện; các phát hiện về snapshot khi mất xác nhận commit và liên kết JD cấu hình đã được sửa với regression RED→GREEN. Test MIME xác minh subject/body tiếng Việt, recipient và Message-ID ổn định.
+- Chưa nghiệm thu live HS-04/DN-04, QR PUBLIC/job_views hoặc SMTP thật vì các dependency/môi trường đó chưa có trong checkout kiểm thử. Docker daemon local không sẵn sàng nên chưa build container tại máy này. PR giữ draft cho đến khi tích hợp và kiểm tra các mục này.

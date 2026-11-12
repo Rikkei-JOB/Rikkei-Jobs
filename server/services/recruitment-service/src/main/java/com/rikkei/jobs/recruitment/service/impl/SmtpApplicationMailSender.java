@@ -20,7 +20,7 @@ public class SmtpApplicationMailSender implements ApplicationMailSender {
     }
     @Override public void sendNewApplication(UUID notificationId, String recipient, Application application) {
         try {
-            var message = new MimeMessage(sender.createMimeMessage()) {
+            var message = new MimeMessage(sender.createMimeMessage().getSession()) {
                 @Override protected void updateMessageID() throws MessagingException {
                     setHeader("Message-ID", "<" + notificationId + "@rikkei-jobs.local>");
                 }
