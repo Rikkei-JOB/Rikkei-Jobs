@@ -13,9 +13,11 @@ export const APPLICATION_STEPS: ApplicationStatus[] = ["SUBMITTED", "SCREENING",
 export function isApplicationStatus(value: string | null): value is ApplicationStatus {
   return value !== null && Object.hasOwn(APPLICATION_STATUS, value);
 }
+const jobsRoot = (process.env.NEXT_PUBLIC_JOB_PAGE_PATH ?? "/jobs").replace(/\/$/, "");
 export const applicationLinks = {
   cvs: process.env.NEXT_PUBLIC_CV_PAGE_PATH ?? "/candidate/cvs",
-  job: (id: string) => `${(process.env.NEXT_PUBLIC_JOB_PAGE_PATH ?? "/jobs").replace(/\/$/, "")}/${encodeURIComponent(id)}`,
+  jobs: jobsRoot,
+  job: (id: string) => `${jobsRoot}/${encodeURIComponent(id)}`,
 };
 export function formatApplicationDate(value: string) {
   return new Intl.DateTimeFormat("vi-VN", { dateStyle: "medium", timeStyle: "short", timeZone: "Asia/Ho_Chi_Minh" }).format(new Date(value));

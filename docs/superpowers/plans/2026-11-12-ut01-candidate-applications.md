@@ -10,6 +10,19 @@
 
 **Spec:** [Yêu cầu UT-01 và phụ thuộc HS-04/DN-04](../specs/2026-11-12-ut01-requirements.md), [quy ước chung](../../conventions.md), [quy ước service](../../architecture/service-conventions.md). Đây là kế hoạch theo yêu cầu của người dùng; các đề xuất ở mục 5 của spec chưa được xác nhận riêng.
 
+## Tiến độ triển khai
+
+- [x] Hợp đồng consumer, DB/schema/migration và luật trạng thái.
+- [x] Adapter PDF snapshot, API apply/list/detail/withdraw và quyền đọc CV.
+- [x] Email outbox retry/lease và kiểm thử nhiều worker.
+- [x] Giao diện chọn CV, ứng tuyển, theo dõi/lịch sử/rút và đường ứng tuyển lại.
+- [x] Kiểm thử PostgreSQL thật, gateway, trình duyệt desktop/mobile, type-check/lint/build.
+- [x] Review độc lập; sửa trường hợp mất phản hồi commit có thể xoá nhầm PDF và liên kết JD không theo cấu hình, có regression RED→GREEN.
+- [ ] Tích hợp thật HS-04/DN-04, xác minh QR/public và job_views sau khi các task phụ thuộc được cung cấp.
+- [ ] Xác minh kết quả CI trên GitHub và bàn giao PR vào `test`.
+
+Các checkbox trong từng task bên dưới là checklist kế hoạch gốc; bảng tiến độ này và kết quả kiểm chứng trong `docs/api/UT-01-applications.md` ghi nhận phạm vi thực tế. Các test persistence/apply/read/race được nhóm theo hành vi trong `CandidateApplicationApiTest`, `ApplicationTransitionConcurrencyTest`, `ApplyApplicationFailureTest`, `ApplicationCommitAmbiguityTest`, cùng các test policy/storage/client/outbox riêng; không tạo test trùng chỉ để khớp tên file dự kiến.
+
 ## Global Constraints
 
 - Giữ `server/`, `web/`, JWT/common-core; không thay framework hoặc dựng lại các module phụ thuộc.
@@ -17,9 +30,9 @@
 - Enum: SUBMITTED, SCREENING, INTERVIEW, OFFER, HIRED, REJECTED, WITHDRAWN.
 - Ứng viên chỉ thao tác đơn và CV của mình; HR chỉ đọc snapshot của công ty mình; userId/actorId lấy từ principal.
 - Không FK xuyên service; Flyway và JPA dùng schema `recruitment`; giữ `ddl-auto: validate`.
-- Không xác nhận nộp thành công nếu PDF chưa được lưu; status/history/outbox commit hoặc rollback cùng nhau.
+- Không xác nhận nộp thành công nếu PDF chưa được lưu; status/history/outbox commit hoặc rollback cùng nhau. Chỉ xoá snapshot khi thất bại trước transaction hoặc có xác nhận rollback; giữ file khi mất phản hồi commit/UNKNOWN.
 - Cho nộp lại cùng JD sau WITHDRAWN hoặc REJECTED; người dùng đã xác nhận trường hợp REJECTED. Mỗi lần nộp lại tạo đơn mới/SUBMITTED và PDF mới, giữ nguyên đơn cũ. Sau HIRED vẫn chặn theo đề xuất hiện tại.
-- PR base `develop`, tiêu đề `[UT-01] ...` theo yêu cầu trực tiếp. Không tự đổi base thành `test` khi thiếu develop.
+- PR base `test`, tiêu đề `[UT-01] ...` theo xác nhận mới nhất của người dùng và quy ước nhóm. Không push trực tiếp hoặc tự merge vào test.
 - Bước hiện tại chỉ lập tài liệu. Các lệnh build, cài dependency, commit và PR dưới đây dành cho giai đoạn triển khai.
 
 ## Review Focus
@@ -119,8 +132,8 @@ Run: `mvn -f server/pom.xml -pl services/recruitment-service -am "-Dtest=CvSnaps
 - [ ] Viết test fail cho 201/SUBMITTED, ownership CV, JD PENDING/hết hạn/đúng deadline/công ty khoá, gửi trùng 409; sau WITHDRAWN và sau REJECTED đều nộp lại tạo id/PDF mới, được chọn CV khác; assert đơn/PDF/history cũ giữ nguyên, history đơn mới bắt đầu `null → SUBMITTED`, actor lấy từ JWT, outbox đúng công ty. Có REJECTED cũ nhưng đã có đơn SUBMITTED mới thì request tiếp theo vẫn 409; JD hết hạn sau REJECTED vẫn bị chặn.
 - [ ] Viết concurrency test dùng 2 transaction/thread thật và barrier cho cả nộp lần đầu và nộp lại sau REJECTED: cùng ứng viên/JD cho đúng một success, một 409; chỉ một đơn mới với history/outbox hợp lệ; đơn REJECTED cũ giữ nguyên và file của request thua được dọn. Test chạy PostgreSQL, không thay bằng H2 hoặc chỉ mock repository.
 - [ ] Implement orchestration: kiểm role → lấy/kiểm JD → xuất PDF owned qua HS-04 → lưu file theo applicationId mới → lấy/kiểm lại JD, deadline và company lock → gọi write service transaction ngắn. Trong transaction kiểm deadline bằng Clock ngay trước insert, ghi application + history + email outbox và flush unique constraint.
-- [ ] Catch xung đột unique ở ngoài transaction đã rollback để trả 409; không bắt lỗi rồi tiếp tục transaction đã rollback-only. Mọi lỗi sau khi lưu file phải cleanup snapshot của request thất bại; nếu cleanup lỗi thì ghi nhận để đối soát, không xoá file của đơn đã commit.
-- [ ] Test xuất/lưu PDF lỗi không tạo đơn/history/outbox; DB lỗi sau lưu PDF có cleanup; hết hạn trong lúc render bị chặn. Quyết định JD dựa trên context mới nhất trước write, không khẳng định có transaction nguyên tử xuyên company/profile/recruitment; deadline kiểm tại insert, thay đổi trạng thái JD sau lần xác minh là giới hạn nhất quán cần ghi tài liệu.
+- [ ] Catch xung đột unique ở ngoài transaction đã rollback để trả 409; không bắt lỗi rồi tiếp tục transaction đã rollback-only. Cleanup lỗi trước khi gọi writer tại orchestrator; trong writer đăng ký TransactionSynchronization, chỉ cleanup khi STATUS_ROLLED_BACK. STATUS_COMMITTED/STATUS_UNKNOWN hoặc mất xác nhận commit phải giữ snapshot để đối soát, tránh xoá file của đơn đã commit. Cleanup lỗi phải log applicationId.
+- [ ] Test xuất/lưu PDF lỗi không tạo đơn/history/outbox; rollback xác nhận sau lưu PDF có cleanup; commit thành công rồi ném lỗi không mất PDF; outcome không rõ giữ file; hết hạn trong lúc render bị chặn. Quyết định JD dựa trên context mới nhất trước write, không khẳng định có transaction nguyên tử xuyên company/profile/recruitment; deadline kiểm tại insert, thay đổi trạng thái JD sau lần xác minh là giới hạn nhất quán cần ghi tài liệu.
 - [ ] Chạy targeted tests pass; bổ sung controller `@PreAuthorize(Roles.CANDIDATE)`, HTTP 201; commit `feat(UT-01): submit applications with frozen CVs`.
 
 Run: `mvn -f server/pom.xml -pl services/recruitment-service -am "-Dtest=ApplyApplicationTest,ApplyApplicationConcurrencyTest" -Dsurefire.failIfNoSpecifiedTests=false test`.
@@ -191,10 +204,10 @@ Run trong `web/`: `npm.cmd run type-check`; `npm.cmd run lint`; `npm.cmd run tes
 - [ ] Viết và chạy gateway test bảo đảm `/api/v1/recruitment/...` giữ Authorization và map đúng controller; giữ route chung hiện có nếu đã đủ, không tạo alias gây tranh chấp với DN-04.
 - [ ] Chạy tích hợp candidate thật: tạo hai CV chọn section khác nhau qua HS-04; mở JD thật qua DN-04; nộp CV A → sửa hồ sơ/tải CV A mới → hash PDF snapshot cũ không đổi. Xoá CV gốc vẫn đọc snapshot; QR phản ánh rút PUBLIC theo HS-04. Không tự ghi SQL để thay thế luồng chức năng đã có.
 - [ ] Chạy ma trận nghiệm thu dưới đây với 2 candidate, HR cùng/khác công ty; kiểm job_views chỉ tăng theo GET chi tiết JD, không theo apply/list/detail đơn. Nếu DN-04 chưa sẵn, ghi rõ phần tích hợp còn chờ, không đánh dấu hoàn tất task này.
-- [ ] Cập nhật CI bắt PR vào develop (giữ main/test nếu nhóm còn dùng), Node 24 theo repo, `npm ci` không fallback đổi lockfile, type-check/lint/build fail phải fail job. Thêm UT-01 Playwright checks và backend PostgreSQL Testcontainers; không để `|| true` che lỗi kiểm tra frontend.
+- [ ] Cập nhật CI cho các nhánh main/test hiện có, Node 24 theo repo, `npm ci` không fallback đổi lockfile, type-check/lint/build fail phải fail job. Thêm UT-01 Playwright checks và backend PostgreSQL Testcontainers; không để `|| true` che lỗi kiểm tra frontend.
 - [ ] Chạy backend `mvn -f server/pom.xml -pl services/recruitment-service,api-gateway -am test`; trong web chạy `npm.cmd run type-check`, `npm.cmd run lint`, `npm.cmd run build`, `npm.cmd run test:e2e -- e2e/ut01-apply.spec.ts e2e/ut01-tracking.spec.ts e2e/ut01-integration.spec.ts`; đối chiếu output thực tế, không báo pass cho test chưa chạy.
 - [ ] Self-review spec coverage, diff và secret/file CV thật; cập nhật cách chạy, migrate, config storage, email retry và các giới hạn nhất quán. Review với thành viên nhóm theo quy ước; xử lý lỗi trước PR.
-- [ ] Ở giai đoạn triển khai, tạo feature branch đúng phạm vi bằng worktree nếu cần; commit các phần đã kiểm tra. Sau khi xác minh remote có develop và checks thật sự chạy, push và tạo PR base develop, title `[UT-01] Ứng tuyển bằng CV và theo dõi trạng thái`; nộp link PR. Không merge tự động.
+- [ ] Ở giai đoạn triển khai, tạo feature branch đúng phạm vi bằng worktree nếu cần; commit các phần đã kiểm tra. Sau khi xác minh remote test và các checks, push và tạo PR base test, title `[UT-01] Ứng tuyển bằng CV và theo dõi trạng thái`; nộp link PR. Không merge tự động.
 
 ### Ma trận nghiệm thu
 

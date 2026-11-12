@@ -4,7 +4,7 @@ Nguồn: mô tả UT-01, HS-04, DN-04 do người dùng cung cấp trong cuộc 
 
 ## 1. Kết quả cần đạt
 
-Ứng viên chọn một CV để ứng tuyển JD, theo dõi trạng thái và lịch sử, rút đơn trước OFFER. HR xem đúng PDF tại lần nộp. Bàn giao đủ DB, BE, FE; PR vào `develop`, tiêu đề bắt đầu `[UT-01]` theo yêu cầu trực tiếp, dù tài liệu repo hiện dùng nhánh `test`.
+Ứng viên chọn một CV để ứng tuyển JD, theo dõi trạng thái và lịch sử, rút đơn trước OFFER. HR xem đúng PDF tại lần nộp. Bàn giao đủ DB, BE, FE; PR vào `test`, tiêu đề bắt đầu `[UT-01]`. Người dùng đã xác nhận nhóm dùng `test` để phát triển, thay cho nhánh develop trong mô tả task ban đầu.
 
 ## 2. Yêu cầu gốc
 
@@ -57,7 +57,7 @@ Các mục dưới đây là lựa chọn đề xuất, cần được xem cùng
 - Profile đã có HS-01 và Flyway schema `profile`; chưa thấy CV HS-04 hoặc JD DN-04 trong checkout tại thời điểm lập kế hoạch.
 - Gateway hiện hỗ trợ `/api/v1/recruitment/**`, strip `/api/v1`; plan dùng prefix này thay vì thêm route mơ hồ `/api/v1/jobs/**` giữa hai service.
 - FE: Next.js 16, React 19, TypeScript, Tailwind, Axios và auth store/guard có sẵn. Chưa có trang JD hoặc CV.
-- CI hiện chỉ bắt `main`, `test`, dùng Node 20 và bỏ qua lỗi type-check; cần cho `develop` chạy kiểm tra thực sự khi bàn giao task này.
+- CI hiện bắt `main`, `test`, dùng Node 20 và bỏ qua lỗi type-check; giữ nhánh đích `test` đã xác nhận và bổ sung kiểm tra thực sự khi bàn giao task này.
 
 ## 7. Phạm vi loại trừ
 

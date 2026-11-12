@@ -39,5 +39,15 @@ test("offer hides withdrawal and rejected offers reapplication", async ({ page }
   await expect(page.getByRole("button", { name: "Rút đơn", exact: true })).toHaveCount(0);
   await page.route(`**/api/v1/recruitment/me/applications/${applicationId}`, r => r.fulfill({ headers: { "Access-Control-Allow-Origin": "*" }, json: { ...application, status: "REJECTED", canWithdraw: false } }));
   await page.reload();
-  await expect(page.getByRole("link", { name: "Ứng tuyển lại" })).toHaveAttribute("href", `/jobs/${application.jobId}`);
+  const jobsRoot = (process.env.NEXT_PUBLIC_JOB_PAGE_PATH ?? "/jobs").replace(/\/$/, "");
+  await expect(page.getByRole("link", { name: "Ứng tuyển lại" })).toHaveAttribute("href", `${jobsRoot}/${application.jobId}`);
+});
+
+test("discovery links honor the configured jobs root", async ({ page }) => {
+  const jobsRoot = (process.env.NEXT_PUBLIC_JOB_PAGE_PATH ?? "/jobs").replace(/\/$/, "");
+  await page.route("**/api/v1/recruitment/me/applications*", r => r.fulfill({ headers: { "Access-Control-Allow-Origin": "*" }, json: { items: [], total: 0, page: 1, size: 20 } }));
+  await page.goto("/candidate/applications");
+  await expect(page.getByRole("link", { name: "Khám phá việc làm" })).toHaveAttribute("href", jobsRoot);
+  await page.goto("/candidate/applications/new");
+  await expect(page.getByRole("link", { name: "trang Việc làm" })).toHaveAttribute("href", jobsRoot);
 });

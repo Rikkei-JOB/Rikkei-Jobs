@@ -39,4 +39,35 @@ class ApplicationOutboxTest extends ApplicationIntegrationSupport {
         when(clock.instant()).thenReturn(NOW.plusSeconds(61));
         assertThat(worker.dispatchBatch()).isEqualTo(1);
     }
+
+    @Test void twoWorkersCannotSendTheSameLeasedNotification() throws Exception {
+        apply();
+        var entered = new java.util.concurrent.CountDownLatch(1);
+        var release = new java.util.concurrent.CountDownLatch(1);
+        doAnswer(call -> { entered.countDown(); release.await(10, java.util.concurrent.TimeUnit.SECONDS); return null; })
+            .when(mail).sendNewApplication(any(), any(), any());
+        try (var pool = java.util.concurrent.Executors.newSingleThreadExecutor()) {
+            var first = pool.submit(worker::dispatchBatch);
+            try {
+                assertThat(entered.await(10, java.util.concurrent.TimeUnit.SECONDS)).isTrue();
+                assertThat(worker.dispatchBatch()).isZero();
+            } finally { release.countDown(); }
+            assertThat(first.get(10, java.util.concurrent.TimeUnit.SECONDS)).isEqualTo(1);
+        }
+        verify(mail, times(1)).sendNewApplication(any(), any(), any());
+    }
+
+    @Test void fifthFailureIsTerminalUntilOperatorRequeuesIt() throws Exception {
+        apply();
+        doThrow(new IllegalStateException("SMTP unavailable")).when(mail).sendNewApplication(any(), any(), any());
+        long[] elapsed = {0, 60, 360, 1260, 4860};
+        for (long seconds : elapsed) {
+            when(clock.instant()).thenReturn(NOW.plusSeconds(seconds));
+            assertThat(worker.dispatchBatch()).isEqualTo(1);
+        }
+        assertThat(jdbc.queryForObject("select status from recruitment.application_notification_outbox", String.class)).isEqualTo("FAILED");
+        when(clock.instant()).thenReturn(NOW.plusSeconds(10000));
+        assertThat(worker.dispatchBatch()).isZero();
+        verify(mail, times(5)).sendNewApplication(any(), any(), any());
+    }
 }

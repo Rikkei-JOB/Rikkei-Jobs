@@ -44,13 +44,21 @@ public class ApplicationServiceImpl implements ApplicationService {
         var pdf = cvs.exportOwnedPdf(request.cvId(), bearerToken);
         UUID id = UUID.randomUUID();
         snapshots.store(id, pdf.bytes());
+        boolean writerStarted = false;
         try {
             var current = jobs.getContext(jobId);
             validateJob(jobId, current);
+            writerStarted = true;
             writer.createSubmitted(id, actor.getUserId(), request.cvId(), current, request.coverLetter());
         } catch (RuntimeException ex) {
-            try { snapshots.delete(id); }
-            catch (RuntimeException cleanup) { log.error("Orphan CV snapshot requires cleanup for application {}", id); }
+            if (!writerStarted) {
+                try { snapshots.delete(id); }
+                catch (RuntimeException cleanup) { log.error("Orphan CV snapshot requires cleanup for application {}", id); }
+            } else {
+                // A commit exception does not prove rollback: the server may already have committed.
+                // The writer's transaction synchronization cleans up confirmed rollbacks only.
+                log.warn("Application {} write failed; snapshot retained unless rollback was confirmed", id);
+            }
             if (ex instanceof DataIntegrityViolationException integrity && isDuplicateApplication(integrity)) {
                 throw new ConflictException("Bạn đã có đơn ứng tuyển cho vị trí này.");
             }

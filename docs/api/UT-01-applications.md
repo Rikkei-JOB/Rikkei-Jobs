@@ -38,3 +38,42 @@ Lỗi giữ `{code,message}`: 400 validation; 401 token; 403 quyền; 404 tài n
 ## Kiểm thử và vận hành
 
 Test PostgreSQL dùng Testcontainers mặc định; có thể dùng DB kiểm thử riêng qua `UT01_TEST_DB_URL`, `UT01_TEST_DB_USER`, `UT01_TEST_DB_PASSWORD`. **Không trỏ vào database sản xuất hoặc DB có dữ liệu cần giữ**, vì test xoá các bảng recruitment giữa các case. Cách chạy và kết quả kiểm chứng được cập nhật khi hoàn thành triển khai.
+
+### Chạy backend và frontend
+
+Từ root repo với JDK 21, Maven 3.9+, PostgreSQL và các dependency đã cấu hình:
+
+```powershell
+mvn -f server/pom.xml -pl services/recruitment-service -am package
+java -jar server/services/recruitment-service/target/recruitment-service-1.0.0-SNAPSHOT.jar
+```
+
+Mặc định Flyway tạo schema riêng `recruitment`, không dùng chung migration history với identity/profile. Snapshot local mặc định nằm dưới `.runtime/recruitment-cvs` tính từ **working directory lúc chạy Java**; đặt `RECRUITMENT_CV_STORAGE_DIR` thành đường tuyệt đối nếu thay working directory. Sao lưu DB và volume PDF cùng nhau; không xoá snapshot của đơn REJECTED/WITHDRAWN.
+
+Container chạy user 10001 với storage `/app/data/cv-snapshots`. Gắn **named volume** bền vững, ví dụ `-v ut01-cv-snapshots:/app/data/cv-snapshots`; bind mount cần cấp quyền ghi cho uid 10001. Chỉ xoá snapshot khi thất bại trước transaction ghi hoặc transaction xác nhận ROLLED_BACK. Nếu mất phản hồi commit/kết quả UNKNOWN thì giữ file để tránh xoá PDF của đơn đã commit. Log có applicationId để đối soát khi kết quả ghi không rõ hoặc cleanup lỗi; file không có đơn tương ứng phải được kiểm tra thủ công sau khoảng chờ an toàn, không xoá hàng loạt khi có request đang xử lý.
+
+Trong `web/`, tạo `.env.local` bằng cấu hình phù hợp rồi chạy `npm ci`, `npm run dev`. Truy cập `/candidate/applications`; `/candidate/applications/new?jobId=<UUID>` là đường nhập đơn thuộc UT-01 để DN-04 có thể liên kết khi chưa tích hợp component trực tiếp. Không có JD giả hoặc bộ dữ liệu CV fallback trong production.
+
+### Email outbox
+
+Email gửi qua `MAIL_HOST/MAIL_PORT/MAIL_USER/MAIL_PASSWORD/MAIL_FROM`, dev có thể dùng MailHog localhost:1025. Tắt worker khi cần qua `RECRUITMENT_OUTBOX_ENABLED=false`. Mỗi người nhận có một outbox unique; worker claim từng hàng bằng SKIP LOCKED, lease 60 giây, SMTP IO có timeout, gửi tối đa 5 lần với khoảng chờ 1/5/15/60 phút. Sau đó FAILED; đơn ứng tuyển vẫn được giữ nguyên.
+
+Theo dõi hàng FAILED bằng `SELECT id, application_id, attempts FROM recruitment.application_notification_outbox WHERE status='FAILED';`. Để thử lại một hàng đã được kiểm tra, operator chạy câu lệnh parameterized: `UPDATE recruitment.application_notification_outbox SET status='PENDING', attempts=0, next_attempt_at=CURRENT_TIMESTAMP, lease_until=NULL WHERE id=:notificationId AND status='FAILED';`. Không cung cấp API requeue công khai. Email có Message-ID ổn định; SMTP là **at-least-once**, có thể trùng nếu crash sau gửi nhưng trước cập nhật SENT.
+
+### Lệnh kiểm chứng
+
+```powershell
+mvn -f server/pom.xml -pl services/recruitment-service,api-gateway -am test
+```
+
+Trong `web/`:
+
+```powershell
+npm run type-check
+npm run lint
+npm run build
+npx playwright install chromium
+npm run test:e2e
+```
+
+Windows có Edge sẵn: đặt `$env:UT01_BROWSER_CHANNEL='msedge'` để dùng Edge headless. CI mặc định dùng Chromium. Browser tests dùng API test doubles qua Playwright; PostgreSQL tests chạy services/transactions thật với mock ở ranh giới JD/PDF. Chúng không chứng minh HS-04/DN-04 live hoặc QR PUBLIC integration đã hoàn tất.

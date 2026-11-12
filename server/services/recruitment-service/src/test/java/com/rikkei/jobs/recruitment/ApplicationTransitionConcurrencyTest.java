@@ -30,20 +30,33 @@ class ApplicationTransitionConcurrencyTest extends ApplicationIntegrationSupport
         try { service.apply(new AuthPrincipal(user, Role.CANDIDATE, null), candidate(), job, new ApplyRequest(cv, null)); return 201; }
         catch (ConflictException ex) { return 409; }
     }
+    private Set<String> snapshotFiles() throws java.io.IOException {
+        var path = java.nio.file.Path.of("target/ut01-snapshots");
+        if (!java.nio.file.Files.exists(path)) return Set.of();
+        try (var files = java.nio.file.Files.list(path)) {
+            return files.filter(p -> p.toString().endsWith(".pdf")).map(p -> p.getFileName().toString()).collect(java.util.stream.Collectors.toSet());
+        }
+    }
     @Test void simultaneousSubmissionsCreateOneApplication() throws Exception {
+        var before = snapshotFiles();
         assertThat(race(this::submit, this::submit)).containsExactlyInAnyOrder(201,409);
         assertThat(count("applications")).isEqualTo(1);
         assertThat(count("application_status_history")).isEqualTo(1);
         assertThat(count("application_notification_outbox")).isEqualTo(1);
+        var added = new HashSet<>(snapshotFiles()); added.removeAll(before);
+        assertThat(added).hasSize(1);
     }
     @Test void simultaneousReapplicationsAfterRejectedCreateOnlyOneNewAttempt() throws Exception {
         var old = apply();
         transitions.transition(old, ApplicationStatus.REJECTED, UUID.randomUUID(), "Internal evaluation");
+        var before = snapshotFiles();
         assertThat(race(this::submit, this::submit)).containsExactlyInAnyOrder(201,409);
         assertThat(count("applications")).isEqualTo(2);
         assertThat(count("application_status_history")).isEqualTo(3);
         assertThat(count("application_notification_outbox")).isEqualTo(2);
         assertThat(jdbc.queryForObject("select status from recruitment.applications where id=?", String.class, old)).isEqualTo("REJECTED");
+        var added = new HashSet<>(snapshotFiles()); added.removeAll(before);
+        assertThat(added).hasSize(1);
     }
     @Test void offerAndWithdrawalSerializeWithoutLostHistory() throws Exception {
         var id = apply();

@@ -7,6 +7,9 @@ RUN mvn -B -ntp -pl services/recruitment-service -am clean package -DskipTests
 FROM eclipse-temurin:21-jre-alpine
 WORKDIR /app
 COPY --from=build /workspace/services/recruitment-service/target/recruitment-service-*.jar app.jar
+RUN mkdir -p /app/data/cv-snapshots && chown -R 10001:10001 /app/data
+ENV RECRUITMENT_CV_STORAGE_DIR=/app/data/cv-snapshots
+VOLUME ["/app/data/cv-snapshots"]
 USER 10001:10001
 EXPOSE 8083
 ENTRYPOINT ["java", "-jar", "/app/app.jar"]

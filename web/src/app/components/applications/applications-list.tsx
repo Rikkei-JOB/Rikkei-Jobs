@@ -6,7 +6,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { BriefcaseBusiness, ArrowLeft } from "lucide-react";
 import { Button } from "@/app/components/ui/button";
 import { useAuthGuard } from "@/hooks/use-auth-guard";
-import { APPLICATION_STATUS, isApplicationStatus } from "@/config/application-status";
+import { APPLICATION_STATUS, applicationLinks, isApplicationStatus } from "@/config/application-status";
 import type { ApplicationPage } from "@/interface/application";
 import { applicationService } from "@/services/application.service";
 import { getErrorMessage } from "@/services/api";
@@ -56,7 +56,7 @@ export function ApplicationsList() {
       {data && !loading && data.items.length === 0 ? <section className="rounded-xl border border-dashed bg-background px-6 py-16 text-center">
         <BriefcaseBusiness className="mx-auto mb-4 h-10 w-10 text-muted-foreground" /><h2 className="text-lg font-semibold">Chưa có đơn ứng tuyển phù hợp</h2>
         <p className="mt-2 text-sm text-muted-foreground">{status ? "Thử chọn trạng thái khác để xem các đơn của bạn." : "Khám phá việc làm và gửi CV để bắt đầu hành trình mới."}</p>
-        <Link href="/jobs" className="mt-5 inline-block text-sm font-medium text-primary underline">Khám phá việc làm</Link>
+        <Link href={applicationLinks.jobs} className="mt-5 inline-block text-sm font-medium text-primary underline">Khám phá việc làm</Link>
       </section> : <div className="space-y-4" aria-busy={loading}>{data?.items.map(a => <ApplicationCard key={a.id} application={a} />)}</div>}
       {data && <div className="mt-6 flex items-center justify-between gap-3 text-sm"><span className="text-muted-foreground">{data.total} đơn · Trang {page}</span>
         <div className="flex gap-2"><Button variant="outline" disabled={loading || page <= 1} onClick={() => navigate(status ?? "", page - 1)}>Trước</Button><Button variant="outline" disabled={loading || page * data.size >= data.total} onClick={() => navigate(status ?? "", page + 1)}>Sau</Button></div>
