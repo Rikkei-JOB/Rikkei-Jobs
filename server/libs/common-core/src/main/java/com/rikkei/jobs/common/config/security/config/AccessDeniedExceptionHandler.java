@@ -17,6 +17,9 @@ import java.io.IOException;
 @Slf4j
 @RequiredArgsConstructor
 public class AccessDeniedExceptionHandler implements AccessDeniedHandler {
+
+    /** Message chung cho 403 FORBIDDEN do sai vai trò. */
+    public static final String MESSAGE = "Bạn không có quyền thực hiện thao tác này.";
     private final ObjectMapper objectMapper;
 
     @Override
@@ -26,7 +29,7 @@ public class AccessDeniedExceptionHandler implements AccessDeniedHandler {
 
         log.warn("CẢNH BÁO BẢO MẬT: Truy cập bị từ chối vào URL: {}", request.getRequestURI());
 
-        String message = "Bạn không có quyền thực hiện thao tác này.";
+        String message = MESSAGE;
         response.setContentType(MediaType.APPLICATION_JSON_VALUE);
         response.setCharacterEncoding("UTF-8");
         response.setStatus(HttpStatus.FORBIDDEN.value());

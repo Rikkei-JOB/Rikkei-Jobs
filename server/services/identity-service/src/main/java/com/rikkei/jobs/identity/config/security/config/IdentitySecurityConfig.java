@@ -3,8 +3,10 @@ package com.rikkei.jobs.identity.config.security.config;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.rikkei.jobs.common.config.security.config.AccessDeniedExceptionHandler;
 import com.rikkei.jobs.common.config.security.config.AuthenticationEntryPointHandler;
+import com.rikkei.jobs.common.config.security.config.SecurityConfig;
 import com.rikkei.jobs.common.config.security.jwt.JwtUtils;
 import com.rikkei.jobs.identity.config.AppProperties;
+import com.rikkei.jobs.identity.config.security.InternalKeyFilter;
 import com.rikkei.jobs.identity.config.security.jwt.IdentityJwtAuthenticationFilter;
 import com.rikkei.jobs.identity.repository.UserRepository;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
@@ -45,6 +47,7 @@ public class IdentitySecurityConfig {
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http,
+                                           AppProperties properties,
                                            JwtUtils jwtUtils,
                                            UserRepository userRepository,
                                            ObjectMapper objectMapper,
@@ -61,10 +64,16 @@ public class IdentitySecurityConfig {
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .requestMatchers("/auth/sso", "/auth/login", "/auth/forgot-password", "/auth/reset-password",
                                 "/auth/dev/sso-ticket").permitAll()
+                        // /internal/** không dùng JWT: InternalKeyFilter kiểm tra X-Internal-Key.
+                        .requestMatchers(InternalKeyFilter.INTERNAL_PATTERN).permitAll()
                         .requestMatchers("/actuator/health/**", "/actuator/info", "/actuator/prometheus").permitAll()
+                        .requestMatchers(SecurityConfig.API_DOCS_PATHS).permitAll()
                         .anyRequest().authenticated()
                 );
 
+        http.addFilterBefore(
+                new InternalKeyFilter(properties.getInternal().getServiceKey(), objectMapper),
+                UsernamePasswordAuthenticationFilter.class);
         http.addFilterBefore(
                 new IdentityJwtAuthenticationFilter(jwtUtils, userRepository, objectMapper),
                 UsernamePasswordAuthenticationFilter.class);

@@ -46,6 +46,9 @@ app:
       # POST /auth/dev/sso-ticket issues an SSO ticket for ANY lmsUserId without authentication.
       # Off by default so a deployment that forgets to configure it stays safe; the "dev" profile turns it on.
       enabled: ${LMS_DEV_TICKETS_ENABLED:false}
+  internal:
+    # Khoá X-Internal-Key cho /internal/** (company-service gọi identity). Rỗng thì mọi request bị từ chối.
+    service-key: ${INTERNAL_SERVICE_KEY:dev-internal-key}
   dev-data:
     # Seeds the sample accounts of docs/conventions.md (known password Test@123). Off by default; on in the "dev" profile.
     enabled: ${DEV_DATA_ENABLED:false}
@@ -62,3 +65,8 @@ management:
   endpoint:
     health:
       show-details: never
+
+# OpenAPI JSON for this service; the gateway Swagger UI (/api/docs) reads it through /api/v1/auth/api-docs.
+springdoc:
+  api-docs:
+    path: /auth/api-docs
