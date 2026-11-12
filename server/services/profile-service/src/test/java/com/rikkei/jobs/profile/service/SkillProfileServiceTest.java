@@ -6,6 +6,7 @@ import com.rikkei.jobs.profile.dto.SkillProfileView;
 import com.rikkei.jobs.profile.dto.VerifiedSkillRecord;
 import com.rikkei.jobs.profile.entity.*;
 import com.rikkei.jobs.profile.repository.*;
+import org.flywaydb.core.Flyway;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
@@ -14,11 +15,9 @@ import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.boot.test.mock.mockito.SpyBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.core.io.ClassPathResource;
-import org.springframework.jdbc.datasource.init.ResourceDatabasePopulator;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
-import javax.sql.DataSource;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.Clock;
@@ -55,7 +54,7 @@ class SkillProfileServiceTest {
     @Autowired SkillMappingRepository mappings;
     @Autowired SkillEvidenceRepository evidences;
     @Autowired SkillScoreRepository scores;
-    @Autowired DataSource dataSource;
+    @Autowired Flyway flyway;
     @SpyBean SkillScoreCalculator calculator;
 
     @TestConfiguration
@@ -169,15 +168,9 @@ class SkillProfileServiceTest {
     }
 
     @Test
-    void catalogCanBeSeededAgainWithoutDuplicateSkillsOrMappings() {
+    void catalogMigrationsCanRunAgainWithoutDuplicateSkillsOrMappings() {
         long mappingCount = mappings.count();
-        var populator = new ResourceDatabasePopulator(new ClassPathResource("db/migration/V2__skill_catalog.sql"));
-        try (var connection = dataSource.getConnection()) {
-            connection.setSchema("profile");
-            populator.populate(connection);
-        } catch (java.sql.SQLException ex) {
-            throw new IllegalStateException(ex);
-        }
+        flyway.migrate();
 
         assertThat(skills.count()).isEqualTo(20);
         assertThat(mappings.count()).isEqualTo(mappingCount).isGreaterThan(5);

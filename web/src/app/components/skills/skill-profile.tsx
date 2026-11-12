@@ -85,18 +85,34 @@ function SkillProfileContent({ userId, readOnly = false }: SkillProfileProps) {
   const [error, setError] = React.useState<string | null>(null);
   const [actionMessage, setActionMessage] = React.useState<{ type: "success" | "error"; text: string } | null>(null);
   const [expandedSkillIds, setExpandedSkillIds] = React.useState<Set<string>>(new Set());
-  const [loadVersion, setLoadVersion] = React.useState(0);
+  const [reloadKey, setReloadKey] = React.useState(0);
 
   React.useEffect(() => {
-    let active = true;
-    const request = userId ? skillService.getProfileSkills(userId) : skillService.getOwnSkills();
-    request.then(data => {
-      if (active) { setSkills(data); setError(null); }
-    }).catch(err => {
-      if (active) setError(getErrorMessage(err, "Không thể tải hồ sơ kỹ năng."));
-    }).finally(() => { if (active) setLoading(false); });
-    return () => { active = false; };
-  }, [userId, loadVersion]);
+    let ignore = false;
+    async function load() {
+      try {
+        const data = userId
+          ? await skillService.getProfileSkills(userId)
+          : await skillService.getOwnSkills();
+        if (!ignore) {
+          setSkills(data);
+          setError(null);
+        }
+      } catch (err) {
+        if (!ignore) {
+          setError(getErrorMessage(err, "Không thể tải hồ sơ kỹ năng."));
+        }
+      } finally {
+        if (!ignore) {
+          setLoading(false);
+        }
+      }
+    }
+    void load();
+    return () => {
+      ignore = true;
+    };
+  }, [userId, reloadKey]);
 
   const handleRecompute = async () => {
     setRecomputing(true);
@@ -184,7 +200,7 @@ function SkillProfileContent({ userId, readOnly = false }: SkillProfileProps) {
             <AlertCircle className="h-4 w-4 shrink-0" />
             <span className="font-semibold">{error}</span>
           </div>
-          <Button variant="outline" size="sm" onClick={() => { setLoading(true); setError(null); setLoadVersion(value => value + 1); }}>
+          <Button variant="outline" size="sm" onClick={() => { setLoading(true); setError(null); setReloadKey(value => value + 1); }}>
             Thử lại
           </Button>
         </div>
@@ -408,13 +424,12 @@ function SkillProfileContent({ userId, readOnly = false }: SkillProfileProps) {
                           {/* Progress bar */}
                           <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
                             <div
-                              className={`h-full transition-all duration-500 ${
-                                isVerified
+                              className={`h-full transition-all duration-500 ${isVerified
                                   ? levelInfo?.barClass || "bg-primary"
                                   : isSelfOnly
                                     ? "bg-amber-500"
                                     : "bg-muted-foreground/30"
-                              }`}
+                                }`}
                               style={{ width: `${Math.min(100, Math.max(0, displayScore))}%` }}
                             />
                           </div>
