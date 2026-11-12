@@ -4,6 +4,9 @@ import static com.rikkei.jobs.company.mapper.CompanyMapper.blankToNull;
 
 import com.rikkei.jobs.common.config.exception.ConflictException;
 import com.rikkei.jobs.common.config.exception.ResourceNotFoundException;
+import com.rikkei.jobs.common.config.security.access.OwnershipGuard;
+import com.rikkei.jobs.common.config.security.principle.AuthPrincipal;
+import com.rikkei.jobs.common.config.security.principle.Role;
 import com.rikkei.jobs.company.config.exception.CompanyErrorCode;
 import com.rikkei.jobs.company.config.exception.CompanyException;
 import com.rikkei.jobs.company.dto.request.CreateCompanyRequest;
@@ -72,6 +75,25 @@ public class CompanyServiceImpl implements CompanyService {
     @Transactional(readOnly = true)
     public CompanyResponse getMine(UUID userId) {
         return companyMapper.toResponse(findMine(userId));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public CompanyResponse getCompany(AuthPrincipal principal, UUID companyId) {
+        String notFound = "Không tìm thấy công ty";
+        if (!OwnershipGuard.seesAllData(principal)) {
+            // HR: công ty khác và công ty không tồn tại trả cùng một lỗi 404, không lộ id có thật.
+            boolean ownsIt = principal.getRole() == Role.HR
+                    && companyHrRepository.findById(principal.getUserId())
+                            .map(link -> link.getCompanyId().equals(companyId))
+                            .orElse(false);
+            if (!ownsIt) {
+                throw OwnershipGuard.notFound(notFound);
+            }
+        }
+        return companyRepository.findById(companyId)
+                .map(companyMapper::toResponse)
+                .orElseThrow(() -> OwnershipGuard.notFound(notFound));
     }
 
     @Override

@@ -30,7 +30,8 @@ export default function HrCompanyPage() {
   const locked = company?.status === "LOCKED"
 
   return (
-    <main className="mx-auto max-w-5xl space-y-4 px-4 py-8 sm:px-6">
+    // Nằm trong <main> của layout (app) (NT-02), nên dùng <div> và không thêm padding.
+    <div className="mx-auto max-w-5xl space-y-4">
       <div className="flex items-center justify-between">
         <h1 className="font-heading text-lg font-semibold">Hồ sơ công ty</h1>
         <Button variant="outline" size="sm" render={<Link href="/hr" />} nativeButton={false}>
@@ -64,6 +65,6 @@ export default function HrCompanyPage() {
           </div>
         </>
       ) : null}
-    </main>
+    </div>
   )
 }

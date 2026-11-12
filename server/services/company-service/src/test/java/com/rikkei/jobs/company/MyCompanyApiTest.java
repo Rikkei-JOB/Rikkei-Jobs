@@ -83,13 +83,15 @@ class MyCompanyApiTest extends CompanyApiTestSupport {
     }
 
     @Test
-    void putByIdIs404() throws Exception {
+    void putByIdIsNotAllowed() throws Exception {
+        // Không có API sửa công ty theo id; NT-02 thêm GET /companies/{id} nên PUT cùng đường dẫn trả 405
+        // (cho mọi id, không lộ id có thật). Điều cần giữ: HR không sửa được công ty khác.
         mvc.perform(put("/companies/" + b.getId())
                         .header("Authorization", "Bearer " + hr1Token())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(JSON.writeValueAsString(Map.of("name", "Hack"))))
-                .andExpect(status().isNotFound())
-                .andExpect(jsonPath("$.code").value("NOT_FOUND"));
+                .andExpect(status().isMethodNotAllowed())
+                .andExpect(jsonPath("$.code").value("METHOD_NOT_ALLOWED"));
         assertThat(companies.findById(b.getId()).orElseThrow().getName()).isNotEqualTo("Hack");
     }
 

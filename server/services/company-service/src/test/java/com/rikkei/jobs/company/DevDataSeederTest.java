@@ -11,7 +11,15 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.TestPropertySource;
 
-@TestPropertySource(properties = "app.dev-data.enabled=true")
+/*
+ * Database H2 riêng: seed chạy ngay khi context khởi động, trước cleanTables(). Nếu dùng chung DB "company" với
+ * các lớp test khác, dữ liệu chúng để lại (ví dụ công ty có mã số thuế 0101234567) làm seed vi phạm UNIQUE và
+ * context không lên. Lỗi chỉ lộ ra theo thứ tự chạy lớp (Linux trên CI khác Windows).
+ */
+@TestPropertySource(properties = {
+    "app.dev-data.enabled=true",
+    "spring.datasource.url=jdbc:h2:mem:company-seeder;MODE=PostgreSQL;DB_CLOSE_DELAY=-1;DATABASE_TO_LOWER=TRUE"
+})
 class DevDataSeederTest extends CompanyApiTestSupport {
 
     private static final UUID A = UUID.fromString("00000000-0000-0000-0000-0000000000a1");

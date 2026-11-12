@@ -65,3 +65,8 @@ management:
   endpoint:
     health:
       show-details: never
+
+# OpenAPI JSON for this service; the gateway Swagger UI (/api/docs) reads it through /api/v1/auth/api-docs.
+springdoc:
+  api-docs:
+    path: /auth/api-docs

@@ -7,7 +7,7 @@ import { Loader2 } from "lucide-react"
 import { AuthCard } from "@/app/components/auth/auth-card"
 import { Alert } from "@/app/components/ui/alert"
 import { Button } from "@/app/components/ui/button"
-import { ROLE_HOME } from "@/config/roles"
+import { pathAfterLogin } from "@/helper/next-path"
 import { useAuthStore } from "@/hooks/use-auth-store"
 import { getErrorMessage } from "@/services/api"
 import { authService } from "@/services/auth.service"
@@ -27,7 +27,7 @@ function SsoCallback() {
       .sso(ticket)
       .then((result) => {
         setSession(result.accessToken, result.user)
-        router.replace(ROLE_HOME[result.user.role])
+        router.replace(pathAfterLogin(result.user.role))
       })
       .catch((e) => setError(getErrorMessage(e)))
   }, [ticket, router, setSession])

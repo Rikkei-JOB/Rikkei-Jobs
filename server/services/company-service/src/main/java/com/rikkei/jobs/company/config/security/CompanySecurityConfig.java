@@ -2,6 +2,7 @@ package com.rikkei.jobs.company.config.security;
 
 import com.rikkei.jobs.common.config.security.config.AccessDeniedExceptionHandler;
 import com.rikkei.jobs.common.config.security.config.AuthenticationEntryPointHandler;
+import com.rikkei.jobs.common.config.security.config.SecurityConfig;
 import com.rikkei.jobs.common.config.security.jwt.JwtAuthenticationFilter;
 import com.rikkei.jobs.common.config.security.jwt.JwtUtils;
 import com.rikkei.jobs.company.config.AppProperties;
@@ -39,6 +40,7 @@ public class CompanySecurityConfig {
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .requestMatchers("/actuator/health/**", "/actuator/info", "/actuator/prometheus").permitAll()
                         .requestMatchers(HttpMethod.GET, "/companies/logos/**").permitAll()
+                        .requestMatchers(SecurityConfig.API_DOCS_PATHS).permitAll()
                         .anyRequest().authenticated()
                 );
 

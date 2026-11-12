@@ -223,8 +223,9 @@ Cần: Docker (Postgres), Java 21 + Maven, Node.js. Mở từng terminal từ g�
 cp .env.example .env
 docker compose --env-file .env -f infra/compose.yaml up -d postgres mailhog   # DB + hộp thư dev (UI: http://localhost:8025)
 cd mock && npm ci && npm start                                   # mock LMS: http://localhost:9000
-cd server && mvn -pl services/identity-service -am spring-boot:run -Dspring-boot.run.profiles=dev   # :8081, Flyway tạo bảng; profile dev bật seed + /auth/dev/sso-ticket
-cd server && mvn -pl api-gateway -am spring-boot:run             # http://localhost:8080 (/api/v1/...)
+mvn -f server/pom.xml install -DskipTests                          # cài thư viện dùng chung trước
+mvn -f server/services/identity-service/pom.xml spring-boot:run "-Dspring-boot.run.profiles=dev"   # :8081, Flyway tạo bảng; profile dev bật seed + /auth/dev/sso-ticket
+mvn -f server/api-gateway/pom.xml spring-boot:run                  # http://localhost:8080 (/api/v1/...)
 cd web && cp .env.example .env.local && npm ci && npm run dev   # http://localhost:3000
 cd server && mvn test                                            # toàn bộ test (H2, server giả lập mock, không cần Docker)
 ```

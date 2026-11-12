@@ -3,6 +3,7 @@ package com.rikkei.jobs.identity.config.security.config;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.rikkei.jobs.common.config.security.config.AccessDeniedExceptionHandler;
 import com.rikkei.jobs.common.config.security.config.AuthenticationEntryPointHandler;
+import com.rikkei.jobs.common.config.security.config.SecurityConfig;
 import com.rikkei.jobs.common.config.security.jwt.JwtUtils;
 import com.rikkei.jobs.identity.config.AppProperties;
 import com.rikkei.jobs.identity.config.security.InternalKeyFilter;
@@ -66,6 +67,7 @@ public class IdentitySecurityConfig {
                         // /internal/** không dùng JWT: InternalKeyFilter kiểm tra X-Internal-Key.
                         .requestMatchers(InternalKeyFilter.INTERNAL_PATTERN).permitAll()
                         .requestMatchers("/actuator/health/**", "/actuator/info", "/actuator/prometheus").permitAll()
+                        .requestMatchers(SecurityConfig.API_DOCS_PATHS).permitAll()
                         .anyRequest().authenticated()
                 );
 

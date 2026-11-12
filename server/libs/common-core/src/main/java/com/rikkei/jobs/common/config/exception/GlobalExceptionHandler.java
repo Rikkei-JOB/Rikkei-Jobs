@@ -1,6 +1,7 @@
 package com.rikkei.jobs.common.config.exception;
 
 import com.fasterxml.jackson.databind.exc.InvalidFormatException;
+import com.rikkei.jobs.common.config.security.config.AccessDeniedExceptionHandler;
 import com.rikkei.jobs.common.dto.response.ErrorResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -88,10 +89,17 @@ public class GlobalExceptionHandler {
                 .body(ErrorResponse.of("CONFLICT", "Dữ liệu vi phạm ràng buộc"));
     }
 
-    @ExceptionHandler({ForbiddenException.class, AccessDeniedException.class})
-    public ResponseEntity<ErrorResponse> handleForbiddenException(RuntimeException ex) {
+    @ExceptionHandler(ForbiddenException.class)
+    public ResponseEntity<ErrorResponse> handleForbiddenException(ForbiddenException ex) {
         return ResponseEntity.status(HttpStatus.FORBIDDEN)
                 .body(ErrorResponse.of("FORBIDDEN", ex.getMessage()));
+    }
+
+    /** Sai vai trò ở {@code @PreAuthorize}: message của Spring là "Access Denied", thay bằng câu chung tiếng Việt. */
+    @ExceptionHandler(AccessDeniedException.class)
+    public ResponseEntity<ErrorResponse> handleAccessDeniedException(AccessDeniedException ex) {
+        return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                .body(ErrorResponse.of("FORBIDDEN", AccessDeniedExceptionHandler.MESSAGE));
     }
 
     @ExceptionHandler(NoResourceFoundException.class)
