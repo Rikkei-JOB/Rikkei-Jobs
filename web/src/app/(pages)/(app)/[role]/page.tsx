@@ -3,7 +3,6 @@
 import * as React from "react"
 import Link from "next/link"
 import { notFound } from "next/navigation"
-import { SkillProfile } from "@/app/components/skills/skill-profile"
 import { ROLE_MENU } from "@/config/menu"
 import { ROLE_LABEL, roleFromSlug } from "@/config/roles"
 import { useAuthStore } from "@/hooks/use-auth-store"
@@ -11,8 +10,7 @@ import { useAuthStore } from "@/hooks/use-auth-store"
 /**
  * Trang chủ của từng vai trò (/candidate, /hr, /mentor, /staff, /admin).
  * Đăng nhập, vai trò, thanh trên và menu do layout (app) lo.
- * - Ứng viên (CANDIDATE): Hồ sơ năng lực kỹ năng (Skill Profile, HS-01).
- * - Vai trò khác: lối tắt tới các mục trong menu.
+ * Hiện lối tắt tới các mục trong menu của vai trò. Hồ sơ kỹ năng của ứng viên (HS-01) nằm ở mục "Hồ sơ" (/candidate/profile).
  */
 export default function RoleHomePage({ params }: { params: Promise<{ role: string }> }) {
   const { role: slug } = React.use(params)
@@ -20,14 +18,6 @@ export default function RoleHomePage({ params }: { params: Promise<{ role: strin
   const user = useAuthStore((s) => s.user)
   if (!role) notFound()
   if (!user) return null
-
-  if (role === "CANDIDATE") {
-    return (
-      <div className="mx-auto max-w-6xl">
-        <SkillProfile />
-      </div>
-    )
-  }
 
   return (
     <div className="mx-auto max-w-4xl space-y-4">

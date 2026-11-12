@@ -126,6 +126,7 @@ Khai báo tại `web/src/config/menu.ts` (`ROLE_MENU`):
 
 - Layout chung (`app/components/layout/app-shell.tsx`): thanh trên có tên, vai trò, nút đăng xuất (HR có thêm nút đổi mật khẩu); menu bên trái. Trên điện thoại, menu thu gọn sau nút ☰ và tự đóng khi chuyển trang.
 - Trang chủ vai trò (`/candidate`, `/hr`…) hiện lối tắt tới các mục menu.
+- Mục đã có trang thật: ứng viên **Hồ sơ** `/candidate/profile` hiển thị Hồ sơ năng lực kỹ năng của HS-01 (`web/src/app/(pages)/(app)/candidate/profile/page.tsx`).
 - Mục chưa có trang thật hiển thị "Đang phát triển" (`[role]/[...section]/page.tsx`). Đường dẫn không có trong menu → 404.
 
 ### 5.2 Route guard
@@ -202,6 +203,7 @@ Lưu ở [screenshots/NT-02](screenshots/NT-02):
 | --- | --- |
 | `menu-candidate.png`, `menu-hr.png`, `menu-mentor.png`, `menu-staff.png`, `menu-admin.png` | Layout và menu của từng vai trò |
 | `menu-mobile.png` | Menu trên điện thoại |
+| `candidate-profile.png` | Mục Hồ sơ của ứng viên: Skill Profile HS-01 trong layout chung |
 | `forbidden.png` | Candidate gõ `/hr/jobs` → trang 403 |
 | `api-docs.png` | Swagger UI tại `/api/docs`, endpoint `/company/companies/{id}` |
 
