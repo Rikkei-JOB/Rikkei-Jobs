@@ -35,7 +35,7 @@ spring:
           filters: [StripPrefix=2]
         - id: company
           uri: ${COMPANY_SERVICE_URL:http://localhost:8085}
-          predicates: [Path=/api/v1/company/**]
+          predicates: ["Path=/api/v1/company/**,/api/v1/companies/**,/api/v1/staff/companies/**"]
           filters: [StripPrefix=2]
         - id: internship
           uri: ${INTERNSHIP_SERVICE_URL:http://localhost:8086}

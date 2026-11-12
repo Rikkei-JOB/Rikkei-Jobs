@@ -1,0 +1,315 @@
+openapi: 3.0.3
+info:
+  title: Rikkei Jobs - company-service
+  version: 1.0.0
+  description: DN-01 hồ sơ doanh nghiệp và tài khoản HR. Theo docs/conventions.md - thành công trả thẳng DTO (không bọc), mọi lỗi là { code, message, errors? } với message tiếng Việt. Đường dẫn qua gateway; company-service tự phục vụ ở /staff/companies/**, /companies/** (gateway bỏ tiền tố /api/v1).
+servers:
+  - url: http://localhost:8080/api/v1
+    description: Qua gateway (gateway bỏ /api/v1, company-service phục vụ /staff/companies/... và /companies/...)
+tags:
+  - name: staff
+    description: Cán bộ tuyển dụng (role STAFF)
+  - name: company
+    description: HR quản lý công ty của chính mình (role HR)
+paths:
+  /staff/companies:
+    post:
+      tags: [staff]
+      summary: Cán bộ tạo công ty
+      description: Mã số thuế phải duy nhất. Công ty mới có status ACTIVE. Các trường chuỗi rỗng được lưu thành null.
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CreateCompanyRequest' }
+      responses:
+        '201':
+          description: Đã tạo
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CompanyResponse' }
+        '400':
+          description: VALIDATION_ERROR - sai dữ liệu, ví dụ errors.taxCode = "Mã số thuế phải gồm 10 hoặc 13 chữ số"
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '401':
+          description: UNAUTHORIZED - thiếu hoặc sai token
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '403':
+          description: FORBIDDEN (không phải STAFF) hoặc MUST_CHANGE_PASSWORD
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '409':
+          description: CONFLICT - mã số thuế đã tồn tại
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+  /staff/companies/{id}/hr-accounts:
+    post:
+      tags: [staff]
+      summary: Cán bộ cấp tài khoản HR cho công ty
+      description: |
+        company-service gọi API nội bộ của identity-service để tạo user (role HR, mustChangePassword=true) và gửi email mật khẩu tạm tới HR,
+        rồi ghi liên kết HR - công ty. Mật khẩu tạm không bao giờ nằm trong response hay log. Gọi lại sau khi timeout: nếu identity đã tạo
+        HR của đúng công ty này mà liên kết chưa ghi thì được nối tiếp và trả 201.
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CreateHrAccountRequest' }
+      responses:
+        '201':
+          description: Đã tạo tài khoản; email mật khẩu tạm đã gửi
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/HrAccountResponse' }
+        '400':
+          description: VALIDATION_ERROR (email hoặc họ tên sai) hoặc BAD_REQUEST (identity từ chối dữ liệu)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '401':
+          description: UNAUTHORIZED
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '403':
+          description: FORBIDDEN (không phải STAFF), MUST_CHANGE_PASSWORD hoặc COMPANY_LOCKED (công ty đang bị khoá)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '404':
+          description: NOT_FOUND - không có công ty với id này (hoặc id không phải UUID thì 400 BAD_REQUEST)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '409':
+          description: CONFLICT - email đã được sử dụng
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '503':
+          description: EXTERNAL_UNAVAILABLE - không gọi được identity-service, hoặc identity trả lỗi (kể cả MAIL_UNAVAILABLE khi không gửi được email; khi đó không có user nào được tạo)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+  /companies/me:
+    get:
+      tags: [company]
+      summary: HR xem hồ sơ công ty của mình
+      description: Công ty được xác định từ userId trong JWT qua bảng company_hr, không đọc claim companyId.
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CompanyResponse' }
+        '401':
+          description: UNAUTHORIZED
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '403':
+          description: FORBIDDEN (không phải HR) hoặc MUST_CHANGE_PASSWORD
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '404':
+          description: NOT_FOUND - HR chưa được gán công ty nào
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+    put:
+      tags: [company]
+      summary: HR sửa hồ sơ công ty của mình
+      description: |
+        Chỉ sửa được name, industry, size, address, city, website, description. Body không có id, taxCode, status, logoUrl; trường lạ trong body bị bỏ qua
+        (ví dụ gửi kèm id của công ty khác thì vẫn chỉ công ty của chính HR được sửa). Gửi chuỗi rỗng hoặc null để xoá một trường tuỳ chọn.
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/UpdateCompanyRequest' }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CompanyResponse' }
+        '400':
+          description: VALIDATION_ERROR - errors là map field -> thông báo
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '401':
+          description: UNAUTHORIZED
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '403':
+          description: FORBIDDEN (không phải HR), MUST_CHANGE_PASSWORD hoặc COMPANY_LOCKED
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '404':
+          description: NOT_FOUND - HR chưa được gán công ty
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '415':
+          description: UNSUPPORTED_MEDIA_TYPE - Content-Type không phải application/json
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+  /companies/me/logo:
+    post:
+      tags: [company]
+      summary: HR tải logo công ty
+      description: |
+        multipart/form-data, phần tên `file`. Chỉ nhận JPG (FF D8 FF) hoặc PNG (89 50 4E 47 0D 0A 1A 0A), kiểm tra theo nội dung tệp chứ không theo đuôi hay Content-Type.
+        Tối đa 2 MB (2 * 1024 * 1024 byte). Logo cũ bị xoá sau khi logo mới đã lưu.
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file: { type: string, format: binary }
+      responses:
+        '200':
+          description: OK - logoUrl trỏ tới /companies/logos/{fileName}
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CompanyResponse' }
+        '400':
+          description: FILE_TOO_LARGE (quá 2 MB, kể cả khi vượt giới hạn multipart 3 MB), INVALID_FILE_TYPE (không phải JPG/PNG, hoặc tệp rỗng) hoặc VALIDATION_ERROR (thiếu phần `file`)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '401':
+          description: UNAUTHORIZED
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '403':
+          description: FORBIDDEN (không phải HR), MUST_CHANGE_PASSWORD hoặc COMPANY_LOCKED
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '404':
+          description: NOT_FOUND - HR chưa được gán công ty
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '415':
+          description: UNSUPPORTED_MEDIA_TYPE - không phải multipart/form-data
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+  /companies/logos/{fileName}:
+    get:
+      tags: [company]
+      summary: Tải ảnh logo (công khai, không cần token)
+      description: Để thẻ img của trình duyệt dùng được. fileName có dạng `<uuid>.jpg` hoặc `<uuid>.png`; tên khác dạng này luôn trả 404. Có Cache-Control public, max-age 1 ngày.
+      security: []
+      parameters:
+        - { name: fileName, in: path, required: true, schema: { type: string, example: 3f6f0a1e-0000-4000-8000-000000000000.png } }
+      responses:
+        '200':
+          description: Ảnh logo
+          content:
+            image/jpeg:
+              schema: { type: string, format: binary }
+            image/png:
+              schema: { type: string, format: binary }
+        '404':
+          description: NOT_FOUND - không có tệp, hoặc tên tệp sai dạng
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT do identity-service cấp (xem identity-openapi.yaml). STAFF đăng nhập qua SSO LMS, HR đăng nhập bằng email/mật khẩu. Token còn mustChangePassword bị mọi endpoint ở đây từ chối với 403 MUST_CHANGE_PASSWORD.
+  schemas:
+    CompanyStatus:
+      type: string
+      enum: [ACTIVE, LOCKED]
+    CreateCompanyRequest:
+      type: object
+      required: [name, taxCode]
+      properties:
+        name: { type: string, maxLength: 255 }
+        taxCode: { type: string, pattern: '^(\d{10}|\d{13})$', description: '10 hoặc 13 chữ số, duy nhất toàn hệ thống', example: '0312345678' }
+        industry: { type: string, maxLength: 100, nullable: true }
+        size: { type: string, enum: ['1-50', '51-200', '201-1000', '1000+', ''], nullable: true, description: Chuỗi rỗng được coi là không có }
+        address: { type: string, maxLength: 255, nullable: true }
+        city: { type: string, maxLength: 100, nullable: true }
+        website: { type: string, maxLength: 255, nullable: true, description: Rỗng hoặc bắt đầu bằng http:// hoặc https://, example: 'https://example.com' }
+        description: { type: string, nullable: true }
+    UpdateCompanyRequest:
+      type: object
+      required: [name]
+      description: Không có id, taxCode, status, logoUrl - các trường này không sửa được qua API HR.
+      properties:
+        name: { type: string, maxLength: 255 }
+        industry: { type: string, maxLength: 100, nullable: true }
+        size: { type: string, enum: ['1-50', '51-200', '201-1000', '1000+', ''], nullable: true }
+        address: { type: string, maxLength: 255, nullable: true }
+        city: { type: string, maxLength: 100, nullable: true }
+        website: { type: string, maxLength: 255, nullable: true, description: Rỗng hoặc bắt đầu bằng http:// hoặc https:// }
+        description: { type: string, nullable: true }
+    CompanyResponse:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string }
+        taxCode: { type: string }
+        industry: { type: string, nullable: true }
+        size: { type: string, nullable: true }
+        address: { type: string, nullable: true }
+        city: { type: string, nullable: true }
+        website: { type: string, nullable: true }
+        logoUrl: { type: string, nullable: true, description: 'Đường dẫn tương đối, ví dụ /companies/logos/<uuid>.png. Ghép sau tiền tố /api/v1 khi hiển thị.' }
+        description: { type: string, nullable: true }
+        status: { $ref: '#/components/schemas/CompanyStatus' }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+    CreateHrAccountRequest:
+      type: object
+      required: [email, fullName]
+      properties:
+        email: { type: string, format: email, maxLength: 255, description: Được cắt khoảng trắng và chuyển chữ thường }
+        fullName: { type: string, maxLength: 255 }
+    HrAccountResponse:
+      type: object
+      properties:
+        userId: { type: string, format: uuid }
+        email: { type: string }
+        fullName: { type: string }
+        companyId: { type: string, format: uuid }
+    Error:
+      type: object
+      properties:
+        code:
+          type: string
+          example: VALIDATION_ERROR
+          description: BAD_REQUEST, VALIDATION_ERROR, UNAUTHORIZED, FORBIDDEN, MUST_CHANGE_PASSWORD, COMPANY_LOCKED, NOT_FOUND, METHOD_NOT_ALLOWED, CONFLICT, UNSUPPORTED_MEDIA_TYPE, FILE_TOO_LARGE, INVALID_FILE_TYPE, EXTERNAL_UNAVAILABLE, INTERNAL_ERROR
+        message: { type: string }
+        errors: { description: Map field -> thông báo khi VALIDATION_ERROR, type: object, additionalProperties: { type: string } }

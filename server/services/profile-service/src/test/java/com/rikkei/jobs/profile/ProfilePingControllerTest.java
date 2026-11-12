@@ -1,6 +1,8 @@
 package com.rikkei.jobs.profile;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -69,5 +71,23 @@ class ProfilePingControllerTest {
         mvc.perform(get("/profile/ping").header("Authorization", "Bearer " + token))
                 .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.code").value("MUST_CHANGE_PASSWORD"));
+    }
+
+    @Test
+    void unknownRouteWithValidTokenIs404InCommonShape() throws Exception {
+        String token = jwt.generateJwtToken(UUID.randomUUID(), Role.HR, null);
+
+        mvc.perform(put("/profile/no-such-route/" + UUID.randomUUID()).header("Authorization", "Bearer " + token))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value("NOT_FOUND"));
+    }
+
+    @Test
+    void wrongMethodIs405InCommonShape() throws Exception {
+        String token = jwt.generateJwtToken(UUID.randomUUID(), Role.HR, null);
+
+        mvc.perform(post("/profile/ping").header("Authorization", "Bearer " + token))
+                .andExpect(status().isMethodNotAllowed())
+                .andExpect(jsonPath("$.code").value("METHOD_NOT_ALLOWED"));
     }
 }

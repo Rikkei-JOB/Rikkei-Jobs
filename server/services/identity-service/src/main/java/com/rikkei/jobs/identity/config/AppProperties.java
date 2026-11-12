@@ -13,6 +13,14 @@ public class AppProperties {
     private Web web = new Web();
     private Mail mail = new Mail();
     private Lms lms = new Lms();
+    private Internal internal = new Internal();
+
+    @Getter
+    @Setter
+    public static class Internal {
+        /** Khoá X-Internal-Key cho /internal/**; rỗng thì mọi request bị từ chối. */
+        private String serviceKey = "";
+    }
 
     @Getter
     @Setter

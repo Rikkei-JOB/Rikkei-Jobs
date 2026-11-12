@@ -2,15 +2,16 @@
 
 import * as React from "react"
 import Link from "next/link"
-import { notFound, useRouter } from "next/navigation"
+import { notFound } from "next/navigation"
 import { Button } from "@/app/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/app/components/ui/card"
 import { ROLE_LABEL, roleFromSlug } from "@/config/roles"
 import { useAuthGuard } from "@/hooks/use-auth-guard"
 import { useAuthStore } from "@/hooks/use-auth-store"
+import { useLogout } from "@/hooks/use-logout"
 import { authService } from "@/services/auth.service"
 import { SkillProfile } from "@/app/components/skills/skill-profile"
-import { LogOut, User, KeyRound } from "lucide-react"
+import { Building2, LogOut, User, KeyRound } from "lucide-react"
 
 /**
  * Trang chủ của từng vai trò (/candidate, /hr, /mentor, /staff, /admin) sau khi đăng nhập.
@@ -25,11 +26,10 @@ export default function RoleHomePage({ params }: { params: Promise<{ role: strin
 }
 
 function RoleHome({ expectedRole }: { expectedRole: NonNullable<ReturnType<typeof roleFromSlug>> }) {
-  const router = useRouter()
   const allowed = useAuthGuard({ roles: [expectedRole] })
   const user = useAuthStore((s) => s.user)
   const setUser = useAuthStore((s) => s.setUser)
-  const clear = useAuthStore((s) => s.clear)
+  const logout = useLogout()
 
   // Làm mới thông tin người dùng từ máy chủ; token hết hạn sẽ tự đưa về /login (xem services/api.ts).
   React.useEffect(() => {
@@ -38,11 +38,6 @@ function RoleHome({ expectedRole }: { expectedRole: NonNullable<ReturnType<typeo
   }, [allowed, setUser])
 
   if (!allowed || !user) return null
-
-  function logout() {
-    clear()
-    router.replace("/login")
-  }
 
   // Đối với ứng viên: hiển thị trực tiếp Hồ sơ năng lực kỹ năng (HS-01)
   if (user.role === "CANDIDATE") {
@@ -102,10 +97,16 @@ function RoleHome({ expectedRole }: { expectedRole: NonNullable<ReturnType<typeo
           </p>
           <div className="flex gap-2">
             {user.role === "HR" ? (
-              <Button variant="outline" render={<Link href="/change-password" />} nativeButton={false}>
-                <KeyRound className="mr-1.5 h-3.5 w-3.5" />
-                Đổi mật khẩu
-              </Button>
+              <>
+                <Button variant="outline" render={<Link href="/hr/company" />} nativeButton={false}>
+                  <Building2 className="mr-1.5 h-3.5 w-3.5" />
+                  Hồ sơ công ty
+                </Button>
+                <Button variant="outline" render={<Link href="/change-password" />} nativeButton={false}>
+                  <KeyRound className="mr-1.5 h-3.5 w-3.5" />
+                  Đổi mật khẩu
+                </Button>
+              </>
             ) : null}
             <Button variant="outline" onClick={logout}>
               <LogOut className="mr-1.5 h-3.5 w-3.5" />
