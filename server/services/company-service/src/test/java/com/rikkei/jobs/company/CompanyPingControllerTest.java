@@ -7,22 +7,12 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.rikkei.jobs.common.config.security.jwt.JwtProperties;
 import com.rikkei.jobs.common.config.security.jwt.JwtUtils;
 import com.rikkei.jobs.common.config.security.principle.Role;
+import com.rikkei.jobs.company.support.CompanyApiTestSupport;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.web.servlet.MockMvc;
 
-@SpringBootTest(properties = {
-    "spring.autoconfigure.exclude=org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration,org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration,org.springframework.boot.autoconfigure.data.jpa.JpaRepositoriesAutoConfiguration,org.springframework.boot.autoconfigure.jdbc.DataSourceTransactionManagerAutoConfiguration",
-    "app.jwt.secret=test_secret_test_secret_test_secret_test_secret"
-})
-@AutoConfigureMockMvc
-class CompanyPingControllerTest {
+class CompanyPingControllerTest extends CompanyApiTestSupport {
 
-    @Autowired MockMvc mvc;
-    @Autowired JwtUtils jwt;
 
     @Test
     void withoutTokenIs401InCommonErrorShape() throws Exception {

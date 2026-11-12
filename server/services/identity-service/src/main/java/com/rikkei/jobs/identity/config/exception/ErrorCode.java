@@ -16,7 +16,11 @@ public enum ErrorCode {
     MUST_CHANGE_PASSWORD(HttpStatus.FORBIDDEN, "Bạn phải đổi mật khẩu trước khi tiếp tục"),
     ACCOUNT_LOCKED(HttpStatus.TOO_MANY_REQUESTS, "Tài khoản đang bị khoá"),
 
-    LMS_UNAVAILABLE(HttpStatus.BAD_GATEWAY, "Không kết nối được LMS");
+    EMAIL_EXISTS(HttpStatus.CONFLICT, "Email đã được sử dụng"),
+    INVALID_SERVICE_KEY(HttpStatus.UNAUTHORIZED, "Thiếu hoặc sai khoá dịch vụ nội bộ"),
+
+    LMS_UNAVAILABLE(HttpStatus.BAD_GATEWAY, "Không kết nối được LMS"),
+    MAIL_UNAVAILABLE(HttpStatus.SERVICE_UNAVAILABLE, "Không gửi được email, vui lòng thử lại");
 
     private final HttpStatus status;
     private final String defaultMessage;
