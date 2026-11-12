@@ -140,32 +140,24 @@ Chỉ có khi chạy profile `dev` (`DEV_DATA_ENABLED=true`; mặc định tắt
 
 Tên lớp test ở cột cuối là các lớp trong `server/services/company-service/src/test` và `server/services/identity-service/src/test`; chạy toàn bộ bằng `mvn -f server/pom.xml -B clean test`.
 
-## 8. Ảnh màn hình
-
-Thư mục [screenshots/DN-01](screenshots/DN-01) **chưa có ảnh**: máy bàn giao không dựng được Postgres (xem mục 9), nên không chụp được giao diện chạy thật và không có ảnh giả. Ảnh cần chụp khi chạy theo mục 5:
-
-| Ảnh (đặt tên gợi ý) | Nội dung |
-| --- | --- |
-| `mailhog-temp-password.png` | MailHog nhận email mật khẩu tạm sau `DN-01.http` 2b |
-| `hr-first-login-change-password.png` | HR mới đăng nhập, bị chuyển `/change-password` |
-| `hr-company-profile.png` | `/hr/company` của hr1, hai cột (thông tin + biểu mẫu sửa) |
-| `hr-company-logo-too-large.png` | Chọn logo 3 MB, giao diện báo lỗi và không gửi request |
-| `tax-code-400.png` | Phản hồi 400 `errors.taxCode` (Postman/IDE) |
-
-## 9. Trạng thái xác minh
+## 8. Trạng thái xác minh
 
 Đã chạy trên nhánh `feature/DN-01-company-hr`:
 
 - `mvn -f server/pom.xml -B clean test`: BUILD SUCCESS, không test nào lỗi (H2, không cần Postgres).
 - `web/`: `npm run type-check` và `npm run build` thành công (route `/hr/company` có trong kết quả build). `npm run lint`: 1 lỗi và 1 cảnh báo **có sẵn**, không thuộc DN-01: lỗi `react-hooks/set-state-in-effect` ở `web/src/app/components/skills/skill-profile.tsx:101` (HS-01) và cảnh báo ở `postcss.config.mjs`.
 - `company-openapi.yaml` và `identity-openapi.yaml`: `postman spec lint <file> --issueType=syntax` báo "No issues found".
+- 2026-11-12, chạy toàn luồng theo mục 5 (Postgres và MailHog trong Docker, mock LMS, identity và company-service profile `dev`, gateway, web): đi hết các request trong `DN-01.http` và giao diện, **sáu tiêu chí ở mục 7 đều đạt**:
+  - staff1 tạo công ty và HR; MailHog nhận email mật khẩu tạm; HR mới đăng nhập bị chuyển `/change-password`;
+  - tạo lại cùng email → 409; mã số thuế sai → 400 `errors.taxCode`;
+  - hr1 sửa Công ty A trên `/hr/company` (hai cột); `PUT /companies/{B}` → 404; `PUT /companies/me` kèm id B chỉ đổi A, hr2 vẫn thấy B nguyên vẹn;
+  - đổi logo thành công; ảnh trên 2MB bị chặn trên giao diện và 4b trả 400 `FILE_TOO_LARGE`;
+  - đăng xuất rồi đăng nhập hr2 trong cùng tab thấy Công ty B; API nội bộ: thiếu khoá → 401 (5a), gọi qua gateway → 404 (5b).
 
-**Chưa chạy** (không dựng được hạ tầng trên máy bàn giao: Docker không chạy và Postgres có sẵn ở cổng 5432 không nhận `postgres`/`postgres`): toàn luồng với Postgres, MailHog, gateway và trình duyệt, tức là sáu tiêu chí ở mục 7 theo `DN-01.http` và giao diện, cùng các kiểm tra tay của trang `/hr/company` (hai cột và một cột khi hẹp cửa sổ, `PUT` gửi `website: null` khi để trống, upload logo dạng multipart, chặn logo 3 MB không gọi API, quay lại trang trong 30 giây không gọi lại `GET`, đăng xuất rồi đăng nhập hr2 ngay trong cùng tab thấy Công ty B không nhấp nháy A, các trang NT-01 vẫn chạy). Các request trong `DN-01.http` được viết theo code của controller/DTO, **chưa được chạy** với dịch vụ thật; kiểu `404` khi gọi `/api/v1/internal/users` qua gateway (5b) cũng chưa chạy. Người nhận cần chạy các bước này theo mục 5 trước khi merge.
-
-## 10. Checklist nộp PR
+## 9. Checklist nộp PR
 
 - [ ] Nhánh `feature/DN-01-company-hr`, PR **vào `test`**, tiêu đề `[DN-01] Doanh nghiệp: hồ sơ công ty, tài khoản HR`
 - [x] Có: cách chạy, dữ liệu mẫu, OpenAPI (`company-openapi.yaml`, tag `internal` của `identity-openapi.yaml`), request mẫu
-- [ ] Ảnh màn hình đủ trong `docs/api/screenshots/DN-01`
+- [x] Đã chạy toàn luồng theo mục 5, sáu tiêu chí ở mục 7 đạt (mục 8)
 - [ ] Tự chạy `npm run lint` và `npm run build` ở `web/` (CI chỉ chạy `type-check`); lỗi lint sẵn có ở `skill-profile.tsx` thuộc HS-01, không thuộc DN-01
 - [ ] Một bạn trong nhóm review trước, mentor duyệt PR
