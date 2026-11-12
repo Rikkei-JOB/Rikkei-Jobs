@@ -75,3 +75,4 @@ web/*.tsbuildinfo
 
 # Tệp tải lên khi chạy cục bộ (logo công ty)
 data/
+docs/api/big.png

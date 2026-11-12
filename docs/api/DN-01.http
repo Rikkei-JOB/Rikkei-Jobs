@@ -100,7 +100,9 @@ Authorization: Bearer {{hr2Login.response.body.accessToken}}
 
 ############################## 4. Logo ##############################
 
-### 4a. hr1 tai logo (thay logo.png bang anh PNG/JPG <= 2MB) -> 200, logoUrl = /companies/logos/<uuid>.png
+### 4a. hr1 tải logo -> 200, logoUrl = /companies/logos/<uuid>.png
+# Đường dẫn file tính từ thư mục chứa file .http này (docs/api/). Dùng sẵn một ảnh PNG có trong repo (~27KB);
+# muốn thử ảnh khác thì đổi đường dẫn. Chạy 3a (hr1Login) trước. Nếu 4a không trả 200 thì 4c không có logoUrl để dùng.
 # @name uploadLogo
 POST {{gw}}/companies/me/logo
 Authorization: Bearer {{hr1Login.response.body.accessToken}}
@@ -110,10 +112,13 @@ Content-Type: multipart/form-data; boundary=WebAppBoundary
 Content-Disposition: form-data; name="file"; filename="logo.png"
 Content-Type: image/png
 
-< ./logo.png
+< ./screenshots/NT-01/login-hr.png
 --WebAppBoundary--
 
-### 4b. Anh > 2MB -> 400 FILE_TOO_LARGE (tao tep bang: head -c 2097153 /dev/zero > big.png ; tep khong phai anh nhung bi chan vi kich thuoc truoc)
+### 4b. Ảnh > 2MB -> 400 FILE_TOO_LARGE (tệp không phải ảnh nhưng bị chặn vì kích thước trước)
+# Tạo tệp docs/api/big.png (2MB + 1 byte) trước khi chạy, KHÔNG commit, xoá sau khi thử:
+#   PowerShell (từ gốc repo): [IO.File]::WriteAllBytes("$PWD\docs\api\big.png", (New-Object byte[] 2097153))
+#   Bash (từ gốc repo):       head -c 2097153 /dev/zero > docs/api/big.png
 POST {{gw}}/companies/me/logo
 Authorization: Bearer {{hr1Login.response.body.accessToken}}
 Content-Type: multipart/form-data; boundary=WebAppBoundary
@@ -125,8 +130,8 @@ Content-Type: image/png
 < ./big.png
 --WebAppBoundary--
 
-### 4c. Xem logo cong khai (khong can token) -> 200 image/png
-GET http://localhost:8080/api/v1{{uploadLogo.response.body.logoUrl}}
+### 4c. Xem logo công khai (không cần token) -> 200 image/png. Cần chạy 4a thành công trước trong cùng phiên.
+GET {{gw}}{{uploadLogo.response.body.$.logoUrl}}
 
 ############################## 5. API noi bo (KHONG qua gateway) ##############################
 
