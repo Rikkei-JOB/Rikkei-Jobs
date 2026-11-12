@@ -4,6 +4,8 @@ Nguồn: tài liệu hướng dẫn dựng mock của mentor, mục 3 và mục 
 
 Mock chạy riêng ở `http://localhost:9000` (thư mục `mock/`). Cách chạy: [mock/README.md](../mock/README.md).
 
+Tài liệu này giữ phạm vi **11 API hệ thống ngoài**. Mock nội bộ JD/CV dùng chung cho UT-01 được mô tả riêng ở [UT-01-applications.md](api/UT-01-applications.md#hợp-đồng-consumer-cho-các-task-phụ-thuộc) và [OpenAPI JD/CV](api/ut01-dependencies-openapi.yaml); các route đó dùng `X-Internal-Key` hoặc JWT, không dùng `X-Service-Key` dưới đây.
+
 ## Quy tắc chung
 
 - Header bắt buộc cho `/lms`, `/exam`, `/pm`, `/meet`: `X-Service-Key: dev-key`. Thiếu hoặc sai → `401 {"code":"INVALID_SERVICE_KEY","message":"..."}`.

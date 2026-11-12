@@ -9,19 +9,19 @@ FROM (VALUES
     ('00000000-0000-0000-0001-000000000005', 'REST_API', 'REST API', 'Backend'),
     ('00000000-0000-0000-0001-000000000006', 'HTML_CSS', 'HTML/CSS', 'Frontend'),
     ('00000000-0000-0000-0001-000000000007', 'JAVASCRIPT', 'JavaScript', 'Frontend'),
-    ('00000000-0000-0000-0001-000000000008', 'CLEAN_CODE', 'Clean code', 'Foundations'),
+    ('00000000-0000-0000-0001-000000000008', 'TYPESCRIPT', 'TypeScript', 'Frontend'),
     ('00000000-0000-0000-0001-000000000009', 'REACTJS', 'ReactJS', 'Frontend'),
-    ('00000000-0000-0000-0001-000000000010', 'AGILE', 'Agile/Scrum', 'Soft skills'),
+    ('00000000-0000-0000-0001-000000000010', 'NEXTJS', 'Next.js', 'Frontend'),
     ('00000000-0000-0000-0001-000000000011', 'DOCKER', 'Docker', 'DevOps'),
     ('00000000-0000-0000-0001-000000000012', 'LINUX', 'Linux', 'DevOps'),
     ('00000000-0000-0000-0001-000000000013', 'OOP', 'Lập trình hướng đối tượng', 'Foundations'),
-    ('00000000-0000-0000-0001-000000000014', 'DSA', 'Cấu trúc dữ liệu và giải thuật', 'Foundations'),
-    ('00000000-0000-0000-0001-000000000015', 'TESTING', 'Kiểm thử phần mềm', 'Foundations'),
-    ('00000000-0000-0000-0001-000000000016', 'SECURITY', 'Bảo mật', 'DevOps'),
+    ('00000000-0000-0000-0001-000000000014', 'DATA_STRUCTURES_ALGORITHMS', 'Cấu trúc dữ liệu và giải thuật', 'Foundations'),
+    ('00000000-0000-0000-0001-000000000015', 'UNIT_TESTING', 'Kiểm thử đơn vị', 'Foundations'),
+    ('00000000-0000-0000-0001-000000000016', 'CI_CD', 'CI/CD', 'DevOps'),
     ('00000000-0000-0000-0001-000000000017', 'ENGLISH', 'Tiếng Anh', 'Soft skills'),
     ('00000000-0000-0000-0001-000000000018', 'COMMUNICATION', 'Giao tiếp', 'Soft skills'),
     ('00000000-0000-0000-0001-000000000019', 'TEAMWORK', 'Làm việc nhóm', 'Soft skills'),
-    ('00000000-0000-0000-0001-000000000020', 'CLOUD', 'Điện toán đám mây', 'DevOps')
+    ('00000000-0000-0000-0001-000000000020', 'PROBLEM_SOLVING', 'Giải quyết vấn đề', 'Soft skills')
 ) AS seed(id, code, name, skill_group)
 WHERE NOT EXISTS (SELECT 1 FROM skills existing WHERE existing.code = seed.code);
 

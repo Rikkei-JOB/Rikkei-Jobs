@@ -77,6 +77,21 @@ java -jar services/profile-service/target/profile-service-1.0.0-SNAPSHOT.jar
 
 ## Docker
 
+To start the full local backend (gateway, eight services, LMS mock and required
+infrastructure), run from the repository root:
+
+```sh
+docker compose up -d --build
+docker compose ps
+```
+
+The root `compose.yaml` configures container DNS, startup health checks and named
+volumes for company logos and recruitment CV snapshots. It uses project name
+`infra` to preserve the existing infrastructure container and volume names.
+Frontend runs separately on the host. See the root README for local credentials,
+logs, shutdown and environment settings. This is a development stack with the
+`dev` Spring profile enabled by default.
+
 Run from the repository root. The build context must be `server/` so Maven
 can resolve the parent POM and common-observability module:
 

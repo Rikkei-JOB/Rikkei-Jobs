@@ -2,6 +2,7 @@ const express = require('express');
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
+const { mountJdCv } = require('./jd-cv');
 
 const PORT = process.env.PORT || 9000;
 const SERVICE_KEY = process.env.SERVICE_KEY || 'dev-key';
@@ -16,7 +17,15 @@ const requestLog = [];        // 100 request gần nhất
 
 const ENROLLMENT_STATUSES = ['ENROLLED', 'IN_PROGRESS', 'COMPLETED'];
 
-const load = () => { db = JSON.parse(fs.readFileSync(DATA_FILE, 'utf8')); };
+const load = () => {
+  db = JSON.parse(fs.readFileSync(DATA_FILE, 'utf8'));
+  const localOwner = process.env.MOCK_CV_OWNER_ID;
+  if (localOwner) {
+    for (const cv of db.cvs || []) {
+      if (cv.ownerId === '30000000-0000-0000-0000-000000000001') cv.ownerId = localOwner;
+    }
+  }
+};
 load();
 
 const app = express();
@@ -37,7 +46,10 @@ app.use((req, res, next) => {
   next();
 });
 
-// Kiểm khoá dịch vụ (trừ công cụ /mock/*)
+// JD/CV có guard riêng (X-Internal-Key / JWT), không dùng khoá hệ thống ngoài.
+mountJdCv(app, () => db);
+
+// Kiểm khoá dịch vụ của hệ thống ngoài (trừ công cụ /mock/*)
 app.use((req, res, next) => {
   if (req.path.startsWith('/mock/')) return next();
   if (req.get('X-Service-Key') !== SERVICE_KEY) {

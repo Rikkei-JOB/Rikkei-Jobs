@@ -1,0 +1,247 @@
+# Local development backend. Keep the old infrastructure project/volume names.
+name: infra
+
+x-backend-env: &backend-env
+  SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-dev}
+  MANAGEMENT_ENDPOINT_HEALTH_PROBES_ENABLED: "true"
+  POSTGRES_HOST: postgres
+  POSTGRES_PORT: "5432"
+  POSTGRES_DB: ${POSTGRES_DB:-rikkei_jobs}
+  POSTGRES_USER: ${POSTGRES_USER:-postgres}
+  POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+  JWT_SECRET: ${JWT_SECRET:-your_super_secret_jwt_key_at_least_256_bits_long_rikkei_jobs}
+  INTERNAL_SERVICE_KEY: ${INTERNAL_SERVICE_KEY:-dev-internal-key}
+  WEB_BASE_URL: ${WEB_BASE_URL:-http://localhost:3000}
+  MAIL_HOST: mailhog
+  MAIL_PORT: "1025"
+  MAIL_FROM: ${MAIL_FROM:-no-reply@rikkei-jobs.local}
+  REDIS_HOST: redis
+  RABBITMQ_HOST: rabbitmq
+  RABBITMQ_USER: ${RABBITMQ_USER:-guest}
+  RABBITMQ_PASS: ${RABBITMQ_PASS:-guest}
+
+x-backend: &backend
+  restart: unless-stopped
+  networks: [rikkei-network]
+  healthcheck:
+    # Readiness becomes UP after ApplicationRunner seeders finish.
+    test: [CMD-SHELL, 'wget -q -O /dev/null http://127.0.0.1:$${SERVER_PORT}/actuator/health && wget -q -O /dev/null http://127.0.0.1:$${SERVER_PORT}/actuator/health/readiness']
+    interval: 10s
+    timeout: 5s
+    start_period: 90s
+    retries: 12
+  depends_on:
+    postgres:
+      condition: service_healthy
+
+services:
+  postgres:
+    extends:
+      file: infra/compose.yaml
+      service: postgres
+    restart: unless-stopped
+    healthcheck:
+      test: [CMD-SHELL, 'pg_isready -U "$${POSTGRES_USER}" -d "$${POSTGRES_DB}"']
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  redis:
+    extends:
+      file: infra/compose.yaml
+      service: redis
+    restart: unless-stopped
+
+  rabbitmq:
+    extends:
+      file: infra/compose.yaml
+      service: rabbitmq
+    restart: unless-stopped
+
+  mailhog:
+    extends:
+      file: infra/compose.yaml
+      service: mailhog
+    restart: unless-stopped
+
+  mock:
+    build: ./mock
+    restart: unless-stopped
+    ports: ["9000:9000"]
+    networks: [rikkei-network]
+    environment:
+      PORT: "9000"
+      SERVICE_KEY: ${LMS_SERVICE_KEY:-dev-key}
+      JWT_SECRET: ${JWT_SECRET:-your_super_secret_jwt_key_at_least_256_bits_long_rikkei_jobs}
+      INTERNAL_SERVICE_KEY: ${INTERNAL_SERVICE_KEY:-dev-internal-key}
+      RECRUITMENT_COMPANY_SERVICE_KEY: ${RECRUITMENT_COMPANY_SERVICE_KEY:-${INTERNAL_SERVICE_KEY:-dev-internal-key}}
+      MOCK_WEB_ORIGIN: ${WEB_BASE_URL:-http://localhost:3000}
+      MOCK_CV_OWNER_ID: ${MOCK_CV_OWNER_ID:-}
+    healthcheck:
+      test: [CMD, node, -e, "fetch('http://127.0.0.1:9000/mock/requests').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+
+  identity-service:
+    <<: *backend
+    build:
+      context: ./server
+      dockerfile: services/identity-service/Dockerfile
+    ports: ["${IDENTITY_SERVICE_PORT:-8081}:8081"]
+    environment:
+      <<: *backend-env
+      SERVER_PORT: "8081"
+      DEV_DATA_ENABLED: ${DEV_DATA_ENABLED:-true}
+      JWT_EXPIRATION_MS: ${JWT_EXPIRATION_MS:-28800000}
+      MAIL_ENABLED: ${MAIL_ENABLED:-true}
+      LMS_BASE_URL: http://mock:9000
+      LMS_SERVICE_KEY: ${LMS_SERVICE_KEY:-dev-key}
+      LMS_DEV_TICKETS_ENABLED: ${LMS_DEV_TICKETS_ENABLED:-true}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      mock:
+        condition: service_healthy
+      mailhog:
+        condition: service_started
+
+  profile-service:
+    <<: *backend
+    build:
+      context: ./server
+      dockerfile: services/profile-service/Dockerfile
+    ports: ["${PROFILE_SERVICE_PORT:-8082}:8082"]
+    environment:
+      <<: *backend-env
+      SERVER_PORT: "8082"
+      PROFILE_DEMO_DATA_ENABLED: ${PROFILE_DEMO_DATA_ENABLED:-false}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      identity-service:
+        condition: service_healthy
+
+  company-service:
+    <<: *backend
+    build:
+      context: ./server
+      dockerfile: services/company-service/Dockerfile
+    ports: ["${COMPANY_SERVICE_PORT:-8085}:8085"]
+    environment:
+      <<: *backend-env
+      SERVER_PORT: "8085"
+      DEV_DATA_ENABLED: ${DEV_DATA_ENABLED:-true}
+      IDENTITY_SERVICE_URL: http://identity-service:8081
+      COMPANY_DB_SCHEMA: ${COMPANY_DB_SCHEMA:-company}
+      COMPANY_UPLOAD_DIR: /app/data/uploads
+    volumes: [company_uploads:/app/data/uploads]
+    depends_on:
+      postgres:
+        condition: service_healthy
+      identity-service:
+        condition: service_healthy
+
+  recruitment-service:
+    <<: *backend
+    build:
+      context: ./server
+      dockerfile: services/recruitment-service/Dockerfile
+    ports: ["${RECRUITMENT_SERVICE_PORT:-8083}:8083"]
+    environment:
+      <<: *backend-env
+      SERVER_PORT: "8083"
+      COMPANY_SERVICE_URL: ${DOCKER_RECRUITMENT_COMPANY_URL:-http://company-service:8085}
+      PROFILE_SERVICE_URL: ${DOCKER_RECRUITMENT_PROFILE_URL:-http://profile-service:8082}
+      RECRUITMENT_COMPANY_SERVICE_KEY: ${RECRUITMENT_COMPANY_SERVICE_KEY:-${INTERNAL_SERVICE_KEY:-dev-internal-key}}
+      RECRUITMENT_CV_STORAGE_DIR: /app/data/cv-snapshots
+      RECRUITMENT_OUTBOX_ENABLED: ${RECRUITMENT_OUTBOX_ENABLED:-true}
+    volumes: [recruitment_cvs:/app/data/cv-snapshots]
+    depends_on:
+      postgres:
+        condition: service_healthy
+      company-service:
+        condition: service_healthy
+      profile-service:
+        condition: service_healthy
+      mailhog:
+        condition: service_started
+
+  learning-service:
+    <<: *backend
+    build:
+      context: ./server
+      dockerfile: services/learning-service/Dockerfile
+    ports: ["${LEARNING_SERVICE_PORT:-8084}:8084"]
+    environment:
+      <<: *backend-env
+      SERVER_PORT: "8084"
+
+  internship-service:
+    <<: *backend
+    build:
+      context: ./server
+      dockerfile: services/internship-service/Dockerfile
+    ports: ["${INTERNSHIP_SERVICE_PORT:-8086}:8086"]
+    environment:
+      <<: *backend-env
+      SERVER_PORT: "8086"
+
+  assessment-service:
+    <<: *backend
+    build:
+      context: ./server
+      dockerfile: services/assessment-service/Dockerfile
+    ports: ["${ASSESSMENT_SERVICE_PORT:-8087}:8087"]
+    environment:
+      <<: *backend-env
+      SERVER_PORT: "8087"
+
+  ai-service:
+    <<: *backend
+    build:
+      context: ./server
+      dockerfile: services/ai-service/Dockerfile
+    ports: ["${AI_SERVICE_PORT:-8088}:8088"]
+    environment:
+      <<: *backend-env
+      SERVER_PORT: "8088"
+    depends_on: {}
+
+  api-gateway:
+    <<: *backend
+    build:
+      context: ./server
+      dockerfile: api-gateway/Dockerfile
+    ports: ["${GATEWAY_PORT:-8080}:8080"]
+    environment:
+      SERVER_PORT: "8080"
+      MANAGEMENT_ENDPOINT_HEALTH_PROBES_ENABLED: "true"
+      WEB_BASE_URL: ${WEB_BASE_URL:-http://localhost:3000}
+      IDENTITY_SERVICE_URL: http://identity-service:8081
+      PROFILE_SERVICE_URL: http://profile-service:8082
+      COMPANY_SERVICE_URL: http://company-service:8085
+      RECRUITMENT_SERVICE_URL: http://recruitment-service:8083
+      LEARNING_SERVICE_URL: http://learning-service:8084
+      INTERNSHIP_SERVICE_URL: http://internship-service:8086
+      ASSESSMENT_SERVICE_URL: http://assessment-service:8087
+      AI_SERVICE_URL: http://ai-service:8088
+    depends_on:
+      identity-service: {condition: service_healthy}
+      profile-service: {condition: service_healthy}
+      company-service: {condition: service_healthy}
+      recruitment-service: {condition: service_healthy}
+      learning-service: {condition: service_healthy}
+      internship-service: {condition: service_healthy}
+      assessment-service: {condition: service_healthy}
+      ai-service: {condition: service_healthy}
+
+volumes:
+  postgres_data:
+  redis_data:
+  company_uploads:
+  recruitment_cvs:
+
+networks:
+  rikkei-network:
+    driver: bridge

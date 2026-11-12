@@ -74,14 +74,17 @@ interface SkillProfileProps {
   readOnly?: boolean;
 }
 
-export function SkillProfile({ userId, readOnly = false }: SkillProfileProps) {
+export function SkillProfile(props: SkillProfileProps) {
+  return <SkillProfileContent key={props.userId ?? "me"} {...props} />;
+}
+
+function SkillProfileContent({ userId, readOnly = false }: SkillProfileProps) {
   const [skills, setSkills] = React.useState<SkillProfileItem[]>([]);
   const [loading, setLoading] = React.useState(true);
   const [recomputing, setRecomputing] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
   const [actionMessage, setActionMessage] = React.useState<{ type: "success" | "error"; text: string } | null>(null);
   const [expandedSkillIds, setExpandedSkillIds] = React.useState<Set<string>>(new Set());
-
   const [reloadKey, setReloadKey] = React.useState(0);
 
   React.useEffect(() => {
@@ -197,7 +200,7 @@ export function SkillProfile({ userId, readOnly = false }: SkillProfileProps) {
             <AlertCircle className="h-4 w-4 shrink-0" />
             <span className="font-semibold">{error}</span>
           </div>
-          <Button variant="outline" size="sm" onClick={() => { setLoading(true); setReloadKey((k) => k + 1); }}>
+          <Button variant="outline" size="sm" onClick={() => { setLoading(true); setError(null); setReloadKey(value => value + 1); }}>
             Thử lại
           </Button>
         </div>

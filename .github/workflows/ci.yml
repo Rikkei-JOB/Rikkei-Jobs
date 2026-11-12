@@ -7,9 +7,44 @@ on:
     branches: [ main, test ]
 
 jobs:
+  mock-contracts:
+    name: Test Shared Mock Contracts
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: mock/package-lock.json
+      - name: Install mock dependencies
+        working-directory: mock
+        run: npm ci
+      - name: Test external and JD/CV contracts
+        working-directory: mock
+        run: npm test
+
   backend-build:
     name: Build & Test Backend
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: ut01_test
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d ut01_test"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      UT01_TEST_DB_URL: jdbc:postgresql://localhost:5432/ut01_test
+      UT01_TEST_DB_USER: postgres
+      UT01_TEST_DB_PASSWORD: postgres
     steps:
       - uses: actions/checkout@v4
 
@@ -34,16 +69,26 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 24
           cache: 'npm'
-          cache-dependency-path: web/package.json
+          cache-dependency-path: web/package-lock.json
 
       - name: Install dependencies
         run: |
           cd web
-          npm ci || npm install
+          npm ci
 
       - name: Type Check & Lint
         run: |
           cd web
-          npm run type-check || true
+          npm run type-check
+          npm run lint
+          npm run build
+
+      - name: Install Chromium
+        working-directory: web
+        run: npx playwright install --with-deps chromium
+
+      - name: Candidate application browser tests
+        working-directory: web
+        run: npm run test:e2e

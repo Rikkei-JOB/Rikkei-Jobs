@@ -53,6 +53,41 @@
     { "batchId": "IOC-JB-2026-09", "batchName": "IOC Java Backend 09/2026" },
     { "batchId": "IOC-JB-2026-12", "batchName": "IOC Java Backend 12/2026" }
   ],
+  "jobs": [
+    {
+      "jobId": "10000000-0000-0000-0000-000000000001",
+      "companyId": "00000000-0000-0000-0000-0000000000a1",
+      "jobTitle": "Java Developer", "companyName": "Rikkei Software",
+      "status": "APPROVED", "deadline": "2099-12-31T23:59:59Z",
+      "companyLocked": false, "hrEmails": ["hr1@rikkeijobs.test"]
+    },
+    {
+      "jobId": "10000000-0000-0000-0000-000000000002",
+      "companyId": "00000000-0000-0000-0000-0000000000a1",
+      "jobTitle": "JD chưa được duyệt", "companyName": "Rikkei Software",
+      "status": "PENDING", "deadline": "2099-12-31T23:59:59Z",
+      "companyLocked": false, "hrEmails": ["hr1@rikkeijobs.test"]
+    },
+    {
+      "jobId": "10000000-0000-0000-0000-000000000003",
+      "companyId": "00000000-0000-0000-0000-0000000000a1",
+      "jobTitle": "JD đã hết hạn", "companyName": "Rikkei Software",
+      "status": "APPROVED", "deadline": "2020-01-01T00:00:00Z",
+      "companyLocked": false, "hrEmails": ["hr1@rikkeijobs.test"]
+    },
+    {
+      "jobId": "10000000-0000-0000-0000-000000000004",
+      "companyId": "00000000-0000-0000-0000-0000000000b2",
+      "jobTitle": "JD của công ty bị khoá", "companyName": "Công ty B",
+      "status": "APPROVED", "deadline": "2099-12-31T23:59:59Z",
+      "companyLocked": true, "hrEmails": ["hr2@rikkeijobs.test"]
+    }
+  ],
+  "cvs": [
+    { "id": "40000000-0000-0000-0000-000000000001", "ownerId": "30000000-0000-0000-0000-000000000001", "name": "CV Backend", "targetPosition": "Java Developer" },
+    { "id": "40000000-0000-0000-0000-000000000002", "ownerId": "30000000-0000-0000-0000-000000000001", "name": "CV Frontend", "targetPosition": "React Developer" },
+    { "id": "40000000-0000-0000-0000-000000000003", "ownerId": "30000000-0000-0000-0000-000000000002", "name": "CV ứng viên khác", "targetPosition": "QA Engineer" }
+  ],
   "courses": [
     { "courseId": "LMS-C-JAVA-02", "name": "Java nâng cao", "skills": ["JAVA", "OOP"], "level": "Khá" },
     { "courseId": "LMS-C-SQL-01", "name": "SQL thực hành", "skills": ["SQL"], "level": "Cơ bản" },
