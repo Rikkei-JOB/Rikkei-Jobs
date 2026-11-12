@@ -34,8 +34,8 @@ Dựng khung phân quyền và tài liệu API dùng chung để cả nhóm làm
 Chi tiết và sơ đồ: [docs/database/erd.md](../database/erd.md).
 
 - **Mỗi service một schema** trong database chung `rikkei_jobs`. Bảng lịch sử Flyway nằm trong schema đó, nên các service migrate độc lập, khởi động theo thứ tự nào cũng được. `identity-service` đã merge trước quy ước này nên giữ schema `public`.
-- **Migration** đánh số `V001__...`, `V002__...`. Không sửa migration đã merge; muốn đổi thì thêm migration mới. `V1__identity_init.sql` (NT-01) tương đương `V001`, nên migration tiếp theo của identity là `V002__`.
-- **`companies`** (company-service, schema `company`, `V001__create_companies.sql`): bản tối thiểu `id`, `name`, `created_at`. DN-01 thêm cột bằng migration mới.
+- **Migration** đánh số `V001__...`, `V002__...`. Không sửa migration đã merge; muốn đổi thì thêm migration mới. Flyway so số theo giá trị nên `V1__` (identity NT-01, company DN-01) tương đương `V001`; migration tiếp theo của các service này là `V002__`.
+- **`companies`**, **`company_hr`** (company-service, schema `company`, `V1__company_init.sql`) do **DN-01** tạo đầy đủ. NT-02 ban đầu tạo bản tối thiểu (`id`, `name`) để có chỗ tham chiếu; khi DN-01 merge, bản tối thiểu được bỏ và dùng bảng của DN-01. HR thuộc công ty nào lấy từ `company_hr`.
 - `users.company_id` tham chiếu `companies.id` ở mức **logic, không có khoá ngoại vật lý**, vì hai bảng thuộc hai service.
 
 ### Seed
@@ -92,7 +92,7 @@ Quy tắc:
 | Tài khoản phải đổi mật khẩu | 403 `MUST_CHANGE_PASSWORD` (NT-01) |
 | Đúng vai trò nhưng dữ liệu không thuộc mình (hr1 đọc Công ty B) | 404 `NOT_FOUND` |
 
-### 4.4 Endpoint mẫu: `GET /api/v1/company/companies/{id}`
+### 4.4 Endpoint mẫu: `GET /api/v1/companies/{id}`
 
 | Vai trò | Kết quả |
 | --- | --- |
@@ -100,7 +100,7 @@ Quy tắc:
 | `STAFF`, `ADMIN` | 200 với mọi công ty; id không tồn tại → 404 |
 | `CANDIDATE`, `MENTOR` | 403 |
 
-DN-01 phát triển tiếp các API doanh nghiệp trong `CompanyController`.
+API này nằm cạnh các API doanh nghiệp của DN-01 (`GET/PUT /companies/me`, `POST /staff/companies`...). HR thuộc công ty nào lấy từ bảng `company_hr` của DN-01.
 
 ### 4.5 OpenAPI và Swagger UI
 
@@ -153,9 +153,10 @@ Guard ở frontend chỉ để trải nghiệm tốt hơn; bảo vệ thật n�
 ```bash
 docker compose --env-file .env -f infra/compose.yaml up -d postgres mailhog
 cd mock && npm ci && npm start
-cd server && mvn -pl services/identity-service -am spring-boot:run -Dspring-boot.run.profiles=dev
-cd server && mvn -pl services/company-service -am spring-boot:run -Dspring-boot.run.profiles=dev
-cd server && mvn -pl api-gateway -am spring-boot:run          # http://localhost:8080, Swagger UI: /api/docs
+mvn -f server/pom.xml install -DskipTests
+mvn -f server/services/identity-service/pom.xml spring-boot:run "-Dspring-boot.run.profiles=dev"   # chạy trước
+mvn -f server/services/company-service/pom.xml spring-boot:run "-Dspring-boot.run.profiles=dev"
+mvn -f server/api-gateway/pom.xml spring-boot:run          # http://localhost:8080, Swagger UI: /api/docs
 cd web && cp .env.example .env.local && npm ci && npm run dev  # http://localhost:3000/login
 ```
 
@@ -164,8 +165,8 @@ Gọi thử qua gateway:
 ```bash
 TOKEN=$(curl -s -X POST localhost:8080/api/v1/auth/login -H 'Content-Type: application/json' \
   -d '{"email":"hr1@rikkeijobs.test","password":"Test@123"}' | jq -r .accessToken)
-curl -H "Authorization: Bearer $TOKEN" localhost:8080/api/v1/company/companies/00000000-0000-0000-0000-0000000000a1   # 200
-curl -H "Authorization: Bearer $TOKEN" localhost:8080/api/v1/company/companies/00000000-0000-0000-0000-0000000000b2   # 404
+curl -H "Authorization: Bearer $TOKEN" localhost:8080/api/v1/companies/00000000-0000-0000-0000-0000000000a1   # 200
+curl -H "Authorization: Bearer $TOKEN" localhost:8080/api/v1/companies/00000000-0000-0000-0000-0000000000b2   # 404
 ```
 
 ### Test phân quyền
@@ -185,9 +186,9 @@ cd server && mvn -pl libs/common-core,services/company-service -am test \
 
 | # | Tiêu chí | Cách kiểm | Kết quả |
 | --- | --- | --- | --- |
-| 1 | `/api/docs` mở được, có endpoint auth và endpoint của module đã merge | Mở `http://localhost:8080/api/docs` | Có 8 service; identity có 7 endpoint `/auth/*`; company có `/company/companies/{id}` |
-| 2 | Token candidate gọi API của HR → 403 | `GET /api/v1/company/companies/<A>` bằng token candidate1 | 403 `FORBIDDEN` |
-| 3 | hr1 đọc dữ liệu công ty B → 404 | `GET /api/v1/company/companies/<B>` bằng token hr1 | 404 `NOT_FOUND`, giống hệt id không tồn tại |
+| 1 | `/api/docs` mở được, có endpoint auth và endpoint của module đã merge | Mở `http://localhost:8080/api/docs` | Có 8 service; identity có 7 endpoint `/auth/*`; company có `/companies/{id}` (NT-02) và các API DN-01; profile có API HS-01 |
+| 2 | Token candidate gọi API của HR → 403 | `GET /api/v1/companies/<A>` bằng token candidate1 | 403 `FORBIDDEN` |
+| 3 | hr1 đọc dữ liệu công ty B → 404 | `GET /api/v1/companies/<B>` bằng token hr1 | 404 `NOT_FOUND`, giống hệt id không tồn tại |
 | 4 | Migration từ DB trống không lỗi, seed đủ 8 tài khoản | Chạy service trên database mới tạo | identity `v1`, company `v001` đều thành công; 8 tài khoản + `hr-new`, 2 công ty; chạy lại không tạo trùng |
 | 5 | Đăng nhập từng vai trò thấy đúng menu | Đăng nhập 5 tài khoản mẫu | Đúng bảng 5.1 |
 | 6 | Gõ URL trang của vai trò khác → 403 | candidate gõ `/hr/jobs`, `/admin`; hr1 gõ `/candidate/profile`, `/staff/companies`… | Trang 403 |
@@ -205,7 +206,7 @@ Lưu ở [screenshots/NT-02](screenshots/NT-02):
 | `menu-mobile.png` | Menu trên điện thoại |
 | `candidate-profile.png` | Mục Hồ sơ của ứng viên: Skill Profile HS-01 trong layout chung |
 | `forbidden.png` | Candidate gõ `/hr/jobs` → trang 403 |
-| `api-docs.png` | Swagger UI tại `/api/docs`, endpoint `/company/companies/{id}` |
+| `api-docs.png` | Swagger UI tại `/api/docs`, endpoint `/companies/{id}` |
 
 ## 9. Lưu ý
 

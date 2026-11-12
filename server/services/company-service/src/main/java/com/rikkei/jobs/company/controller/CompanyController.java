@@ -17,10 +17,10 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.UUID;
 
-/** Qua gateway: {@code /api/v1/company/companies/...}. DN-01 bổ sung các API quản lý doanh nghiệp tại đây. */
+/** Qua gateway: {@code GET /api/v1/companies/{id}} (NT-02). API của HR với công ty mình ở {@code MyCompanyController} (DN-01). */
 @Tag(name = "Doanh nghiệp")
 @RestController
-@RequestMapping("/company/companies")
+@RequestMapping("/companies")
 @RequiredArgsConstructor
 public class CompanyController {
 
@@ -28,7 +28,7 @@ public class CompanyController {
 
     @Operation(
             summary = "Xem thông tin công ty",
-            description = "Vai trò: HR, STAFF, ADMIN. HR chỉ xem được công ty của mình; công ty khác trả 404 như khi không tồn tại.")
+            description = "Vai trò: HR, STAFF, ADMIN. HR chỉ xem được công ty mình được liên kết (company_hr); công ty khác trả 404 như khi không tồn tại.")
     @ApiResponse(responseCode = "200", description = "Thông tin công ty")
     @ApiResponse(responseCode = "401", description = "UNAUTHORIZED: thiếu hoặc sai token")
     @ApiResponse(responseCode = "403", description = "FORBIDDEN: vai trò không được gọi API này")

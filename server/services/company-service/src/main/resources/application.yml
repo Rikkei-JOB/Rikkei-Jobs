@@ -13,19 +13,25 @@ spring:
     hibernate:
       ddl-auto: validate
     properties:
-      hibernate:
-        default_schema: company
-  # Each service keeps its tables and Flyway history in its own schema of the shared database,
-  # so services can migrate independently in any order (docs/database/erd.md).
+      hibernate.default_schema: ${COMPANY_DB_SCHEMA:company}
   flyway:
     enabled: true
+    schemas: ${COMPANY_DB_SCHEMA:company}
+    default-schema: ${COMPANY_DB_SCHEMA:company}
     locations: classpath:db/migration
-    schemas: company
-    default-schema: company
+  servlet:
+    multipart:
+      max-file-size: 3MB
+      max-request-size: 3MB
 
 app:
+  identity:
+    base-url: ${IDENTITY_SERVICE_URL:http://localhost:8081}
+  internal:
+    service-key: ${INTERNAL_SERVICE_KEY:dev-internal-key}
+  upload:
+    dir: ${COMPANY_UPLOAD_DIR:./data/uploads}
   dev-data:
-    # Seeds Company A and Company B (ids match the HR accounts seeded by identity-service). Dev profile only.
     enabled: ${DEV_DATA_ENABLED:false}
   jwt:
     # Must equal identity-service's JWT_SECRET: tokens are issued there and only verified here.

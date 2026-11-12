@@ -7,26 +7,12 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.rikkei.jobs.common.config.security.jwt.JwtProperties;
 import com.rikkei.jobs.common.config.security.jwt.JwtUtils;
 import com.rikkei.jobs.common.config.security.principle.Role;
+import com.rikkei.jobs.company.support.CompanyApiTestSupport;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.web.servlet.MockMvc;
 
-@SpringBootTest(properties = {
-    // company-service now has the companies table (NT-02), so the context needs a database: in-memory H2.
-    "spring.datasource.url=jdbc:h2:mem:company-ping;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DB_CLOSE_DELAY=-1",
-    "spring.datasource.driver-class-name=org.h2.Driver",
-    "spring.datasource.username=sa",
-    "spring.datasource.password=",
-    "app.jwt.secret=test_secret_test_secret_test_secret_test_secret"
-})
-@AutoConfigureMockMvc
-class CompanyPingControllerTest {
+class CompanyPingControllerTest extends CompanyApiTestSupport {
 
-    @Autowired MockMvc mvc;
-    @Autowired JwtUtils jwt;
 
     @Test
     void withoutTokenIs401InCommonErrorShape() throws Exception {

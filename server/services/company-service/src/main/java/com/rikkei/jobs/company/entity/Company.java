@@ -2,48 +2,73 @@ package com.rikkei.jobs.company.entity;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.Id;
 import jakarta.persistence.PrePersist;
+import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
-
 import java.time.Instant;
 import java.util.UUID;
+import lombok.Getter;
+import lombok.Setter;
 
-/** Bản tối thiểu cho NT-02 (id, name); DN-01 bổ sung các cột còn lại. {@code users.company_id} trỏ tới {@link #id}. */
 @Entity
 @Table(name = "companies")
 @Getter
 @Setter
-@NoArgsConstructor
-@AllArgsConstructor
 public class Company {
 
     @Id
-    @Column(name = "id", nullable = false, updatable = false)
     private UUID id;
 
-    @Column(name = "name", nullable = false, length = 255)
+    @Column(nullable = false)
     private String name;
+
+    @Column(name = "tax_code", nullable = false, updatable = false, length = 13)
+    private String taxCode;
+
+    private String industry;
+
+    private String size;
+
+    private String address;
+
+    private String city;
+
+    private String website;
+
+    @Column(name = "logo_url")
+    private String logoUrl;
+
+    @Column(columnDefinition = "TEXT")
+    private String description;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private CompanyStatus status = CompanyStatus.ACTIVE;
+
+    @Column(name = "created_by", nullable = false, updatable = false)
+    private UUID createdBy;
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 
-    public Company(UUID id, String name) {
-        this.id = id;
-        this.name = name;
-    }
+    @Column(name = "updated_at", nullable = false)
+    private Instant updatedAt;
 
     @PrePersist
-    void prePersist() {
+    void onCreate() {
         if (id == null) {
             id = UUID.randomUUID();
         }
-        if (createdAt == null) {
-            createdAt = Instant.now();
-        }
+        Instant now = Instant.now();
+        createdAt = now;
+        updatedAt = now;
+    }
+
+    @PreUpdate
+    void onUpdate() {
+        updatedAt = Instant.now();
     }
 }

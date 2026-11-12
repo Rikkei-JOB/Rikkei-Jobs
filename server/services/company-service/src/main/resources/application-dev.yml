@@ -1,6 +1,8 @@
-# Local development / demo only. Activate with SPRING_PROFILES_ACTIVE=dev
-# or: mvn -pl services/company-service -am spring-boot:run -Dspring-boot.run.profiles=dev
+# Chỉ dùng khi phát triển / demo. Bật bằng SPRING_PROFILES_ACTIVE=dev
+# hoặc (sau khi `mvn -pl services/company-service -am install -DskipTests` từ server/):
+#   mvn -f services/company-service/pom.xml spring-boot:run "-Dspring-boot.run.profiles=dev"
+# Không bật profile này trên môi trường dùng chung hoặc production.
 app:
   dev-data:
-    # Seeds Company A / Company B used by hr1 / hr2.
+    # Tạo Công ty A, Công ty B và liên kết HR mẫu (khớp tài khoản mẫu của identity-service).
     enabled: ${DEV_DATA_ENABLED:true}

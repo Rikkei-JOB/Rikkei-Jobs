@@ -1,8 +1,8 @@
 # Rikkei Jobs Platform
 
-Nền tảng tuyển dụng và phát triển sự nghiệp, sử dụng backend Spring Boot và frontend Next.js. Repo hiện có khung 8 service sau API gateway (`/api/v1`), đăng nhập SSO/HR bằng JWT (NT-01), khung phân quyền theo vai trò, Swagger UI `/api/docs` và layout theo vai trò ở frontend (NT-02), backend Skill Profile (HS-01), cùng mock Express đủ 11 endpoint hệ thống ngoài (LMS, Khảo thí, lms-pm, Rikkei Meet). API nghiệp vụ của các service còn lại do các task sau bổ sung.
+Nền tảng tuyển dụng và phát triển sự nghiệp, sử dụng backend Spring Boot và frontend Next.js. Repo hiện có khung 8 service sau API gateway (`/api/v1`), đăng nhập SSO/HR bằng JWT (NT-01), khung phân quyền theo vai trò, Swagger UI `/api/docs` và layout theo vai trò ở frontend (NT-02), backend Skill Profile (HS-01), hồ sơ doanh nghiệp và tài khoản HR (DN-01), cùng mock Express đủ 11 endpoint hệ thống ngoài (LMS, Khảo thí, lms-pm, Rikkei Meet). API nghiệp vụ của các service còn lại do các task sau bổ sung.
 
-Hướng dẫn chi tiết theo task: đăng nhập và tài khoản mẫu [NT-01](docs/api/NT-01-authentication.md); khung phân quyền và Swagger UI [NT-02](docs/api/NT-02-phan-quyen.md); API kỹ năng, migration và dữ liệu demo [HS-01 backend](docs/hs01-independent-backend.md). Với các task này, dùng hướng dẫn chuyên biệt thay cho các ghi chú trạng thái khung bên dưới.
+Hướng dẫn chi tiết theo task: đăng nhập và tài khoản mẫu [NT-01](docs/api/NT-01-authentication.md); khung phân quyền và Swagger UI [NT-02](docs/api/NT-02-phan-quyen.md); API kỹ năng, migration và dữ liệu demo [HS-01 backend](docs/hs01-independent-backend.md); hồ sơ doanh nghiệp, tài khoản HR, logo [DN-01](docs/api/DN-01-company-hr.md) (OpenAPI [company-openapi.yaml](docs/api/company-openapi.yaml), request mẫu [DN-01.http](docs/api/DN-01.http)). Với các task này, dùng hướng dẫn chuyên biệt thay cho các ghi chú trạng thái khung bên dưới.
 
 Nhóm giữ cấu trúc `server/`, `web/` và dùng **`test`** làm nhánh tích hợp. Tạo `feature/<mã>-<tên>` từ `test`, mở PR vào `test` với tiêu đề `[NT-01] ...`. Xem [quy ước chung](docs/conventions.md).
 
@@ -18,7 +18,7 @@ rikkei-jobs/
 │   ├── services/
 │   │   ├── identity-service/              # Đăng nhập, LMS SSO, quản lý định danh và phân quyền
 │   │   ├── profile-service/               # Skill Profile, CV, Portfolio, bằng chứng
-│   │   ├── company-service/               # Doanh nghiệp, tài khoản HR liên quan, JD
+│   │   ├── company-service/               # Doanh nghiệp, tài khoản HR liên quan, JD (DN-01: hồ sơ công ty, HR, logo)
 │   │   ├── internship-service/            # Thực tập IOC, ghép ứng viên, nghiệm thu
 │   │   ├── assessment-service/            # Phiếu đánh giá mentor, tự đánh giá, chỉ số năng lực
 │   │   ├── learning-service/              # Skill gap, gợi ý môn học bổ sung qua LMS
@@ -106,9 +106,9 @@ Các thư mục khung có thể chỉ chứa `.gitkeep`. Mock đã đủ 11 endp
 | recruitment-service | 8083 | Ứng tuyển, phỏng vấn, offer, nhận việc |
 | ai-service | 8088 | Gợi ý nghề nghiệp, hỗ trợ CV, phỏng vấn bằng Gemini |
 
-Đây là phạm vi nghiệp vụ dự kiến. Hiện đã triển khai: đăng nhập và JWT ở
-`identity-service` (NT-01), bảng `companies` và API xem công ty ở `company-service` (NT-02);
-các service khác mới có khung và API `GET /<khu>/ping`. Mọi API đi qua gateway dưới `/api/v1`.
+Đây là phạm vi nghiệp vụ dự kiến. Hiện đã triển khai: đăng nhập và JWT ở `identity-service` (NT-01),
+Skill Profile ở `profile-service` (HS-01), hồ sơ doanh nghiệp, tài khoản HR và logo ở `company-service` (DN-01);
+các service khác mới có khung và API `GET /<khu>/ping`. Mọi API đi qua gateway dưới `/api/v1`, xem gộp ở Swagger UI `/api/docs` (NT-02).
 Quy ước viết service: [service-conventions](docs/architecture/service-conventions.md);
 cấu trúc, biến môi trường và Dockerfile: [Backend services](server/services/README.md).
 
@@ -126,7 +126,7 @@ Các ranh giới dữ liệu cần giữ khi triển khai:
   `ai-service` dùng Gemini để gợi ý nghề nghiệp, hỗ trợ CV và phỏng vấn.
 
 Các kết nối LMS, IOC và Gemini nằm trong package `client/` của service phụ trách.
-Hiện mới có client LMS SSO của `identity-service` (gọi mock ở cổng 9000).
+Hiện có client LMS SSO của `identity-service` (`HttpLmsClient`, gọi mock ở cổng 9000, gắn `X-Service-Key`) và client gọi API nội bộ của identity từ `company-service` (DN-01).
 
 ## Hướng dẫn khởi chạy
 
@@ -140,9 +140,10 @@ Cần đủ các tiến trình sau, mỗi lệnh chạy lâu dùng một termina
 cp .env.example .env                                                       # lần đầu
 docker compose --env-file .env -f infra/compose.yaml up -d postgres mailhog
 cd mock && npm ci && npm start                                             # :9000, mock LMS
-cd server && mvn -pl services/identity-service -am spring-boot:run -Dspring-boot.run.profiles=dev   # :8081
-cd server && mvn -pl services/company-service -am spring-boot:run -Dspring-boot.run.profiles=dev    # :8085
-cd server && mvn -pl api-gateway -am spring-boot:run                       # :8080
+mvn -f server/pom.xml install -DskipTests                                  # lần đầu và mỗi khi đổi code backend
+mvn -f server/services/identity-service/pom.xml spring-boot:run "-Dspring-boot.run.profiles=dev"   # :8081, chạy trước
+mvn -f server/services/company-service/pom.xml spring-boot:run "-Dspring-boot.run.profiles=dev"    # :8085
+mvn -f server/api-gateway/pom.xml spring-boot:run                          # :8080
 cd web && cp .env.example .env.local && npm ci && npm run dev              # :3000
 ```
 
@@ -152,7 +153,7 @@ cd web && cp .env.example .env.local && npm ci && npm run dev              # :30
 | Swagger UI | `http://localhost:8080/api/docs` |
 | Hộp thư dev (MailHog) | `http://localhost:8025` |
 
-Tài khoản: tab **Qua LMS** chọn candidate1, mentor1, staff1, admin1 (không cần mật khẩu); tab **Doanh nghiệp** dùng `hr1@rikkeijobs.test`, `hr2@rikkeijobs.test`, `hr-new@rikkeijobs.test` mật khẩu `Test@123`. Các service khác (profile, recruitment...) chỉ cần khi gọi API của chúng.
+Tài khoản: tab **Qua LMS** chọn candidate1, mentor1, staff1, admin1 (không cần mật khẩu); tab **Doanh nghiệp** dùng `hr1@rikkeijobs.test`, `hr2@rikkeijobs.test`, `hr-new@rikkeijobs.test` mật khẩu `Test@123`. Các service khác chỉ cần khi gọi API của chúng; ví dụ màn Hồ sơ kỹ năng của ứng viên cần `profile-service` (HS-01, dữ liệu demo bật bằng `PROFILE_DEMO_DATA_ENABLED=true`). Không dùng `mvn -pl <module> -am spring-boot:run`: `-am` chạy cả parent POM và báo `Unable to find a suitable main class`.
 
 ### 1. Chuẩn bị môi trường
 
@@ -250,16 +251,25 @@ java -jar server/services/ai-service/target/ai-service-1.0.0-SNAPSHOT.jar
 
 Health: `http://localhost:8088/actuator/health`. Chưa có Gemini client, nên chưa cần API key Gemini để chạy phần khung này.
 
-Chạy service khác bằng cách thay tên ở cả lệnh build lẫn đường dẫn JAR, dùng cổng trong bảng phạm vi service. Gateway chạy bằng `mvn -f server/pom.xml -pl api-gateway -am spring-boot:run` (cổng 8080, mọi API dưới `/api/v1`).
-
-`identity-service` kiểm tra kết nối SMTP trong health check: không chạy MailHog thì đặt `MAIL_ENABLED=false` (link đặt lại mật khẩu sẽ in ra log).
-
-Bảng và dữ liệu mẫu do Flyway tạo khi service khởi động (`ddl-auto: validate`). Hiện có migration của `identity-service` (`users`, NT-01) và `company-service` (`companies`, NT-02, trong schema `company`). Chạy với profile `dev` để seed 8 tài khoản mẫu (+ `hr-new`) và Công ty A/B:
+Chạy service khác bằng cách thay tên ở cả lệnh build lẫn đường dẫn JAR, dùng cổng trong bảng phạm vi service. Gateway chạy được (cổng 8080). `identity-service` đã cấp JWT; chạy kèm seed tài khoản mẫu bằng profile `dev`. Để chạy bằng `spring-boot:run`, cài thư viện dùng chung trước rồi chạy riêng từng module (không dùng `-am spring-boot:run`, vì `-am` chạy cả parent POM và báo `Unable to find a suitable main class`). Trên PowerShell đặt tham số `-D...` trong dấu nháy:
 
 ```sh
-mvn -f server/pom.xml -pl services/identity-service -am spring-boot:run -Dspring-boot.run.profiles=dev
-mvn -f server/pom.xml -pl services/company-service -am spring-boot:run -Dspring-boot.run.profiles=dev
+mvn -f server/pom.xml -pl services/identity-service,services/company-service,api-gateway -am install -DskipTests
+mvn -f server/services/identity-service/pom.xml spring-boot:run "-Dspring-boot.run.profiles=dev"   # :8081
+mvn -f server/api-gateway/pom.xml spring-boot:run                                                  # :8080
 ```
+
+Các service JPA dùng `ddl-auto: validate`; identity-service, profile-service và company-service đã có Flyway migration (company-service tạo schema Postgres riêng `company`); các service còn lại chưa có bảng. Dữ liệu mẫu chỉ có khi chạy profile `dev`.
+
+**company-service (DN-01).** Chạy sau khi Postgres và identity-service (profile `dev`) đã lên; profile `dev` seed Công ty A, Công ty B và liên kết HR mẫu:
+
+```sh
+mvn -f server/services/company-service/pom.xml spring-boot:run "-Dspring-boot.run.profiles=dev"   # :8085 (sau bước install ở trên)
+```
+
+Biến môi trường mới (đã có trong `.env.example`): `INTERNAL_SERVICE_KEY` (khoá `X-Internal-Key` company-service gửi khi gọi `/internal/**` của identity, mặc định `dev-internal-key`, hai bên phải giống nhau), `IDENTITY_SERVICE_URL` (mặc định `http://localhost:8081`), `COMPANY_UPLOAD_DIR` (thư mục lưu logo, mặc định `./data/uploads`, đã được `.gitignore` bỏ qua), `COMPANY_DB_SCHEMA` (mặc định `company`), `DEV_DATA_ENABLED`. Hướng dẫn đầy đủ và kịch bản kiểm thử: [DN-01](docs/api/DN-01-company-hr.md).
+
+`identity-service` kiểm tra kết nối SMTP trong health check: không chạy MailHog thì đặt `MAIL_ENABLED=false` (link đặt lại mật khẩu sẽ in ra log).
 
 Tài liệu API của mọi service (Swagger UI): `http://localhost:8080/api/docs`. Bấm **Authorize**, dán `accessToken` lấy từ `POST /auth/login` để thử API cần đăng nhập. Sơ đồ bảng: [docs/database/erd.md](docs/database/erd.md).
 
@@ -376,4 +386,4 @@ docker compose --env-file .env -f infra/compose.yaml down
 
 Đã đối chiếu đường dẫn, script npm, module/parent POM và kiểm tra cú pháp Compose bằng `.env.example`. Mock đã cài bằng `npm ci` và kiểm tra HTTP trên cổng 9000: key sai/thiếu trả `401`; đủ 11 endpoint trả dữ liệu cho 3 ứng viên; các ca lỗi `400`, `404`, `409 ALREADY_ENROLLED`, `409 ALREADY_MEMBER`; công cụ requests/reload/enrollments/reset; script TT-04 với backend giả và khi backend tắt.
 
-NT-01 và NT-02 đã chạy thử toàn luồng: gateway, identity/company-service (profile `dev`), mock, MailHog và frontend; `mvn clean test` toàn backend đạt. API nghiệp vụ của các service khác và các endpoint mock TODO vẫn cần được triển khai.
+NT-01, NT-02, HS-01 và DN-01 đã chạy thử toàn luồng: gateway, identity, profile, company-service (profile `dev`), mock, MailHog và frontend; `mvn test` toàn backend đạt. Kết quả kiểm tra riêng của DN-01: [docs/api/DN-01-company-hr.md](docs/api/DN-01-company-hr.md#9-trạng-thái-xác-minh). API nghiệp vụ của các service khác vẫn cần được triển khai.

@@ -2,29 +2,24 @@
 
 import * as React from "react"
 import Link from "next/link"
-import { usePathname, useRouter } from "next/navigation"
+import { usePathname } from "next/navigation"
 import { KeyRound, LogOut, Menu, X } from "lucide-react"
 import { cn } from "cn"
 import { Button } from "@/app/components/ui/button"
 import { ROLE_MENU, type MenuItem } from "@/config/menu"
 import { ROLE_HOME, ROLE_LABEL } from "@/config/roles"
-import { useAuthStore } from "@/hooks/use-auth-store"
+import { useLogout } from "@/hooks/use-logout"
 import type { User } from "@/interface/auth"
 
 /** Khung chung sau đăng nhập: thanh trên (tên, vai trò, đăng xuất) và menu theo vai trò. */
 export function AppShell({ user, children }: { user: User; children: React.ReactNode }) {
-  const router = useRouter()
   const pathname = usePathname()
-  const clear = useAuthStore((s) => s.clear)
+  // Xoá cả phiên lẫn cache truy vấn (react-query), để người đăng nhập sau không thấy dữ liệu của người trước.
+  const logout = useLogout()
   // Menu trên điện thoại mở cho một trang; chuyển trang thì tự đóng (pathname khác).
   const [menuOpenOn, setMenuOpenOn] = React.useState<string | null>(null)
   const menuOpen = menuOpenOn === pathname
   const items = ROLE_MENU[user.role]
-
-  function logout() {
-    clear()
-    router.replace("/login")
-  }
 
   return (
     <div className="flex min-h-screen flex-col bg-muted/30">
