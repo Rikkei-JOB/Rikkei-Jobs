@@ -2,6 +2,10 @@
 # Truoc khi chay: cd mock && npm start  (mock o http://localhost:9000)
 # Nen goi "Reset" (cuoi file) truoc moi lan demo.
 
+# JD/CV: chay npm run --silent token trong mock/ voi JWT_SECRET giong server, dan token vao day.
+@candidateToken = DAN_JWT_CANDIDATE_VAO_DAY
+@jdInternalKey = dev-internal-key
+
 ############################## KHOA DICH VU ##############################
 
 ### Ca 1 - Khong co khoa -> 401 INVALID_SERVICE_KEY
@@ -202,3 +206,66 @@ Content-Type: application/json
 
 ### Reset ve, ghi danh, thanh vien dot, phong hop, nhat ky -> 200 {"ok": true}
 POST http://localhost:9000/mock/reset
+
+############################## UT-01 - JD / CV DUNG CHUNG ##############################
+
+### JD du dieu kien -> 200 context (khong tang job_views)
+GET http://localhost:9000/internal/jobs/10000000-0000-0000-0000-000000000001/application-context
+X-Internal-Key: {{jdInternalKey}}
+
+### JD chua duyet -> 200 context PENDING; recruitment phai tu choi ung tuyen
+GET http://localhost:9000/internal/jobs/10000000-0000-0000-0000-000000000002/application-context
+X-Internal-Key: {{jdInternalKey}}
+
+### JD het han -> 200 context co deadline cu
+GET http://localhost:9000/internal/jobs/10000000-0000-0000-0000-000000000003/application-context
+X-Internal-Key: {{jdInternalKey}}
+
+### Cong ty bi khoa -> 200 context companyLocked=true
+GET http://localhost:9000/internal/jobs/10000000-0000-0000-0000-000000000004/application-context
+X-Internal-Key: {{jdInternalKey}}
+
+### JD khong ton tai -> 404 NOT_FOUND
+GET http://localhost:9000/internal/jobs/90000000-0000-0000-0000-000000000009/application-context
+X-Internal-Key: {{jdInternalKey}}
+
+### Thieu internal key -> 401 INVALID_INTERNAL_KEY
+GET http://localhost:9000/internal/jobs/10000000-0000-0000-0000-000000000001/application-context
+
+### Sai internal key -> 401 INVALID_INTERNAL_KEY
+GET http://localhost:9000/internal/jobs/10000000-0000-0000-0000-000000000001/application-context
+X-Internal-Key: wrong-key
+
+### Danh sach CV cua sub trong token -> 200 mang {id,name,targetPosition}
+GET http://localhost:9000/profile/cvs
+Authorization: Bearer {{candidateToken}}
+
+### PDF CV cua minh -> 200 application/pdf
+GET http://localhost:9000/profile/cvs/40000000-0000-0000-0000-000000000001/pdf
+Authorization: Bearer {{candidateToken}}
+Accept: application/pdf
+
+### PDF CV nguoi khac -> 403 FORBIDDEN (dung token owner ket thuc 0001)
+GET http://localhost:9000/profile/cvs/40000000-0000-0000-0000-000000000003/pdf
+Authorization: Bearer {{candidateToken}}
+
+### CV khong ton tai -> 404 NOT_FOUND
+GET http://localhost:9000/profile/cvs/90000000-0000-0000-0000-000000000009/pdf
+Authorization: Bearer {{candidateToken}}
+
+### ID CV sai dinh dang -> 400 VALIDATION_ERROR
+GET http://localhost:9000/profile/cvs/not-a-uuid/pdf
+Authorization: Bearer {{candidateToken}}
+
+### Thieu JWT -> 401 UNAUTHORIZED (server phai co JWT_SECRET)
+GET http://localhost:9000/profile/cvs
+
+### Alias frontend dev -> 200
+GET http://localhost:9000/api/v1/profile/cvs
+Authorization: Bearer {{candidateToken}}
+
+### CORS frontend CV -> 204, cho phep Authorization va Content-Type
+OPTIONS http://localhost:9000/profile/cvs
+Origin: http://localhost:3000
+Access-Control-Request-Method: GET
+Access-Control-Request-Headers: authorization,content-type

@@ -1,9 +1,9 @@
-# Rikkei Jobs – Mock hệ thống ngoài
+# Rikkei Jobs – Mock hệ thống ngoài và API JD/CV
 
 Server giả lập các hệ thống bên ngoài mà backend Rikkei Jobs cần gọi: **LMS**, **Khảo thí**, **lms-pm** và **Rikkei Meet**.
-Mock là một tiến trình riêng, chạy độc lập với backend, để có thể tắt mock khi kiểm tra backend xử lý lỗi (NT-05, TT-02, DT-02).
+Mock là một tiến trình riêng, chạy độc lập với backend, để có thể tắt mock khi kiểm tra backend xử lý lỗi (NT-05, TT-02, DT-02). Cùng tiến trình còn cung cấp 3 endpoint JD/CV cho hợp đồng consumer UT-01; xem [hướng dẫn JD/CV](#mock-jdcv-cho-ut-01).
 
-> Chỉ **backend** gọi mock. Frontend không bao giờ gọi thẳng mock, vì khoá dịch vụ chỉ nằm ở backend.
+> Các API hệ thống ngoài (`/lms`, `/exam`, `/pm`, `/meet`) và JD nội bộ chỉ do **backend** gọi; khoá dịch vụ nằm ở backend. Riêng mock danh sách/PDF CV cho phép frontend dev gọi bằng JWT ứng viên, không cần service key.
 
 Hợp đồng API đầy đủ (body, kết quả, mã lỗi): [docs/mock-contract.md](../docs/mock-contract.md).
 
@@ -38,6 +38,10 @@ PowerShell có thể dùng `npm.cmd` nếu `npm.ps1` bị chặn. Mock dùng bi�
 | `PORT` | `9000` | Cổng mock lắng nghe |
 | `SERVICE_KEY` | `dev-key` | Giá trị header `X-Service-Key` hợp lệ |
 | `BACKEND_URL` | `http://localhost:8080` | Chỉ dùng cho script TT-04: địa chỉ backend Rikkei Jobs |
+| `RECRUITMENT_COMPANY_SERVICE_KEY` | fallback `INTERNAL_SERVICE_KEY`, rồi `dev-internal-key` | Giá trị `X-Internal-Key` của mock JD; tách biệt `SERVICE_KEY` |
+| `JWT_SECRET` | không có | Khoá HMAC giống identity-service, ít nhất 32 byte; thiếu/sai cấu hình thì API CV trả 503 |
+| `MOCK_WEB_ORIGIN` | `WEB_BASE_URL`, rồi `http://localhost:3000` | Origin frontend được phép gọi CV qua CORS, không có dấu `/` cuối |
+| `MOCK_CV_OWNER_ID` | không có | UUID ứng viên thật sở hữu hai CV chính khi chạy local; dữ liệu fixture trên đĩa giữ UUID mẫu |
 
 Ví dụ đổi cổng:
 
@@ -132,3 +136,100 @@ Mọi lỗi đều có dạng `{"code": "...", "message": "..."}`.
 
 Mở `requests.http` bằng IntelliJ (bấm mũi tên xanh) hoặc VS Code + extension REST Client (bấm **Send Request**).
 File có đủ 11 endpoint cho cả 3 ứng viên, các ca lỗi (401, 404, 409, 400) và 4 công cụ `/mock/*`.
+
+## Mock JD/CV cho UT-01
+
+Mã route/xác thực ở `jd-cv.js`, dữ liệu trong `data.json` (`jobs`, `cvs`), PDF thật trong `fixtures/cvs/sample.pdf`. File PDF này không được public bằng static server. Hợp đồng máy đọc được: [ut01-dependencies-openapi.yaml](../docs/api/ut01-dependencies-openapi.yaml); ngữ cảnh tích hợp: [UT-01-applications.md](../docs/api/UT-01-applications.md#hợp-đồng-consumer-cho-các-task-phụ-thuộc). Đây là mock theo hợp đồng consumer đề xuất; DN-04/HS-04 vẫn cần review và xác nhận trước khi chốt.
+
+| Method + đường dẫn | Xác thực | Kết quả |
+| --- | --- | --- |
+| `GET /internal/jobs/{jobId}/application-context` | `X-Internal-Key` | JSON context JD, không tăng job_views |
+| `GET /jobs` | JWT CANDIDATE | Danh sách JD APPROVED, còn hạn và công ty hoạt động để hiển thị trang việc làm mẫu |
+| `GET /jobs/{jobId}` | JWT CANDIDATE | Chi tiết JD mẫu, trạng thái nhận hồ sơ, chỉ trả thông tin ứng viên được xem |
+| `GET /profile/cvs` | `Authorization: Bearer <JWT CANDIDATE>` | Mảng `{id,name,targetPosition}` thuộc `sub` |
+| `GET /profile/cvs/{cvId}/pdf` | JWT CANDIDATE + đúng chủ CV | `application/pdf` riêng tư |
+
+Hai route CV còn có alias `/api/v1/profile/cvs` và `/api/v1/profile/cvs/{cvId}/pdf` khi gọi trực tiếp mock trong dev. JD nội bộ không đi qua gateway. Namespace JD/CV không yêu cầu `X-Service-Key`; namespace hệ thống ngoài giữ nguyên guard cũ.
+
+JWT phải có chữ ký HS256/HS384/HS512 phù hợp độ dài khoá, `sub` UUID và `exp` còn hạn; `nbf` nếu có phải hợp lệ. Token sai/hết hạn trả 401 `UNAUTHORIZED`, role khác CANDIDATE trả 403 `FORBIDDEN`, token `mustChangePassword=true` trả 403 `MUST_CHANGE_PASSWORD`. CV không tồn tại trả 404 `NOT_FOUND`, CV của người khác trả 403 `FORBIDDEN`, ID sai định dạng trả 400 `VALIDATION_ERROR`. Thiếu/sai internal key trả 401 `INVALID_INTERNAL_KEY`; không đọc được PDF fixture trả 503 `CV_STORAGE_UNAVAILABLE`. Mọi lỗi đều có `{code,message}`.
+
+### Dữ liệu mẫu
+
+| ID JD | Ca kiểm thử |
+| --- | --- |
+| `10000000-0000-0000-0000-000000000001` | APPROVED, còn hạn, công ty hoạt động |
+| `10000000-0000-0000-0000-000000000002` | PENDING, chưa duyệt |
+| `10000000-0000-0000-0000-000000000003` | APPROVED nhưng hết hạn |
+| `10000000-0000-0000-0000-000000000004` | Công ty bị khoá |
+
+Context của cả bốn JD trả 200 khi có key đúng để recruitment-service tự kiểm luật nhận đơn. Công ty A có ID `00000000-0000-0000-0000-0000000000a1`, khớp seed DN-01; email HR dùng miền dữ liệu thử `.test`.
+
+| CV ID | ownerId mẫu |
+| --- | --- |
+| `40000000-0000-0000-0000-000000000001` (Backend) | `30000000-0000-0000-0000-000000000001` |
+| `40000000-0000-0000-0000-000000000002` (Frontend) | `30000000-0000-0000-0000-000000000001` |
+| `40000000-0000-0000-0000-000000000003` (CV khác) | `30000000-0000-0000-0000-000000000002` |
+
+Ứng viên `30000000-0000-0000-0000-000000000003` không có CV. Các CV dùng cùng PDF mẫu tổng quát, không phải PDF cá nhân hoá hoặc output HS-04 thật. Muốn đổi dữ liệu, sửa `data.json` và gọi `POST /mock/reload`. `POST /mock/reset` chỉ xoá dữ liệu sinh ra trong bộ nhớ, không sửa fixture.
+
+### Chạy riêng và thử hợp đồng
+
+PowerShell, từ gốc repo:
+
+```powershell
+cd mock
+npm.cmd ci
+$env:JWT_SECRET = 'mock-jd-cv-local-secret-at-least-32-bytes'
+$env:INTERNAL_SERVICE_KEY = 'dev-internal-key'
+npm.cmd start
+```
+
+Terminal thứ hai, dùng cùng `JWT_SECRET` và tạo JWT ứng viên thử:
+
+```powershell
+cd mock
+$env:JWT_SECRET = 'mock-jd-cv-local-secret-at-least-32-bytes'
+npm.cmd run --silent token -- 30000000-0000-0000-0000-000000000001
+```
+
+Dán output vào biến `candidateToken` ở đầu `requests.http`. Token thử có hạn một giờ, chỉ phục vụ gọi mock; script không tạo tài khoản trong identity. Để thử CV của người khác, giữ token ứng viên đầu tiên rồi tải CV ID kết thúc `0003`.
+
+### Nối với frontend và recruitment-service thật
+
+1. Chạy identity/gateway theo NT-01. Đặt `JWT_SECRET` của mock **giống giá trị đang dùng bởi identity**, không dùng khoá ví dụ khác khi kiểm tra token đăng nhập thật.
+2. Đăng nhập lấy `accessToken`; gọi `GET /api/v1/auth/me` để lấy UUID `id` thật. Với Docker, đặt `MOCK_CV_OWNER_ID=<UUID vừa lấy>` trong `.env` ở gốc repo. Chạy mock trực tiếp bằng PowerShell thì đặt `$env:MOCK_CV_OWNER_ID='<UUID vừa lấy>'` trước khi khởi động. Mock gắn hai CV chính với UUID này khi nạp dữ liệu. `candidate-token.js` cũng dùng biến này khi bỏ qua đối số userId. Các CV riêng khác có thể cấu hình `ownerId` trong `data.json` rồi `POST /mock/reload`.
+3. Ở terminal chạy recruitment-service, bật cấu hình local sau, giữ PostgreSQL/storage/SMTP như hướng dẫn UT-01:
+
+```powershell
+$env:COMPANY_SERVICE_URL = 'http://localhost:9000'
+$env:PROFILE_SERVICE_URL = 'http://localhost:9000'
+$env:RECRUITMENT_COMPANY_SERVICE_KEY = 'dev-internal-key'
+```
+
+Các path mặc định của recruitment đã khớp mock, không cần sửa code client. Nếu đổi internal key, đặt cùng giá trị trong tiến trình mock.
+
+4. Trong `web/.env.local`, giữ `NEXT_PUBLIC_API_URL` trỏ gateway thật và chỉ đổi nguồn danh sách CV:
+
+```dotenv
+NEXT_PUBLIC_CV_API_PATH=http://localhost:9000/profile/cvs
+```
+
+Để xem JD mẫu từ menu **Việc làm** và mở form ứng tuyển, thêm vào `web/.env.local`:
+
+```dotenv
+NEXT_PUBLIC_JOB_API_PATH=http://localhost:9000/jobs
+NEXT_PUBLIC_JOB_PAGE_PATH=/candidate/jobs
+```
+
+Khởi động lại frontend sau khi đổi env. `MOCK_WEB_ORIGIN` trên mock phải bằng origin frontend (ví dụ `http://127.0.0.1:3000` nếu trình duyệt dùng địa chỉ đó). Khoá internal/service được cấu hình ở backend. Mở `/candidate/jobs` để xem JD mẫu, hoặc `/candidate/applications/new?jobId=10000000-0000-0000-0000-000000000001` để mở form ứng tuyển trực tiếp. Đơn đã nộp được lưu và theo dõi bởi recruitment-service thật. Hai API `/jobs` trả thông tin công khai của JD cho ứng viên; danh sách email HR chỉ có ở API nội bộ.
+
+Với Docker Compose ở gốc repo, đặt `DOCKER_RECRUITMENT_COMPANY_URL=http://mock:9000` và `DOCKER_RECRUITMENT_PROFILE_URL=http://mock:9000` trong `.env`. Sau khi cấu hình `MOCK_CV_OWNER_ID` hoặc sửa fixture, chạy `docker compose up -d --build mock recruitment-service` để áp dụng cấu hình và dữ liệu mới.
+
+### Kiểm thử tự động
+
+```powershell
+cd mock
+npm.cmd test
+```
+
+Suite tự chạy mock ở các cổng tạm, kiểm tra HTTP thực cho JD/CV và regression 11 endpoint ngoài; không cần bật backend, PostgreSQL hoặc SMTP. CI có job riêng chạy suite này. Các test này xác minh mock/consumer contract, chưa thay thế nghiệm thu tích hợp với producer DN-04/HS-04 thật.

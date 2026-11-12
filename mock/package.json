@@ -3,6 +3,8 @@
   "private": true,
   "scripts": {
     "start": "node server.js",
+    "test": "node --test",
+    "token": "node candidate-token.js",
     "evaluation-links": "node send-evaluation-links.js"
   },
   "dependencies": {

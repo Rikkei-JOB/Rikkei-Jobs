@@ -22,6 +22,8 @@ Lỗi giữ `{code,message}`: 400 validation; 401 token; 403 quyền; 404 tài n
 
 **HS-04 và DN-04 chưa có trong checkout tại lúc triển khai.** Các URL dưới đây là default đề xuất, cấu hình được; owner cần đối chiếu khi tích hợp. Không có production fixture fallback hoặc truy cập bảng của service khác.
 
+Đã có **mock HTTP dùng chung JD/CV** trong `mock/`, chạy cùng Express cổng 9000. Xem [cách chạy, fixture IDs, JWT và nối với ứng dụng thật](../../mock/README.md#mock-jdcv-cho-ut-01), [request mẫu](../../mock/requests.http) và [OpenAPI hợp đồng đề xuất](ut01-dependencies-openapi.yaml). Mock này cho phép các bên thử request/response trước khi producer sẵn sàng; việc owner HS-04/DN-04 duyệt hợp đồng vẫn là bước cần xác nhận riêng. Mock không tự được bật trong cấu hình production.
+
 - Company: GET `${COMPANY_SERVICE_URL}${RECRUITMENT_JOB_CONTEXT_PATH}`, default path `/internal/jobs/{jobId}/application-context`, header `X-Internal-Key` dùng `RECRUITMENT_COMPANY_SERVICE_KEY`, hoặc `INTERNAL_SERVICE_KEY` nếu biến riêng chưa được đặt. Cấu hình khoá rỗng bị từ chối. Theo quy ước nội bộ mới nhất trên nhánh test, endpoint `/internal/**` chỉ gọi trực tiếp service, không đi qua route gateway. Chỉ endpoint nội bộ được xác thực mới được trả `hrEmails`; không ghi job_views.
 - Body: `{jobId, companyId, jobTitle, companyName, status, deadline, companyLocked, hrEmails: ["hr@company.test"]}`. IDs UUID; deadline ISO 8601 có offset; HR phải thuộc công ty và còn hoạt động. Thiếu hoặc sai dữ liệu phải bị từ chối, không coi là APPROVED.
 - Profile: GET `${PROFILE_SERVICE_URL}${RECRUITMENT_CV_PDF_PATH}`, default `/profile/cvs/{cvId}/pdf`, chuyển tiếp JWT ứng viên. HS-04 phải xác minh CV ownership; response `application/pdf`, bytes PDF hoàn chỉnh. Không dùng public CV URL.

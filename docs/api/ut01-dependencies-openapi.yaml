@@ -1,0 +1,198 @@
+openapi: 3.0.3
+info:
+  title: UT-01 JD/CV dependency contract (proposal)
+  version: 0.1.0
+  description: >-
+    Runnable consumer contract for DN-04 job context and HS-04 CVs.
+    Implemented by the shared Express mock; producer owners must review and
+    approve before treating it as the final cross-service contract.
+    External LMS/Exam/PM/Meet APIs keep their separate mock-contract.md.
+servers:
+  - url: http://localhost:9000
+    description: Shared local mock; not a production server
+paths:
+  /internal/jobs/{jobId}/application-context:
+    get:
+      operationId: getJobApplicationContext
+      summary: Read JD context without recording a job view
+      description: >-
+        Backend-to-backend only, using X-Internal-Key. A known unapproved,
+        expired or locked-company JD still returns its context with 200;
+        recruitment-service determines whether applications are accepted.
+      security:
+        - internalKey: []
+      parameters:
+        - name: jobId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: JD metadata and active HR recipients belonging to its company
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/JobContext' }
+              example:
+                jobId: 10000000-0000-0000-0000-000000000001
+                companyId: 00000000-0000-0000-0000-0000000000a1
+                jobTitle: Java Developer
+                companyName: Rikkei Software
+                status: APPROVED
+                deadline: '2099-12-31T23:59:59Z'
+                companyLocked: false
+                hrEmails: [hr1@rikkeijobs.test]
+        '400': { $ref: '#/components/responses/InvalidId' }
+        '401':
+          description: Missing or incorrect X-Internal-Key
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+              example: { code: INVALID_INTERNAL_KEY, message: 'Thiếu hoặc sai X-Internal-Key.' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '503': { $ref: '#/components/responses/Unavailable' }
+  /profile/cvs:
+    get:
+      operationId: listCandidateCvs
+      summary: List only the current candidate's CV choices
+      description: >-
+        Returns an array, including [] for a candidate with no CV.
+        No ownerId or internal storage path is exposed. The shared mock
+        also accepts /api/v1/profile/cvs as a dev-only alias.
+      security:
+        - candidateJwt: []
+      responses:
+        '200':
+          description: Candidate-owned CVs
+          headers:
+            Cache-Control:
+              schema: { type: string, example: 'private, no-store' }
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/CvChoice' }
+              example:
+                - id: 40000000-0000-0000-0000-000000000001
+                  name: CV Backend
+                  targetPosition: Java Developer
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '503': { $ref: '#/components/responses/Unavailable' }
+  /profile/cvs/{cvId}/pdf:
+    get:
+      operationId: exportOwnedCvPdf
+      summary: Export a private PDF owned by the current candidate
+      description: >-
+        Caller forwards the candidate's JWT. The mock uses one synthetic
+        one-page PDF for all CVs; it does not implement HS-04 rendering or QR.
+        The shared mock also accepts /api/v1/profile/cvs/{cvId}/pdf as a dev-only alias.
+      security:
+        - candidateJwt: []
+      parameters:
+        - name: cvId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Complete PDF bytes, not JSON or a public URL
+          headers:
+            Cache-Control:
+              schema: { type: string, example: 'private, no-store' }
+            Content-Disposition:
+              schema: { type: string, example: 'attachment; filename="cv-40000000-0000-0000-0000-000000000001.pdf"' }
+          content:
+            application/pdf:
+              schema: { type: string, format: binary }
+        '400': { $ref: '#/components/responses/InvalidId' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '503': { $ref: '#/components/responses/Unavailable' }
+components:
+  securitySchemes:
+    internalKey:
+      type: apiKey
+      in: header
+      name: X-Internal-Key
+      description: RECRUITMENT_COMPANY_SERVICE_KEY, falling back to INTERNAL_SERVICE_KEY
+    candidateJwt:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: >-
+        Signed HS256/384/512 JWT using the same JWT_SECRET as identity-service.
+        Requires UUID sub, unexpired numeric exp, valid nbf if present,
+        CANDIDATE role and no mustChangePassword=true claim.
+  schemas:
+    JobContext:
+      type: object
+      additionalProperties: false
+      required: [jobId, companyId, jobTitle, companyName, status, deadline, companyLocked, hrEmails]
+      properties:
+        jobId: { type: string, format: uuid }
+        companyId: { type: string, format: uuid }
+        jobTitle: { type: string }
+        companyName: { type: string }
+        status:
+          type: string
+          description: Only APPROVED is eligible for application; producer status vocabulary needs owner agreement
+        deadline: { type: string, format: date-time }
+        companyLocked: { type: boolean }
+        hrEmails:
+          type: array
+          items: { type: string, format: email }
+    CvChoice:
+      type: object
+      additionalProperties: false
+      required: [id, name]
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string }
+        targetPosition: { type: string, nullable: true }
+    Error:
+      type: object
+      additionalProperties: false
+      required: [code, message]
+      properties:
+        code: { type: string }
+        message: { type: string }
+  responses:
+    InvalidId:
+      description: Path ID is not a UUID
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+          example: { code: VALIDATION_ERROR, message: 'ID phải là UUID.' }
+    Unauthorized:
+      description: Missing, malformed, expired or incorrectly signed JWT
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+          example: { code: UNAUTHORIZED, message: 'Thiếu JWT hợp lệ, token sai chữ ký hoặc đã hết hạn.' }
+    Forbidden:
+      description: Wrong role, another owner's CV, or a password-change token
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+          examples:
+            forbidden:
+              value: { code: FORBIDDEN, message: 'CV không thuộc ứng viên này.' }
+            passwordChange:
+              value: { code: MUST_CHANGE_PASSWORD, message: 'Bạn cần đổi mật khẩu trước khi sử dụng CV.' }
+    NotFound:
+      description: JD or CV does not exist
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+          example: { code: NOT_FOUND, message: 'Không tìm thấy JD hoặc CV.' }
+    Unavailable:
+      description: Mock credential configuration or PDF fixture is unavailable
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+          examples:
+            configuration:
+              value: { code: DEPENDENCY_NOT_CONFIGURED, message: 'Mock CV cần JWT_SECRET dài ít nhất 32 byte, giống identity-service.' }
+            storage:
+              value: { code: CV_STORAGE_UNAVAILABLE, message: 'Không đọc được PDF fixture.' }

@@ -7,6 +7,23 @@ on:
     branches: [ main, test ]
 
 jobs:
+  mock-contracts:
+    name: Test Shared Mock Contracts
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: mock/package-lock.json
+      - name: Install mock dependencies
+        working-directory: mock
+        run: npm ci
+      - name: Test external and JD/CV contracts
+        working-directory: mock
+        run: npm test
+
   backend-build:
     name: Build & Test Backend
     runs-on: ubuntu-latest
