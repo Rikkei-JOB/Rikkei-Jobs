@@ -1,5 +1,6 @@
 # Chỉ dùng khi phát triển / demo. Bật bằng SPRING_PROFILES_ACTIVE=dev
-# hoặc: mvn -pl services/company-service -am spring-boot:run -Dspring-boot.run.profiles=dev
+# hoặc (sau khi `mvn -pl services/company-service -am install -DskipTests` từ server/):
+#   mvn -f services/company-service/pom.xml spring-boot:run "-Dspring-boot.run.profiles=dev"
 # Không bật profile này trên môi trường dùng chung hoặc production.
 app:
   dev-data:

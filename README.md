@@ -225,14 +225,20 @@ java -jar server/services/ai-service/target/ai-service-1.0.0-SNAPSHOT.jar
 
 Health: `http://localhost:8088/actuator/health`. Chưa có Gemini client, nên chưa cần API key Gemini để chạy phần khung này.
 
-Chạy service khác bằng cách thay tên ở cả lệnh build lẫn đường dẫn JAR, dùng cổng trong bảng phạm vi service. Gateway chạy được: `mvn -f server/pom.xml -pl api-gateway -am spring-boot:run` (cổng 8080). `identity-service` đã cấp JWT; chạy kèm seed tài khoản mẫu bằng `-Dspring-boot.run.profiles=dev`.
+Chạy service khác bằng cách thay tên ở cả lệnh build lẫn đường dẫn JAR, dùng cổng trong bảng phạm vi service. Gateway chạy được (cổng 8080). `identity-service` đã cấp JWT; chạy kèm seed tài khoản mẫu bằng profile `dev`. Để chạy bằng `spring-boot:run`, cài thư viện dùng chung trước rồi chạy riêng từng module (không dùng `-am spring-boot:run`, vì `-am` chạy cả parent POM và báo `Unable to find a suitable main class`). Trên PowerShell đặt tham số `-D...` trong dấu nháy:
+
+```sh
+mvn -f server/pom.xml -pl services/identity-service,services/company-service,api-gateway -am install -DskipTests
+mvn -f server/services/identity-service/pom.xml spring-boot:run "-Dspring-boot.run.profiles=dev"   # :8081
+mvn -f server/api-gateway/pom.xml spring-boot:run                                                  # :8080
+```
 
 Các service JPA dùng `ddl-auto: validate`; identity-service, profile-service và company-service đã có Flyway migration (company-service tạo schema Postgres riêng `company`); các service còn lại chưa có bảng. Dữ liệu mẫu chỉ có khi chạy profile `dev`.
 
 **company-service (DN-01).** Chạy sau khi Postgres và identity-service (profile `dev`) đã lên; profile `dev` seed Công ty A, Công ty B và liên kết HR mẫu:
 
 ```sh
-mvn -f server/pom.xml -pl services/company-service -am spring-boot:run -Dspring-boot.run.profiles=dev   # :8085
+mvn -f server/services/company-service/pom.xml spring-boot:run "-Dspring-boot.run.profiles=dev"   # :8085 (sau bước install ở trên)
 ```
 
 Biến môi trường mới (đã có trong `.env.example`): `INTERNAL_SERVICE_KEY` (khoá `X-Internal-Key` company-service gửi khi gọi `/internal/**` của identity, mặc định `dev-internal-key`, hai bên phải giống nhau), `IDENTITY_SERVICE_URL` (mặc định `http://localhost:8081`), `COMPANY_UPLOAD_DIR` (thư mục lưu logo, mặc định `./data/uploads`, đã được `.gitignore` bỏ qua), `COMPANY_DB_SCHEMA` (mặc định `company`), `DEV_DATA_ENABLED`. Hướng dẫn đầy đủ và kịch bản kiểm thử: [DN-01](docs/api/DN-01-company-hr.md).

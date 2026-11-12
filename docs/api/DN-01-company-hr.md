@@ -93,13 +93,19 @@ Cần Docker (MailHog, Postgres), Java 21 + Maven, Node 24. Mỗi lệnh chạy 
 cp .env.example .env                                                  # nếu chưa có
 docker compose --env-file .env -f infra/compose.yaml up -d postgres mailhog   # Postgres 5432, MailHog http://localhost:8025
 (cd mock && npm ci && npm start)                                      # mock LMS :9000
-mvn -f server/pom.xml -pl services/identity-service -am spring-boot:run -Dspring-boot.run.profiles=dev   # :8081, seed tài khoản mẫu
-mvn -f server/pom.xml -pl services/company-service -am spring-boot:run -Dspring-boot.run.profiles=dev    # :8085, tạo schema company, seed Công ty A/B
-mvn -f server/pom.xml -pl api-gateway -am spring-boot:run             # :8080
+# Cài parent POM + thư viện dùng chung vào ~/.m2 (chạy lại mỗi khi sửa common-core):
+mvn -f server/pom.xml -pl services/identity-service,services/company-service,api-gateway -am install -DskipTests
+mvn -f server/services/identity-service/pom.xml spring-boot:run "-Dspring-boot.run.profiles=dev"   # :8081, seed tài khoản mẫu
+mvn -f server/services/company-service/pom.xml spring-boot:run "-Dspring-boot.run.profiles=dev"    # :8085, tạo schema company, seed Công ty A/B
+mvn -f server/api-gateway/pom.xml spring-boot:run                                                  # :8080
 (cd web && cp .env.example .env.local && npm ci && npm run dev -- --port 3000)   # http://localhost:3000
 ```
 
 Lưu ý:
+
+- Không dùng `-pl <service> -am spring-boot:run`: `-am` chạy `spring-boot:run` trên cả parent POM và thư viện dùng chung, Maven báo `Unable to find a suitable main class`. Vì vậy phải `install` trước rồi chạy riêng từng service.
+- Trên PowerShell phải đặt `"-Dspring-boot.run.profiles=dev"` trong dấu nháy; nếu không, PowerShell tách tham số tại dấu chấm và Maven báo `Unknown lifecycle phase ".run.profiles=dev"`.
+- Máy đã có PostgreSQL chạy sẵn ở cổng 5432 thì container `postgres` của Compose sẽ trùng cổng. Khi đó bỏ `postgres` khỏi lệnh `docker compose`, dùng Postgres có sẵn: tạo database `rikkei_jobs` (hoặc tên khác qua `POSTGRES_DB`) và đặt `$env:POSTGRES_USER` / `$env:POSTGRES_PASSWORD` (Bash: `export ...`) trong **mỗi** terminal chạy Java. Sai mật khẩu thì service dừng với `FATAL: password authentication failed for user "postgres"`.
 
 - Chạy identity với profile `dev` **trước hoặc cùng lúc** company-service để các UUID cố định trùng nhau. Nếu DB dev đã seed bằng bản code cũ (user mẫu có id ngẫu nhiên), cần xoá các user `@rikkeijobs.test` rồi chạy lại identity để seed lại với id cố định.
 - Muốn dùng DB riêng: `COMPANY_DB_URL`, `COMPANY_DB_USER`, `COMPANY_DB_PASSWORD` (xem `.env.example`). Hai service dùng chung một DB thì company-service vẫn chỉ ghi vào schema `company`.
