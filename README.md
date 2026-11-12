@@ -1,6 +1,6 @@
 # Rikkei Jobs Platform
 
-Nền tảng tuyển dụng và phát triển sự nghiệp, sử dụng backend Spring Boot và frontend Next.js. Repo hiện có khung 8 service sau API gateway (`/api/v1`), đăng nhập SSO/HR bằng JWT (NT-01), khung phân quyền theo vai trò, Swagger UI `/api/docs` và layout theo vai trò ở frontend (NT-02), backend Skill Profile (HS-01), hồ sơ doanh nghiệp và tài khoản HR (DN-01), cùng mock Express đủ 11 endpoint hệ thống ngoài (LMS, Khảo thí, lms-pm, Rikkei Meet). API nghiệp vụ của các service còn lại do các task sau bổ sung.
+Nền tảng tuyển dụng và phát triển sự nghiệp, sử dụng backend Spring Boot và frontend Next.js. Repo hiện có khung 8 service sau API gateway (`/api/v1`), đăng nhập SSO/HR bằng JWT (NT-01), khung phân quyền theo vai trò, Swagger UI `/api/docs` và layout theo vai trò ở frontend (NT-02), backend Skill Profile (HS-01), hồ sơ doanh nghiệp và tài khoản HR (DN-01), cùng mock Express đủ 11 endpoint hệ thống ngoài (LMS, Khảo thí, lms-pm, Rikkei Meet) và [mock JD/CV dùng chung cho UT-01](mock/README.md#mock-jdcv-cho-ut-01). API nghiệp vụ của các service còn lại do các task sau bổ sung.
 
 Hướng dẫn chi tiết theo task: đăng nhập và tài khoản mẫu [NT-01](docs/api/NT-01-authentication.md); khung phân quyền và Swagger UI [NT-02](docs/api/NT-02-phan-quyen.md); API kỹ năng, migration và dữ liệu demo [HS-01 backend](docs/hs01-independent-backend.md); hồ sơ doanh nghiệp, tài khoản HR, logo [DN-01](docs/api/DN-01-company-hr.md) (OpenAPI [company-openapi.yaml](docs/api/company-openapi.yaml), request mẫu [DN-01.http](docs/api/DN-01.http)). Với các task này, dùng hướng dẫn chuyên biệt thay cho các ghi chú trạng thái khung bên dưới.
 
@@ -129,6 +129,61 @@ Các kết nối LMS, IOC và Gemini nằm trong package `client/` của service
 Hiện có client LMS SSO của `identity-service` (`HttpLmsClient`, gọi mock ở cổng 9000, gắn `X-Service-Key`) và client gọi API nội bộ của identity từ `company-service` (DN-01).
 
 ## Hướng dẫn khởi chạy
+
+### Chạy toàn bộ backend bằng Docker Compose
+
+Tại thư mục gốc repo, bật Docker Desktop (Linux containers), sau đó chạy:
+
+```powershell
+if (-not (Test-Path .env)) { Copy-Item .env.example .env }
+docker compose up -d --build
+docker compose ps
+```
+
+File `compose.yaml` ở gốc chạy Gateway, 8 backend service, mock LMS, PostgreSQL,
+Redis, RabbitMQ và MailHog. Maven/JDK/Node được cung cấp trong image, không cần
+cài trên máy để chạy backend. Đây là cấu hình phát triển local, mặc định bật
+Spring profile `dev` và tài khoản demo. Lần build đầu cần Internet để tải image
+và dependency. Frontend vẫn chạy riêng theo mục 5 bên dưới.
+
+- Gateway: `http://localhost:8080`; Swagger UI: `http://localhost:8080/api/docs`.
+- Mock LMS: `http://localhost:9000`; MailHog: `http://localhost:8025`.
+- Các backend vẫn được publish ở cổng 8081–8088 như bảng service phía trên.
+- Frontend dùng `NEXT_PUBLIC_API_URL=http://localhost:8080/api/v1` trong `web/.env.local`.
+- Tài khoản HR: `hr1@rikkeijobs.test` / `Test@123`; LMS dùng tài khoản mẫu ở tab Qua LMS.
+
+Container dùng DNS nội bộ (`postgres`, `identity-service`, `mock`, ...), không dùng
+`localhost` của máy cho các kết nối giữa service. Các biến host/URL local sẵn có
+trong `.env.example` vẫn phục vụ cách chạy Java trực tiếp; Compose đặt lại URL
+nội bộ. Các biến `*_SERVICE_PORT`/`GATEWAY_PORT` trong `.env` đổi **cổng publish trên
+máy**, cổng nội bộ giữ nguyên. Đổi `NEXT_PUBLIC_API_URL` nếu đổi cổng Gateway.
+Để có dữ liệu hồ sơ kỹ năng mẫu, đặt `PROFILE_DEMO_DATA_ENABLED=true` trong `.env`.
+
+```powershell
+# Theo dõi khởi động (Gateway chờ các service báo healthy)
+docker compose logs -f --tail=100
+
+# Build lại sau khi sửa code
+docker compose up -d --build
+
+# Dừng stack, giữ database và file tải lên
+docker compose down
+```
+
+Database, Redis, logo và CV được lưu trong named volume. Không dùng `down -v`
+nếu muốn giữ dữ liệu. Project name mặc định là `infra` để dùng lại các volume và
+container của cách chạy cũ bằng `-f infra/compose.yaml`; nếu trước đây dùng `-p`
+hoặc `COMPOSE_PROJECT_NAME` riêng, tiếp tục dùng cùng tên. Tắt các tiến trình
+Java/mock local đang chiếm cổng trước khi chuyển sang Docker.
+
+Nếu database cũ có HR mẫu được tạo trước khi dùng UUID cố định, đăng nhập vẫn
+thành công nhưng `/api/v1/companies/me` có thể trả `404 NOT_FOUND` vì liên kết HR
+không khớp. Compose giữ nguyên dữ liệu cũ; cần đối soát liên kết HR trong database,
+không xoá volume để sửa lỗi này. Seed trên database mới tạo đúng liên kết.
+
+Nginx/Prometheus/Grafana vẫn nằm trong `infra/compose.yaml` và không thuộc stack
+backend mặc định. Để chạy hạ tầng riêng và backend bằng Maven như trước, dùng
+các mục bên dưới với `-f infra/compose.yaml`.
 
 Mỗi phần bên dưới bắt đầu từ **thư mục gốc repo**, dùng terminal riêng cho từng tiến trình chạy lâu.
 
