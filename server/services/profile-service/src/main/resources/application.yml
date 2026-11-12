@@ -23,6 +23,18 @@ spring:
 app:
   profile:
     demo-data-enabled: false
+  # NT-05: đồng bộ dữ liệu học tập, thi, thực tập từ mock (docs/api/NT-05-dong-bo-du-lieu.md).
+  sync:
+    base-url: ${LMS_BASE_URL:http://localhost:9000}
+    service-key: ${LMS_SERVICE_KEY:dev-key}
+    timeout: 5s
+    retries: 2
+    retry-backoff: 500ms
+    stale-after: 1h
+    on-open-enabled: ${SYNC_ON_OPEN_ENABLED:true}
+    # Cron Spring 6 trường (giây phút giờ ngày tháng thứ); "-" để tắt job đêm.
+    nightly-cron: ${SYNC_NIGHTLY_CRON:0 0 1 * * *}
+    zone: ${SYNC_ZONE:Asia/Ho_Chi_Minh}
   jwt:
     # Must equal identity-service's JWT_SECRET: tokens are issued there and only verified here.
     secret: ${JWT_SECRET:your_super_secret_jwt_key_at_least_256_bits_long_rikkei_jobs}
