@@ -20,6 +20,8 @@
         <spring-cloud.version>2023.0.3</spring-cloud.version>
         <lombok.version>1.18.34</lombok.version>
         <mapstruct.version>1.5.5.Final</mapstruct.version>
+        <!-- 2.6.x is the springdoc line for Spring Boot 3.3 -->
+        <springdoc.version>2.6.0</springdoc.version>
     </properties>
 
     <modules>
@@ -54,6 +56,18 @@
                 <version>${spring-cloud.version}</version>
                 <type>pom</type>
                 <scope>import</scope>
+            </dependency>
+
+            <!-- OpenAPI: services publish /<area>/api-docs, the gateway serves Swagger UI at /api/docs -->
+            <dependency>
+                <groupId>org.springdoc</groupId>
+                <artifactId>springdoc-openapi-starter-webmvc-api</artifactId>
+                <version>${springdoc.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.springdoc</groupId>
+                <artifactId>springdoc-openapi-starter-webflux-ui</artifactId>
+                <version>${springdoc.version}</version>
             </dependency>
 
             <!-- Internal Common Libs -->

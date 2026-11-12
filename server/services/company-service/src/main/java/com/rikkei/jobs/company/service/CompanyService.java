@@ -1,5 +1,6 @@
 package com.rikkei.jobs.company.service;
 
+import com.rikkei.jobs.common.config.security.principle.AuthPrincipal;
 import com.rikkei.jobs.company.dto.request.CreateCompanyRequest;
 import com.rikkei.jobs.company.dto.request.UpdateCompanyRequest;
 import com.rikkei.jobs.company.dto.response.CompanyResponse;
@@ -16,6 +17,12 @@ public interface CompanyService {
     Company findMine(UUID userId);
 
     CompanyResponse getMine(UUID userId);
+
+    /**
+     * Xem một công ty theo id (NT-02). STAFF/ADMIN xem mọi công ty; HR chỉ công ty mình (theo company_hr).
+     * Công ty của người khác và công ty không tồn tại đều ném ResourceNotFoundException (404) cùng thông báo.
+     */
+    CompanyResponse getCompany(AuthPrincipal principal, UUID companyId);
 
     /** Thay toàn bộ trường cho phép sửa; công ty LOCKED thì ném CompanyException(COMPANY_LOCKED). */
     CompanyResponse updateMine(UUID userId, UpdateCompanyRequest request);

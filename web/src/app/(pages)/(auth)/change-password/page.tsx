@@ -10,6 +10,7 @@ import { PasswordInput } from "@/app/components/auth/password-input"
 import { SubmitButton } from "@/app/components/auth/submit-button"
 import { Alert } from "@/app/components/ui/alert"
 import { ROLE_HOME } from "@/config/roles"
+import { pathAfterLogin } from "@/helper/next-path"
 import { zodResolver } from "@/helper/zod-resolver"
 import { useAuthGuard } from "@/hooks/use-auth-guard"
 import { useAuthStore } from "@/hooks/use-auth-store"
@@ -41,7 +42,7 @@ export default function ChangePasswordPage() {
     try {
       const { accessToken } = await authService.changePassword({ oldPassword, newPassword })
       setSession(accessToken, { ...user, mustChangePassword: false })
-      router.replace(ROLE_HOME[user.role])
+      router.replace(pathAfterLogin(user.role))
     } catch (error) {
       setServerError(getErrorMessage(error))
     }

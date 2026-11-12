@@ -9,7 +9,7 @@ import { Input } from "@/app/components/ui/input"
 import { FormField } from "@/app/components/auth/form-field"
 import { PasswordInput } from "@/app/components/auth/password-input"
 import { SubmitButton } from "@/app/components/auth/submit-button"
-import { ROLE_HOME } from "@/config/roles"
+import { pathAfterLogin } from "@/helper/next-path"
 import { zodResolver } from "@/helper/zod-resolver"
 import { useAuthStore } from "@/hooks/use-auth-store"
 import { hrLoginSchema, type HrLoginValues } from "@/schemas/auth.schema"
@@ -36,7 +36,7 @@ export function HrLoginForm() {
       const result = await authService.login(values)
       setSession(result.accessToken, { ...result.user, mustChangePassword: result.mustChangePassword })
       // Lần đầu đăng nhập HR bị bắt đổi mật khẩu trước khi vào hệ thống.
-      router.replace(result.mustChangePassword ? "/change-password" : ROLE_HOME[result.user.role])
+      router.replace(result.mustChangePassword ? "/change-password" : pathAfterLogin(result.user.role))
     } catch (error) {
       setServerError(getErrorMessage(error))
     }
