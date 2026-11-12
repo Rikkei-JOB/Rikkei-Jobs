@@ -1,0 +1,39 @@
+name: Git conventions
+
+on:
+  pull_request:
+    branches: [test]
+    types: [opened, synchronize, reopened, edited]
+
+permissions:
+  contents: read
+
+jobs:
+  git-conventions:
+    name: Check branch and commit messages
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Check source branch
+        run: sh scripts/check-feature-branch.sh "$GITHUB_HEAD_REF"
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      - name: Install dependencies
+        working-directory: web
+        run: npm ci --ignore-scripts
+
+      - name: Check pull request commit messages
+        working-directory: web
+        env:
+          PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: ./node_modules/.bin/commitlint --from "$PR_BASE_SHA" --to "$PR_HEAD_SHA" --verbose

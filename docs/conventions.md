@@ -44,6 +44,24 @@ git pull --ff-only origin test
 git switch -c feature/NT-01-login
 ```
 
+### Git hooks
+
+Chạy `npm ci --prefix web` từ gốc repo để cài Husky. Nếu dependencies đã được
+cài, chạy `npm run prepare --prefix web` để đăng ký lại hook. Hook áp dụng
+cho toàn repo, kể cả khi chỉ sửa `server/` hoặc `mock/`.
+
+- `commit-msg` kiểm tra Conventional Commits theo mẫu `type(scope): mô tả`.
+  Scope là tùy chọn. Ví dụ `feat(NT-01): add SSO login` hoặc `docs: update setup guide`.
+  Dòng tiêu đề tối đa 100 ký tự, mỗi dòng trong phần thân và footer tối đa 250 ký tự.
+- `pre-push` kiểm tra tên branch đích. Mã task viết hoa và có chữ số, ví dụ
+  `NT-01` hoặc `TB8FC07`. Phần tên gồm các cụm chữ thường hoặc chữ số phân cách
+  bằng dấu `-`. `main` và `test` là tên hợp lệ. Quy ước mở PR vào `test`
+  áp dụng như trên.
+
+GitHub Actions chạy job `Check branch and commit messages` trên PR vào `test`.
+Job kiểm tra tên branch nguồn và các commit trong PR. Sau khi chạy thử,
+có thể đặt job này làm required status check cho `test` để chặn merge khi kiểm tra thất bại.
+
 ## 2. Quy ước API nội bộ
 
 ### URL, JSON và xác thực

@@ -6,6 +6,8 @@ Hướng dẫn chi tiết theo task: đăng nhập và tài khoản mẫu [NT-01
 
 Nhóm giữ cấu trúc `server/`, `web/` và dùng **`test`** làm nhánh tích hợp. Tạo `feature/<mã>-<tên>` từ `test`, mở PR vào `test` với tiêu đề `[NT-01] ...`. Xem [quy ước chung](docs/conventions.md).
 
+Sau khi clone, chạy `npm ci --prefix web` từ gốc repo để cài [Git hooks](docs/conventions.md#git-hooks) kiểm tra tên branch khi push và commit message khi commit.
+
 ---
 
 ## 📁 Cấu trúc Dự án (Project Structure)
