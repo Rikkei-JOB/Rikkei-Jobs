@@ -11,4 +11,6 @@ import java.util.UUID;
 public interface ExternalSkillRecordRepository extends JpaRepository<ExternalSkillRecord, UUID> {
     List<ExternalSkillRecord> findAllByUserIdAndVerifiedTrue(UUID userId);
     Optional<ExternalSkillRecord> findByUserIdAndSourceAndSourceRef(UUID userId, MappingSource source, String sourceRef);
+    List<ExternalSkillRecord> findAllByUserIdOrderBySourceAscSourceCodeAscSourceRefAsc(UUID userId);
+    List<ExternalSkillRecord> findAllByUserIdAndSourceKeyNotNull(UUID userId);
 }
