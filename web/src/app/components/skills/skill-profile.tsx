@@ -82,24 +82,34 @@ export function SkillProfile({ userId, readOnly = false }: SkillProfileProps) {
   const [actionMessage, setActionMessage] = React.useState<{ type: "success" | "error"; text: string } | null>(null);
   const [expandedSkillIds, setExpandedSkillIds] = React.useState<Set<string>>(new Set());
 
-  const fetchSkills = React.useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const data = userId
-        ? await skillService.getProfileSkills(userId)
-        : await skillService.getOwnSkills();
-      setSkills(data);
-    } catch (err) {
-      setError(getErrorMessage(err, "Không thể tải hồ sơ kỹ năng."));
-    } finally {
-      setLoading(false);
-    }
-  }, [userId]);
+  const [reloadKey, setReloadKey] = React.useState(0);
 
   React.useEffect(() => {
-    void fetchSkills();
-  }, [fetchSkills]);
+    let ignore = false;
+    async function load() {
+      try {
+        const data = userId
+          ? await skillService.getProfileSkills(userId)
+          : await skillService.getOwnSkills();
+        if (!ignore) {
+          setSkills(data);
+          setError(null);
+        }
+      } catch (err) {
+        if (!ignore) {
+          setError(getErrorMessage(err, "Không thể tải hồ sơ kỹ năng."));
+        }
+      } finally {
+        if (!ignore) {
+          setLoading(false);
+        }
+      }
+    }
+    void load();
+    return () => {
+      ignore = true;
+    };
+  }, [userId, reloadKey]);
 
   const handleRecompute = async () => {
     setRecomputing(true);
@@ -187,7 +197,7 @@ export function SkillProfile({ userId, readOnly = false }: SkillProfileProps) {
             <AlertCircle className="h-4 w-4 shrink-0" />
             <span className="font-semibold">{error}</span>
           </div>
-          <Button variant="outline" size="sm" onClick={() => void fetchSkills()}>
+          <Button variant="outline" size="sm" onClick={() => { setLoading(true); setReloadKey((k) => k + 1); }}>
             Thử lại
           </Button>
         </div>
@@ -411,13 +421,12 @@ export function SkillProfile({ userId, readOnly = false }: SkillProfileProps) {
                           {/* Progress bar */}
                           <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
                             <div
-                              className={`h-full transition-all duration-500 ${
-                                isVerified
+                              className={`h-full transition-all duration-500 ${isVerified
                                   ? levelInfo?.barClass || "bg-primary"
                                   : isSelfOnly
                                     ? "bg-amber-500"
                                     : "bg-muted-foreground/30"
-                              }`}
+                                }`}
                               style={{ width: `${Math.min(100, Math.max(0, displayScore))}%` }}
                             />
                           </div>
