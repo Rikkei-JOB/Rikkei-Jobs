@@ -1,8 +1,8 @@
 # Rikkei Jobs Platform
 
-Nền tảng tuyển dụng và phát triển sự nghiệp, sử dụng backend Spring Boot và frontend Next.js. Repo hiện có khung 8 service sau API gateway (`/api/v1`), đăng nhập SSO/HR bằng JWT (NT-01), khung phân quyền theo vai trò, Swagger UI `/api/docs` và layout theo vai trò ở frontend (NT-02), backend Skill Profile (HS-01), hồ sơ doanh nghiệp và tài khoản HR (DN-01), cùng mock Express đủ 11 endpoint hệ thống ngoài (LMS, Khảo thí, lms-pm, Rikkei Meet). API nghiệp vụ của các service còn lại do các task sau bổ sung.
+Nền tảng tuyển dụng và phát triển sự nghiệp, sử dụng backend Spring Boot và frontend Next.js. Repo hiện có khung 8 service sau API gateway (`/api/v1`), đăng nhập SSO/HR bằng JWT (NT-01), khung phân quyền theo vai trò, Swagger UI `/api/docs` và layout theo vai trò ở frontend (NT-02), backend Skill Profile (HS-01), hồ sơ doanh nghiệp và tài khoản HR (DN-01), đồng bộ dữ liệu học tập, thi, thực tập từ mock (NT-05), cùng mock Express đủ 11 endpoint hệ thống ngoài (LMS, Khảo thí, lms-pm, Rikkei Meet). API nghiệp vụ của các service còn lại do các task sau bổ sung.
 
-Hướng dẫn chi tiết theo task: đăng nhập và tài khoản mẫu [NT-01](docs/api/NT-01-authentication.md); khung phân quyền và Swagger UI [NT-02](docs/api/NT-02-phan-quyen.md); API kỹ năng, migration và dữ liệu demo [HS-01 backend](docs/hs01-independent-backend.md); hồ sơ doanh nghiệp, tài khoản HR, logo [DN-01](docs/api/DN-01-company-hr.md) (OpenAPI [company-openapi.yaml](docs/api/company-openapi.yaml), request mẫu [DN-01.http](docs/api/DN-01.http)). Với các task này, dùng hướng dẫn chuyên biệt thay cho các ghi chú trạng thái khung bên dưới.
+Hướng dẫn chi tiết theo task: đăng nhập và tài khoản mẫu [NT-01](docs/api/NT-01-authentication.md); khung phân quyền và Swagger UI [NT-02](docs/api/NT-02-phan-quyen.md); API kỹ năng, migration và dữ liệu demo [HS-01 backend](docs/hs01-independent-backend.md); hồ sơ doanh nghiệp, tài khoản HR, logo [DN-01](docs/api/DN-01-company-hr.md) (OpenAPI [company-openapi.yaml](docs/api/company-openapi.yaml), request mẫu [DN-01.http](docs/api/DN-01.http)); đồng bộ dữ liệu, job đêm, sửa tay [NT-05](docs/api/NT-05-dong-bo-du-lieu.md). Với các task này, dùng hướng dẫn chuyên biệt thay cho các ghi chú trạng thái khung bên dưới.
 
 Nhóm giữ cấu trúc `server/`, `web/` và dùng **`test`** làm nhánh tích hợp. Tạo `feature/<mã>-<tên>` từ `test`, mở PR vào `test` với tiêu đề `[NT-01] ...`. Xem [quy ước chung](docs/conventions.md).
 
@@ -268,6 +268,8 @@ mvn -f server/services/company-service/pom.xml spring-boot:run "-Dspring-boot.ru
 ```
 
 Biến môi trường mới (đã có trong `.env.example`): `INTERNAL_SERVICE_KEY` (khoá `X-Internal-Key` company-service gửi khi gọi `/internal/**` của identity, mặc định `dev-internal-key`, hai bên phải giống nhau), `IDENTITY_SERVICE_URL` (mặc định `http://localhost:8081`), `COMPANY_UPLOAD_DIR` (thư mục lưu logo, mặc định `./data/uploads`, đã được `.gitignore` bỏ qua), `COMPANY_DB_SCHEMA` (mặc định `company`), `DEV_DATA_ENABLED`. Hướng dẫn đầy đủ và kịch bản kiểm thử: [DN-01](docs/api/DN-01-company-hr.md).
+
+**Đồng bộ dữ liệu (NT-05)** chạy trong profile-service: cần mock (`cd mock && npm start`), identity-service profile `dev` (cho `lms_user_id`) và profile-service. Job đêm chạy lúc 01:00, đổi giờ bằng `SYNC_NIGHTLY_CRON`; chạy tay bằng nút **Chạy job đêm ngay** ở `/staff/sync` hoặc `POST /api/v1/staff/sync/nightly`. Biến môi trường, dữ liệu mẫu và kịch bản nghiệm thu: [NT-05](docs/api/NT-05-dong-bo-du-lieu.md).
 
 `identity-service` kiểm tra kết nối SMTP trong health check: không chạy MailHog thì đặt `MAIL_ENABLED=false` (link đặt lại mật khẩu sẽ in ra log).
 

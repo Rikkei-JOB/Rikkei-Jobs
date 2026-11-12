@@ -19,6 +19,8 @@ erDiagram
     skills ||--o{ skill_evidences : "skill_id"
     skills ||--o{ skill_scores : "skill_id"
     external_records ||--o{ skill_evidences : "external_record_id"
+    external_records ||--o{ manual_overrides : "record_id"
+    users ||..o{ sync_runs : "user_id"
 
     companies {
         UUID id PK
@@ -70,6 +72,31 @@ erDiagram
         NUMERIC score_max
         TIMESTAMPTZ recorded_at
         BOOLEAN verified
+        VARCHAR source_key "UK cùng source (NT-05)"
+        JSONB payload "bản ghi gốc từ mock"
+        TIMESTAMPTZ synced_at
+    }
+
+    manual_overrides {
+        UUID id PK
+        UUID record_id FK
+        VARCHAR field "score | title"
+        VARCHAR value
+        VARCHAR reason "NOT NULL"
+        UUID staff_id
+        TIMESTAMPTZ created_at
+    }
+
+    sync_runs {
+        UUID id PK
+        VARCHAR trigger "NIGHTLY | ON_OPEN | MANUAL"
+        UUID user_id "NULL khi job đêm lỗi sớm"
+        VARCHAR status "SUCCESS | FAILED"
+        TIMESTAMPTZ started_at
+        TIMESTAMPTZ finished_at
+        VARCHAR error
+        JSONB counts
+        UUID triggered_by
     }
 
     skill_evidences {
@@ -137,6 +164,7 @@ erDiagram
 | identity-service | `public` | `users`, `used_sso_tickets`, `password_reset_tokens` | `V1__identity_init.sql` | NT-01 |
 | company-service | `company` | `companies`, `company_hr` | `V1__company_init.sql` | DN-01 |
 | profile-service | `profile` | `skills`, `skill_mappings`, `skill_evidences`, `skill_scores`, `external_records`, `skill_profile_states` | `V1__skill_profile.sql` → `V3__external_records_and_profile_state.sql` | HS-01 |
+| profile-service | `profile` | `manual_overrides`, `sync_runs`; thêm `source_key`, `payload`, `synced_at` vào `external_records` | `V4__nt05_external_sync.sql` | NT-05 |
 
 ## Quy ước
 
