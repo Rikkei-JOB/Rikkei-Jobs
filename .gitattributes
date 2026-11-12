@@ -1,0 +1,3 @@
+web/.husky/commit-msg text eol=lf
+web/.husky/pre-push text eol=lf
+scripts/check-feature-branch.sh text eol=lf
