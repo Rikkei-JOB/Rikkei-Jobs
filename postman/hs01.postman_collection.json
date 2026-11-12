@@ -1,0 +1,784 @@
+{
+  "info": {
+    "name": "Rikkei Jobs · HS-01 backend integration",
+    "description": "Run the entire collection in order against an isolated dev database after identity dev seed and PROFILE_DEMO_DATA_ENABLED=true profile seed. Uses /auth/dev/sso-ticket then /auth/sso to obtain real candidate UUIDs. Candidate profiles stay private. Requests read profiles and recompute only from stored source; there is no HTTP evidence import or publication mutation. Tokens are held in run variables. Demo data is dated 2026-09/10; score assertions use the documented 2026-11 fixture baseline.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8080/api/v1",
+      "type": "string"
+    },
+    {
+      "key": "englishSelfScore",
+      "value": "65",
+      "type": "string"
+    },
+    {
+      "key": "invalidToken",
+      "value": "not.a.jwt",
+      "type": "string"
+    },
+    {
+      "key": "candidate1Ticket",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "candidate1Token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "candidate1Id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "candidate2Ticket",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "candidate2Token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "candidate2Id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "candidate3Ticket",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "candidate3Token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "candidate3Id",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "event": [
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "const path = pm.request.url.toString();",
+          "if (path.includes(\"/profiles/\") && pm.response.code === 200) {",
+          "    const skills = pm.response.json();",
+          "    pm.test(\"Returns a bare skills array with source, score and dated evidence\", function () {",
+          "        pm.expect(skills).to.be.an(\"array\");",
+          "        skills.forEach(function (row) {",
+          "            pm.expect(row.skill.id).to.match(/^[0-9a-f-]{36}$/i);",
+          "            [\"code\", \"name\", \"group\"].forEach(function (key) { pm.expect(row.skill[key]).to.be.a(\"string\"); });",
+          "            [\"verifiedScore\", \"selfScore\"].forEach(function (key) {",
+          "                if (row[key] !== null) { pm.expect(row[key]).to.be.within(0, 100); }",
+          "            });",
+          "            pm.expect(row.level).to.be.oneOf([null, \"BASIC\", \"FAIR\", \"GOOD\", \"EXCELLENT\"]);",
+          "            pm.expect(row.evidences).to.be.an(\"array\");",
+          "            row.evidences.forEach(function (evidence) {",
+          "                pm.expect(evidence.source).to.be.oneOf([\"LMS\", \"EXAM\", \"INTERNSHIP\", \"MENTOR\", \"SELF\"]);",
+          "                pm.expect(evidence.title).to.be.a(\"string\").and.not.empty;",
+          "                pm.expect(evidence.score).to.be.within(0, 100);",
+          "                pm.expect(evidence.verified).to.be.a(\"boolean\");",
+          "                pm.expect(evidence.recordedAt).to.match(/(Z|[+-]\\d{2}:\\d{2})$/);",
+          "                pm.expect(Number.isFinite(Date.parse(evidence.recordedAt))).to.equal(true);",
+          "                if (evidence.source === \"SELF\") { pm.expect(evidence.verified).to.equal(false); }",
+          "            });",
+          "            if (row.verifiedScore === null) { pm.expect(row.level).to.equal(null); }",
+          "        });",
+          "    });",
+          "}",
+          "if (pm.response.code >= 400) {",
+          "    pm.test(\"Errors retain the common code/message shape\", function () {",
+          "        const error = pm.response.json();",
+          "        pm.expect(error.code).to.be.a(\"string\");",
+          "        pm.expect(error.message).to.be.a(\"string\");",
+          "    });",
+          "}"
+        ]
+      }
+    }
+  ],
+  "item": [
+    {
+      "name": "1 · Request candidate1 SSO ticket",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/auth/dev/sso-ticket",
+        "auth": {
+          "type": "noauth"
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\"lmsUserId\":\"lms-sv-001\"}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Dev ticket issued\", function () { pm.response.to.have.status(200); pm.expect(pm.response.json().ticket).to.be.a(\"string\").and.not.empty; });",
+              "pm.collectionVariables.set(\"candidate1Ticket\", pm.response.json().ticket);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "1 · Exchange ticket for candidate1 JWT and real UUID",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/auth/sso",
+        "auth": {
+          "type": "noauth"
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\"ticket\":\"{{candidate1Ticket}}\"}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"SSO returns candidate identity\", function () { pm.response.to.have.status(200); pm.expect(pm.response.json().user.role).to.equal(\"CANDIDATE\"); });",
+              "const data = pm.response.json();",
+              "pm.collectionVariables.set(\"candidate1Token\", data.accessToken);",
+              "pm.collectionVariables.set(\"candidate1Id\", data.user.id);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Candidate1 · Read own verified and SELF-only skills",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{candidate1Token}}"
+          }
+        ],
+        "url": "{{baseUrl}}/profiles/me/skills",
+        "auth": {
+          "type": "noauth"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.response.to.have.status(200);",
+              "const skills = pm.response.json();",
+              "pm.test(\"Candidate1 has eight verified skills plus SELF-only English\", function () {",
+              "    pm.expect(skills.length).to.equal(9);",
+              "    pm.expect(skills.filter(function (s) { return s.verifiedScore !== null; }).length).to.equal(8);",
+              "    const english = skills.find(function (s) { return s.skill.code === \"ENGLISH\"; });",
+              "    pm.expect(english.verifiedScore).to.equal(null);",
+              "    pm.expect(english.level).to.equal(null);",
+              "    pm.expect(english.selfScore).to.equal(Number(pm.collectionVariables.get(\"englishSelfScore\")));",
+              "    pm.expect(english.evidences.every(function (e) { return e.source === \"SELF\" && !e.verified; })).to.equal(true);",
+              "});",
+              "pm.test(\"Java retains normalized scores and original source dates\", function () {",
+              "    const java = skills.find(function (s) { return s.skill.code === \"JAVA\"; });",
+              "    pm.expect(java.verifiedScore).to.be.closeTo(82.058824, 0.000001);",
+              "    pm.expect(java.level).to.equal(\"GOOD\");",
+              "    const exam = java.evidences.find(function (e) { return e.source === \"EXAM\"; });",
+              "    pm.expect(exam.score).to.equal(80);",
+              "    pm.expect(new Date(exam.recordedAt).toISOString()).to.equal(\"2026-10-20T01:00:00.000Z\");",
+              "    const sources = skills.flatMap(function (s) { return s.evidences.map(function (e) { return e.source; }); });",
+              "    [\"LMS\", \"EXAM\", \"INTERNSHIP\", \"SELF\"].forEach(function (source) { pm.expect(sources).to.include(source); });",
+              "});",
+              "pm.collectionVariables.set(\"candidate1Skills\", JSON.stringify(skills));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Candidate1 · Read own UUID route",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{candidate1Token}}"
+          }
+        ],
+        "url": "{{baseUrl}}/profiles/{{candidate1Id}}/skills",
+        "auth": {
+          "type": "noauth"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.response.to.have.status(200);",
+              "pm.test(\"UUID owner route equals /me\", function () {",
+              "    pm.expect(pm.response.json()).to.deep.equal(JSON.parse(pm.collectionVariables.get(\"candidate1Skills\")));",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Candidate1 · Recompute own stored source without a request body",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{candidate1Token}}"
+          }
+        ],
+        "url": "{{baseUrl}}/profiles/me/skills/recompute",
+        "auth": {
+          "type": "noauth"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.response.to.have.status(200);",
+              "pm.test(\"Recompute is stable and preserves separate SELF score\", function () {",
+              "    pm.expect(pm.response.json()).to.deep.equal(JSON.parse(pm.collectionVariables.get(\"candidate1Skills\")));",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "2 · Request candidate2 SSO ticket",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/auth/dev/sso-ticket",
+        "auth": {
+          "type": "noauth"
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\"lmsUserId\":\"lms-sv-002\"}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Dev ticket issued\", function () { pm.response.to.have.status(200); pm.expect(pm.response.json().ticket).to.be.a(\"string\").and.not.empty; });",
+              "pm.collectionVariables.set(\"candidate2Ticket\", pm.response.json().ticket);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "2 · Exchange ticket for candidate2 JWT and real UUID",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/auth/sso",
+        "auth": {
+          "type": "noauth"
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\"ticket\":\"{{candidate2Ticket}}\"}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"SSO returns candidate identity\", function () { pm.response.to.have.status(200); pm.expect(pm.response.json().user.role).to.equal(\"CANDIDATE\"); });",
+              "const data = pm.response.json();",
+              "pm.collectionVariables.set(\"candidate2Token\", data.accessToken);",
+              "pm.collectionVariables.set(\"candidate2Id\", data.user.id);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Candidate2 · Read own seven skills",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{candidate2Token}}"
+          }
+        ],
+        "url": "{{baseUrl}}/profiles/me/skills",
+        "auth": {
+          "type": "noauth"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.response.to.have.status(200);",
+              "const skills = pm.response.json();",
+              "pm.test(\"Candidate2 fixture has seven skills and no invented internship\", function () {",
+              "    pm.expect(skills.length).to.equal(7);",
+              "    pm.expect(skills.flatMap(function (s) { return s.evidences; }).some(function (e) { return e.source === \"INTERNSHIP\"; })).to.equal(false);",
+              "});",
+              "pm.collectionVariables.set(\"candidate2Skills\", JSON.stringify(skills));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Candidate2 · Recompute own source",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{candidate2Token}}"
+          }
+        ],
+        "url": "{{baseUrl}}/profiles/me/skills/recompute",
+        "auth": {
+          "type": "noauth"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.response.to.have.status(200);",
+              "pm.test(\"Candidate2 recompute is stable\", function () {",
+              "    pm.expect(pm.response.json()).to.deep.equal(JSON.parse(pm.collectionVariables.get(\"candidate2Skills\")));",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Candidate2 · Cannot read candidate1 private profile",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{candidate2Token}}"
+          }
+        ],
+        "url": "{{baseUrl}}/profiles/{{candidate1Id}}/skills",
+        "auth": {
+          "type": "noauth"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.response.to.have.status(404);",
+              "pm.test(\"Private profile is hidden\", function () { pm.expect(pm.response.json().code).to.equal(\"NOT_FOUND\"); });",
+              "pm.collectionVariables.set(\"privateError\", JSON.stringify(pm.response.json()));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Candidate2 · Missing profile has the same response",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{candidate2Token}}"
+          }
+        ],
+        "url": "{{baseUrl}}/profiles/{{$guid}}/skills",
+        "auth": {
+          "type": "noauth"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.response.to.have.status(404);",
+              "pm.test(\"Missing and private profiles are indistinguishable\", function () {",
+              "    pm.expect(pm.response.json()).to.deep.equal(JSON.parse(pm.collectionVariables.get(\"privateError\")));",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Candidate2 · Malformed UUID is rejected",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{candidate2Token}}"
+          }
+        ],
+        "url": "{{baseUrl}}/profiles/not-a-uuid/skills",
+        "auth": {
+          "type": "noauth"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.response.to.have.status(400);",
+              "pm.test(\"Malformed UUID returns BAD_REQUEST\", function () { pm.expect(pm.response.json().code).to.equal(\"BAD_REQUEST\"); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Authentication · Missing bearer token is rejected",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/profiles/me/skills",
+        "auth": {
+          "type": "noauth"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.response.to.have.status(401);",
+              "pm.test(\"Missing token returns UNAUTHORIZED\", function () { pm.expect(pm.response.json().code).to.equal(\"UNAUTHORIZED\"); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Authentication · Invalid bearer token is rejected",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{invalidToken}}"
+          }
+        ],
+        "url": "{{baseUrl}}/profiles/me/skills",
+        "auth": {
+          "type": "noauth"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.response.to.have.status(401);",
+              "pm.test(\"Invalid token returns UNAUTHORIZED\", function () { pm.expect(pm.response.json().code).to.equal(\"UNAUTHORIZED\"); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "3 · Request candidate3 SSO ticket",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/auth/dev/sso-ticket",
+        "auth": {
+          "type": "noauth"
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\"lmsUserId\":\"lms-sv-003\"}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Dev ticket issued\", function () { pm.response.to.have.status(200); pm.expect(pm.response.json().ticket).to.be.a(\"string\").and.not.empty; });",
+              "pm.collectionVariables.set(\"candidate3Ticket\", pm.response.json().ticket);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "3 · Exchange ticket for candidate3 JWT and real UUID",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/auth/sso",
+        "auth": {
+          "type": "noauth"
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\"ticket\":\"{{candidate3Ticket}}\"}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"SSO returns candidate identity\", function () { pm.response.to.have.status(200); pm.expect(pm.response.json().user.role).to.equal(\"CANDIDATE\"); });",
+              "const data = pm.response.json();",
+              "pm.collectionVariables.set(\"candidate3Token\", data.accessToken);",
+              "pm.collectionVariables.set(\"candidate3Id\", data.user.id);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Candidate3 · Read own four skills",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{candidate3Token}}"
+          }
+        ],
+        "url": "{{baseUrl}}/profiles/me/skills",
+        "auth": {
+          "type": "noauth"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.response.to.have.status(200);",
+              "pm.test(\"Candidate3 fixture has four skills\", function () {",
+              "    pm.expect(pm.response.json().length).to.equal(4);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Candidate1 · Candidate2 recompute did not mutate candidate1",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{candidate1Token}}"
+          }
+        ],
+        "url": "{{baseUrl}}/profiles/me/skills",
+        "auth": {
+          "type": "noauth"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.response.to.have.status(200);",
+              "pm.test(\"Candidate isolation survives another candidate's recompute\", function () {",
+              "    pm.expect(pm.response.json()).to.deep.equal(JSON.parse(pm.collectionVariables.get(\"candidate1Skills\")));",
+              "});"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

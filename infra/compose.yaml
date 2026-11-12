@@ -67,7 +67,7 @@ services:
     image: prom/prometheus:latest
     container_name: rikkei-prometheus
     ports:
-      - "9090:9090"
+      - "${PROMETHEUS_PORT:-9090}:9090"
     volumes:
       - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
     networks:
@@ -78,7 +78,7 @@ services:
     image: grafana/grafana:latest
     container_name: rikkei-grafana
     ports:
-      - "3000:3000"
+      - "${GRAFANA_PORT:-3001}:3000"   # 3001 để không trùng frontend Next.js (3000)
     environment:
       - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD:-admin}
     depends_on:

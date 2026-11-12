@@ -12,8 +12,17 @@ spring:
     open-in-view: false
     hibernate:
       ddl-auto: validate
+    properties:
+      hibernate.default_schema: profile
+  flyway:
+    enabled: true
+    schemas: profile
+    default-schema: profile
+    locations: classpath:db/migration
 
 app:
+  profile:
+    demo-data-enabled: false
   jwt:
     # Must equal identity-service's JWT_SECRET: tokens are issued there and only verified here.
     secret: ${JWT_SECRET:your_super_secret_jwt_key_at_least_256_bits_long_rikkei_jobs}

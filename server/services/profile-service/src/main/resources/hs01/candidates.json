@@ -1,0 +1,36 @@
+[
+  {
+    "lmsUserId": "lms-sv-001",
+    "fixtureUserId": "10000000-0000-0000-0000-000000000001",
+    "records": [
+      {"source":"LMS","sourceCode":"JAVA01","sourceRef":"c1-java-final","title":"Lập trình Java (mẫu đã chốt)","score":85,"recordedAt":"2026-10-01T08:00:00Z"},
+      {"source":"LMS","sourceCode":"SQL01","sourceRef":"c1-sql-final","title":"Cơ sở dữ liệu (mẫu đã chốt)","score":80,"recordedAt":"2026-10-01T08:00:00Z"},
+      {"source":"LMS","sourceCode":"SPRING01","sourceRef":"c1-spring-final","title":"Spring Boot (mẫu đã chốt)","score":75,"recordedAt":"2026-10-01T08:00:00Z"},
+      {"source":"LMS","sourceCode":"WEB01","sourceRef":"c1-web-final","title":"HTML/CSS/JavaScript (mẫu đã chốt)","score":70,"recordedAt":"2026-10-01T08:00:00Z"},
+      {"source":"LMS","sourceCode":"GIT01","sourceRef":"c1-git-final","title":"Git và làm việc nhóm (mẫu đã chốt)","score":90,"recordedAt":"2026-10-01T08:00:00Z"},
+      {"source":"EXAM","sourceCode":"JAVA01","sourceRef":"EX-JAVA-2026-10","title":"Thi Java (mẫu điểm chính thức)","score":80,"recordedAt":"2026-10-20T01:00:00Z"},
+      {"source":"PM","sourceCode":"API_BACKEND","sourceRef":"IOC-JB-2026-09-task-api","title":"API đặt phòng (mẫu đã nghiệm thu)","score":90,"recordedAt":"2026-09-25T10:00:00Z"}
+    ]
+  },
+  {
+    "lmsUserId": "lms-sv-002",
+    "fixtureUserId": "10000000-0000-0000-0000-000000000002",
+    "records": [
+      {"source":"LMS","sourceCode":"WEB01","sourceRef":"c2-web-final","title":"HTML/CSS/JavaScript (mẫu đã chốt)","score":90,"recordedAt":"2026-10-01T08:00:00Z"},
+      {"source":"LMS","sourceCode":"REACT01","sourceRef":"c2-react-final","title":"ReactJS (mẫu đã chốt)","score":85,"recordedAt":"2026-10-01T08:00:00Z"},
+      {"source":"LMS","sourceCode":"JAVA01","sourceRef":"c2-java-final","title":"Java (mẫu đã chốt)","score":65,"recordedAt":"2026-10-01T08:00:00Z"},
+      {"source":"LMS","sourceCode":"GIT01","sourceRef":"c2-git-final","title":"Git và làm việc nhóm (mẫu đã chốt)","score":80,"recordedAt":"2026-10-01T08:00:00Z"},
+      {"source":"EXAM","sourceCode":"REACT01","sourceRef":"EX-REACT-2026-10","title":"Thi ReactJS (mẫu điểm chính thức)","score":80,"recordedAt":"2026-10-22T01:00:00Z"}
+    ]
+  },
+  {
+    "lmsUserId": "lms-sv-003",
+    "fixtureUserId": "10000000-0000-0000-0000-000000000003",
+    "records": [
+      {"source":"LMS","sourceCode":"JAVA01","sourceRef":"c3-java-final","title":"Java (mẫu đã chốt)","score":55,"recordedAt":"2026-10-01T08:00:00Z"},
+      {"source":"LMS","sourceCode":"SQL01","sourceRef":"c3-sql-final","title":"Cơ sở dữ liệu (mẫu đã chốt)","score":60,"recordedAt":"2026-10-01T08:00:00Z"},
+      {"source":"LMS","sourceCode":"WEB01","sourceRef":"c3-web-final","title":"HTML/CSS/JavaScript (mẫu đã chốt)","score":50,"recordedAt":"2026-10-01T08:00:00Z"},
+      {"source":"EXAM","sourceCode":"JAVA01","sourceRef":"EX-JAVA-2026-10","title":"Thi Java (mẫu điểm chính thức)","score":45,"recordedAt":"2026-10-20T01:00:00Z"}
+    ]
+  }
+]
