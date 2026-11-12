@@ -74,32 +74,29 @@ interface SkillProfileProps {
   readOnly?: boolean;
 }
 
-export function SkillProfile({ userId, readOnly = false }: SkillProfileProps) {
+export function SkillProfile(props: SkillProfileProps) {
+  return <SkillProfileContent key={props.userId ?? "me"} {...props} />;
+}
+
+function SkillProfileContent({ userId, readOnly = false }: SkillProfileProps) {
   const [skills, setSkills] = React.useState<SkillProfileItem[]>([]);
   const [loading, setLoading] = React.useState(true);
   const [recomputing, setRecomputing] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
   const [actionMessage, setActionMessage] = React.useState<{ type: "success" | "error"; text: string } | null>(null);
   const [expandedSkillIds, setExpandedSkillIds] = React.useState<Set<string>>(new Set());
-
-  const fetchSkills = React.useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const data = userId
-        ? await skillService.getProfileSkills(userId)
-        : await skillService.getOwnSkills();
-      setSkills(data);
-    } catch (err) {
-      setError(getErrorMessage(err, "Không thể tải hồ sơ kỹ năng."));
-    } finally {
-      setLoading(false);
-    }
-  }, [userId]);
+  const [loadVersion, setLoadVersion] = React.useState(0);
 
   React.useEffect(() => {
-    void fetchSkills();
-  }, [fetchSkills]);
+    let active = true;
+    const request = userId ? skillService.getProfileSkills(userId) : skillService.getOwnSkills();
+    request.then(data => {
+      if (active) { setSkills(data); setError(null); }
+    }).catch(err => {
+      if (active) setError(getErrorMessage(err, "Không thể tải hồ sơ kỹ năng."));
+    }).finally(() => { if (active) setLoading(false); });
+    return () => { active = false; };
+  }, [userId, loadVersion]);
 
   const handleRecompute = async () => {
     setRecomputing(true);
@@ -187,7 +184,7 @@ export function SkillProfile({ userId, readOnly = false }: SkillProfileProps) {
             <AlertCircle className="h-4 w-4 shrink-0" />
             <span className="font-semibold">{error}</span>
           </div>
-          <Button variant="outline" size="sm" onClick={() => void fetchSkills()}>
+          <Button variant="outline" size="sm" onClick={() => { setLoading(true); setError(null); setLoadVersion(value => value + 1); }}>
             Thử lại
           </Button>
         </div>

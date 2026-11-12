@@ -2,9 +2,9 @@ name: CI Pipeline
 
 on:
   push:
-    branches: [ main, test ]
+    branches: [ main, test, develop ]
   pull_request:
-    branches: [ main, test ]
+    branches: [ main, test, develop ]
 
 jobs:
   backend-build:
@@ -34,16 +34,26 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 24
           cache: 'npm'
-          cache-dependency-path: web/package.json
+          cache-dependency-path: web/package-lock.json
 
       - name: Install dependencies
         run: |
           cd web
-          npm ci || npm install
+          npm ci
 
       - name: Type Check & Lint
         run: |
           cd web
-          npm run type-check || true
+          npm run type-check
+          npm run lint
+          npm run build
+
+      - name: Install Chromium
+        working-directory: web
+        run: npx playwright install --with-deps chromium
+
+      - name: Candidate application browser tests
+        working-directory: web
+        run: npm run test:e2e

@@ -59,6 +59,7 @@ function RoleHome({ expectedRole }: { expectedRole: NonNullable<ReturnType<typeo
             </div>
 
             <div className="flex items-center gap-3 text-xs">
+              <Link href="/candidate/applications" className="font-medium text-primary hover:underline">Ứng tuyển của tôi</Link>
               <div className="hidden text-right sm:block">
                 <div className="font-medium text-foreground">{user.fullName}</div>
                 <div className="text-[11px] text-muted-foreground">{user.email}</div>

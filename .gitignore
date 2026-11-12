@@ -72,3 +72,5 @@ web/*.tsbuildinfo
 
 # Local development processes, logs and isolated database
 .runtime/
+web/test-results/
+web/playwright-report/
