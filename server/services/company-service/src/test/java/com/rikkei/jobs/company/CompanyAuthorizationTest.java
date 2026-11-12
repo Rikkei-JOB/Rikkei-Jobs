@@ -27,8 +27,9 @@ class CompanyAuthorizationTest extends CompanyApiTestSupport {
 
     @BeforeEach
     void companiesAndHrLinks() {
-        companyA = saveCompany("0101234567", CompanyStatus.ACTIVE).getId();
-        companyB = saveCompany("0109876543", CompanyStatus.ACTIVE).getId();
+        // Mã số thuế khác dữ liệu mẫu của DevDataSeeder.
+        companyA = saveCompany("0200000001", CompanyStatus.ACTIVE).getId();
+        companyB = saveCompany("0200000002", CompanyStatus.ACTIVE).getId();
         companyHrs.save(new CompanyHr(HR1, companyA));
         companyHrs.save(new CompanyHr(HR2, companyB));
     }
