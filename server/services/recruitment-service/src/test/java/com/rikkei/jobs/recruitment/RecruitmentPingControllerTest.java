@@ -10,15 +10,15 @@ import com.rikkei.jobs.common.config.security.principle.Role;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
-import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.context.annotation.Import;
+import com.rikkei.jobs.common.CommonCoreAutoConfiguration;
+import com.rikkei.jobs.recruitment.controller.RecruitmentPingController;
 import org.springframework.test.web.servlet.MockMvc;
 
-@SpringBootTest(properties = {
-    "spring.autoconfigure.exclude=org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration,org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration,org.springframework.boot.autoconfigure.data.jpa.JpaRepositoriesAutoConfiguration,org.springframework.boot.autoconfigure.jdbc.DataSourceTransactionManagerAutoConfiguration",
-    "app.jwt.secret=test_secret_test_secret_test_secret_test_secret"
-})
-@AutoConfigureMockMvc
+@WebMvcTest(controllers = RecruitmentPingController.class,
+    properties = "app.jwt.secret=test_secret_test_secret_test_secret_test_secret")
+@Import(CommonCoreAutoConfiguration.class)
 class RecruitmentPingControllerTest {
 
     @Autowired MockMvc mvc;

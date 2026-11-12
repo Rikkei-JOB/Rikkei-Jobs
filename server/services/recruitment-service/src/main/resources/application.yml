@@ -12,13 +12,41 @@ spring:
     open-in-view: false
     hibernate:
       ddl-auto: validate
+    properties:
+      hibernate.default_schema: recruitment
+  flyway:
+    enabled: true
+    schemas: recruitment
+    default-schema: recruitment
+    locations: classpath:db/migration
+  mail:
+    host: ${MAIL_HOST:localhost}
+    port: ${MAIL_PORT:1025}
+    username: ${MAIL_USER:}
+    password: ${MAIL_PASSWORD:}
+    properties:
+      mail.smtp.connectiontimeout: 5000
+      mail.smtp.timeout: 10000
+      mail.smtp.writetimeout: 10000
 
 app:
+  recruitment:
+    cv-storage-dir: ${RECRUITMENT_CV_STORAGE_DIR:.runtime/recruitment-cvs}
+    company-base-url: ${COMPANY_SERVICE_URL:http://localhost:8085}
+    job-context-path: ${RECRUITMENT_JOB_CONTEXT_PATH:/company/internal/jobs/{jobId}/application-context}
+    company-service-key: ${RECRUITMENT_COMPANY_SERVICE_KEY:}
+    profile-base-url: ${PROFILE_SERVICE_URL:http://localhost:8082}
+    cv-pdf-path: ${RECRUITMENT_CV_PDF_PATH:/profile/cvs/{cvId}/pdf}
+    outbox-enabled: ${RECRUITMENT_OUTBOX_ENABLED:true}
+    mail-from: ${MAIL_FROM:no-reply@rikkei-jobs.local}
   jwt:
     # Must equal identity-service's JWT_SECRET: tokens are issued there and only verified here.
     secret: ${JWT_SECRET:your_super_secret_jwt_key_at_least_256_bits_long_rikkei_jobs}
 
 management:
+  health:
+    mail:
+      enabled: false
   endpoints:
     web:
       exposure:
