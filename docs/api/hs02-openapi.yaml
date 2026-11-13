@@ -1,12 +1,137 @@
 openapi: 3.0.3
 info:
-  title: HS-02 Personal profile — phase 1
-  version: 1.0.0
+  title: HS-02 Personal profile, education, certificates and files
+  version: 2.0.0
 servers:
   - url: /api/v1
 security:
   - bearerAuth: []
 paths:
+  /files:
+    post:
+      summary: Upload a private PDF, JPG or PNG, at most 5242880 bytes
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file: {type: string, format: binary}
+      responses:
+        '201':
+          description: Private authenticated download URL
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  url: {type: string, example: /api/v1/files/00000000-0000-0000-0000-000000000001}
+        '400': {description: Empty or unsupported content signature}
+        '413': {description: FILE_TOO_LARGE}
+        '503': {description: FILE_STORAGE_UNAVAILABLE}
+  /files/{id}:
+    parameters:
+      - $ref: '#/components/parameters/RecordId'
+    get:
+      summary: Download only the authenticated candidate's own file
+      responses:
+        '200':
+          description: Attachment with detected MIME, nosniff and private no-store caching
+          content:
+            application/pdf:
+              schema: {type: string, format: binary}
+            image/jpeg:
+              schema: {type: string, format: binary}
+            image/png:
+              schema: {type: string, format: binary}
+        '404': {description: Missing or another owner's file}
+  /profiles/me/avatar:
+    put:
+      summary: Attach an owned JPG/PNG upload as avatar, or null to remove
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                fileUrl: {type: string, nullable: true, maxLength: 200}
+      responses:
+        '200':
+          description: Updated personal profile
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Profile'
+        '400': {description: Avatar cannot be a PDF}
+        '404': {description: Unowned or invalid file URL}
+  /profiles/me/educations:
+    get:
+      summary: List own educations, newest start date first
+      responses:
+        '200':
+          description: Own education records
+          content:
+            application/json:
+              schema:
+                type: array
+                items: {$ref: '#/components/schemas/Education'}
+    post:
+      summary: Create an education record for the authenticated candidate
+      requestBody: {$ref: '#/components/requestBodies/Education'}
+      responses:
+        '201': {$ref: '#/components/responses/Education'}
+        '400': {description: Invalid fields, date range or GPA}
+  /profiles/me/educations/{id}:
+    parameters:
+      - $ref: '#/components/parameters/RecordId'
+    put:
+      summary: Replace editable fields of an owned education
+      requestBody: {$ref: '#/components/requestBodies/Education'}
+      responses:
+        '200': {$ref: '#/components/responses/Education'}
+        '400': {description: Invalid fields, date range or GPA}
+        '404': {description: Missing or another owner's education}
+    delete:
+      summary: Delete an owned education
+      responses:
+        '204': {description: Deleted}
+        '404': {description: Missing or another owner's education}
+  /profiles/me/certificates:
+    get:
+      summary: List own certificates, newest issue date first
+      responses:
+        '200':
+          description: Own certificates
+          content:
+            application/json:
+              schema:
+                type: array
+                items: {$ref: '#/components/schemas/Certificate'}
+    post:
+      summary: Create an owned certificate, optionally referencing an owned upload
+      requestBody: {$ref: '#/components/requestBodies/Certificate'}
+      responses:
+        '201': {$ref: '#/components/responses/Certificate'}
+        '400': {description: Invalid fields or date range}
+        '404': {description: Unowned or invalid attachment URL}
+  /profiles/me/certificates/{id}:
+    parameters:
+      - $ref: '#/components/parameters/RecordId'
+    put:
+      summary: Replace editable fields; null fileUrl detaches without deleting upload
+      requestBody: {$ref: '#/components/requestBodies/Certificate'}
+      responses:
+        '200': {$ref: '#/components/responses/Certificate'}
+        '400': {description: Invalid fields or date range}
+        '404': {description: Missing or another owner's certificate or attachment}
+    delete:
+      summary: Delete an owned certificate, retaining the uploaded file
+      responses:
+        '204': {description: Deleted}
+        '404': {description: Missing or another owner's certificate}
   /profiles/me:
     get:
       summary: Read or initialize the candidate's PRIVATE profile from LMS
@@ -44,12 +169,62 @@ paths:
         '502': {description: Invalid upstream response on initialization}
         '503': {description: Dependency unavailable on initialization}
 components:
+  parameters:
+    RecordId:
+      name: id
+      in: path
+      required: true
+      schema: {type: string, format: uuid}
+  requestBodies:
+    Education:
+      required: true
+      content:
+        application/json:
+          schema: {$ref: '#/components/schemas/Education'}
+    Certificate:
+      required: true
+      content:
+        application/json:
+          schema: {$ref: '#/components/schemas/Certificate'}
+  responses:
+    Education:
+      description: Education record
+      content:
+        application/json:
+          schema: {$ref: '#/components/schemas/Education'}
+    Certificate:
+      description: Certificate record
+      content:
+        application/json:
+          schema: {$ref: '#/components/schemas/Certificate'}
   securitySchemes:
     bearerAuth:
       type: http
       scheme: bearer
       bearerFormat: JWT
   schemas:
+    Education:
+      type: object
+      required: [school, fromDate]
+      properties:
+        id: {type: string, format: uuid, readOnly: true}
+        school: {type: string, minLength: 1, maxLength: 255}
+        major: {type: string, maxLength: 255, nullable: true}
+        fromDate: {type: string, format: date}
+        toDate: {type: string, format: date, nullable: true, description: On or after fromDate}
+        gpa: {type: number, minimum: 0, maximum: 10, nullable: true, description: No automatic grading-system conversion}
+        note: {type: string, maxLength: 5000, nullable: true}
+    Certificate:
+      type: object
+      required: [name, issuer, issuedAt]
+      properties:
+        id: {type: string, format: uuid, readOnly: true}
+        name: {type: string, minLength: 1, maxLength: 255}
+        issuer: {type: string, minLength: 1, maxLength: 255}
+        issuedAt: {type: string, format: date}
+        expiresAt: {type: string, format: date, nullable: true, description: On or after issuedAt}
+        fileUrl: {type: string, maxLength: 1000, nullable: true}
+        fileType: {type: string, nullable: true, readOnly: true, enum: [application/pdf, image/jpeg, image/png]}
     UpdateProfile:
       type: object
       required: [fullName, email]

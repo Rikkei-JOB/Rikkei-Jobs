@@ -16,6 +16,9 @@ erDiagram
     users ||..o{ external_records : "user_id"
     users ||..o| skill_profile_states : "user_id"
     users ||..o| candidate_profiles : "user_id"
+    users ||..o{ educations : "user_id"
+    users ||..o{ certificates : "user_id"
+    users ||..o{ uploaded_files : "user_id"
     skills ||--o{ skill_mappings : "skill_id"
     skills ||--o{ skill_evidences : "skill_id"
     skills ||--o{ skill_scores : "skill_id"
@@ -43,6 +46,36 @@ erDiagram
         UUID company_id FK
         TIMESTAMPTZ created_at
         TIMESTAMPTZ updated_at
+    }
+
+    uploaded_files {
+        UUID id PK
+        UUID user_id "identity UUID"
+        VARCHAR content_type "PDF, JPEG, PNG"
+        BIGINT size_bytes "1..5242880"
+        TIMESTAMPTZ created_at
+    }
+
+    educations {
+        UUID id PK
+        UUID user_id "identity UUID"
+        VARCHAR school
+        VARCHAR major
+        DATE from_date
+        DATE to_date
+        NUMERIC gpa "0..10, optional"
+        VARCHAR note
+    }
+
+    certificates {
+        UUID id PK
+        UUID user_id "identity UUID"
+        VARCHAR name
+        VARCHAR issuer
+        DATE issued_at
+        DATE expires_at
+        VARCHAR file_url "owned upload; optional"
+        VARCHAR file_type "derived MIME"
     }
 
     candidate_profiles {

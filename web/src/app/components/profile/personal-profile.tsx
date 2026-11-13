@@ -13,6 +13,7 @@ import { candidateProfileSchema, localToday, toProfilePayload, type CandidatePro
 import { candidateProfileService } from "@/services/candidate-profile.service";
 import { ApiError, getErrorMessage } from "@/services/api";
 import type { CandidateProfile } from "@/interface/candidate-profile";
+import { ProfileAvatar } from "@/app/components/profile/avatar";
 
 const CONTROL_CLASS = "w-full min-w-0 rounded-md border border-input bg-input/20 px-2 py-1 text-sm outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/30 disabled:opacity-50 aria-invalid:border-destructive md:text-xs/relaxed";
 const FIELDS = ["fullName", "email", "dob", "gender", "phone", "address", "headline", "summary"] as const;
@@ -39,6 +40,7 @@ export function PersonalProfile() {
   }, [reload]);
 
   return (
+    <>
     <Card>
       <CardHeader>
         <h2 className="text-lg font-semibold">Thông tin cá nhân</h2>
@@ -53,6 +55,8 @@ export function PersonalProfile() {
         ) : <p role="status" className="text-sm text-muted-foreground">Đang tải thông tin cá nhân...</p>}
       </CardContent>
     </Card>
+    {profile ? <ProfileAvatar initialFileUrl={profile.avatarUrl} /> : null}
+    </>
   );
 }
 
