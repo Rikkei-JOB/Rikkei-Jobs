@@ -1,0 +1,78 @@
+openapi: 3.0.3
+info:
+  title: HS-02 Personal profile — phase 1
+  version: 1.0.0
+servers:
+  - url: /api/v1
+security:
+  - bearerAuth: []
+paths:
+  /profiles/me:
+    get:
+      summary: Read or initialize the candidate's PRIVATE profile from LMS
+      responses:
+        '200':
+          description: Profile; subsequent reads use stored data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Profile'
+        '401': {description: Missing or invalid JWT}
+        '403': {description: CANDIDATE role required}
+        '404': {description: Candidate LMS link or student not found}
+        '502': {description: Invalid upstream response}
+        '503': {description: Dependency unavailable}
+    put:
+      summary: Replace editable personal fields; LMS fields and ownership are ignored
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateProfile'
+      responses:
+        '200':
+          description: Updated profile
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Profile'
+        '400': {description: Invalid input}
+        '401': {description: Missing or invalid JWT}
+        '403': {description: CANDIDATE role required}
+        '404': {description: Candidate LMS link or student not found on initialization}
+        '502': {description: Invalid upstream response on initialization}
+        '503': {description: Dependency unavailable on initialization}
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    UpdateProfile:
+      type: object
+      required: [fullName, email]
+      description: Unknown fields are ignored. Omitted optional fields are cleared.
+      properties:
+        fullName: {type: string, minLength: 1, maxLength: 255}
+        email: {type: string, format: email, maxLength: 255}
+        dob: {type: string, format: date, nullable: true, description: Not in the future}
+        gender: {type: string, enum: [MALE, FEMALE, OTHER], nullable: true}
+        phone: {type: string, pattern: '^0[0-9]{9}$', nullable: true}
+        address: {type: string, maxLength: 500, nullable: true}
+        headline: {type: string, maxLength: 255, nullable: true}
+        summary: {type: string, maxLength: 5000, nullable: true}
+    Profile:
+      allOf:
+        - $ref: '#/components/schemas/UpdateProfile'
+        - type: object
+          required: [userId, program, classCode, courseName, visibility, updatedAt]
+          properties:
+            userId: {type: string, format: uuid, readOnly: true}
+            avatarUrl: {type: string, nullable: true, readOnly: true}
+            program: {type: string, readOnly: true}
+            classCode: {type: string, readOnly: true}
+            courseName: {type: string, readOnly: true}
+            visibility: {type: string, enum: [PRIVATE], readOnly: true}
+            updatedAt: {type: string, format: date-time, readOnly: true}

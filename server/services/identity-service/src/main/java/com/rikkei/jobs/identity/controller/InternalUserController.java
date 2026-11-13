@@ -2,11 +2,13 @@ package com.rikkei.jobs.identity.controller;
 
 import com.rikkei.jobs.identity.dto.request.InternalCreateUserRequest;
 import com.rikkei.jobs.identity.dto.response.InternalUserResponse;
+import com.rikkei.jobs.identity.dto.response.InternalLmsIdentityResponse;
 import com.rikkei.jobs.identity.service.InternalUserService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -23,6 +25,11 @@ import java.util.UUID;
 public class InternalUserController {
 
     private final InternalUserService internalUserService;
+
+    @GetMapping("/{id}/lms-identity")
+    public InternalLmsIdentityResponse lmsIdentity(@PathVariable UUID id) {
+        return internalUserService.getLmsIdentity(id);
+    }
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)

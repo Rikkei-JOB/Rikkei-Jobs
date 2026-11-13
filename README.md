@@ -1,5 +1,8 @@
 # Rikkei Jobs Platform
 
+HS-02 giai đoạn 1 đã bổ sung thông tin cá nhân và dữ liệu LMS chỉ đọc tại
+`/candidate/profile`, giữ nguyên Skill Profile HS-01. Xem [cách chạy và API](docs/api/HS-02-personal-profile.md).
+
 Nền tảng tuyển dụng và phát triển sự nghiệp, sử dụng backend Spring Boot và frontend Next.js. Repo hiện có khung 8 service sau API gateway (`/api/v1`), đăng nhập SSO/HR bằng JWT (NT-01), khung phân quyền theo vai trò, Swagger UI `/api/docs` và layout theo vai trò ở frontend (NT-02), backend Skill Profile (HS-01), hồ sơ doanh nghiệp và tài khoản HR (DN-01), cùng mock Express đủ 11 endpoint hệ thống ngoài (LMS, Khảo thí, lms-pm, Rikkei Meet) và [mock JD/CV dùng chung cho UT-01](mock/README.md#mock-jdcv-cho-ut-01). API nghiệp vụ của các service còn lại do các task sau bổ sung.
 
 Hướng dẫn chi tiết theo task: đăng nhập và tài khoản mẫu [NT-01](docs/api/NT-01-authentication.md); khung phân quyền và Swagger UI [NT-02](docs/api/NT-02-phan-quyen.md); API kỹ năng, migration và dữ liệu demo [HS-01 backend](docs/hs01-independent-backend.md); hồ sơ doanh nghiệp, tài khoản HR, logo [DN-01](docs/api/DN-01-company-hr.md) (OpenAPI [company-openapi.yaml](docs/api/company-openapi.yaml), request mẫu [DN-01.http](docs/api/DN-01.http)). Với các task này, dùng hướng dẫn chuyên biệt thay cho các ghi chú trạng thái khung bên dưới.

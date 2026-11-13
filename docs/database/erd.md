@@ -15,6 +15,7 @@ erDiagram
     users ||..o{ skill_scores : "user_id"
     users ||..o{ external_records : "user_id"
     users ||..o| skill_profile_states : "user_id"
+    users ||..o| candidate_profiles : "user_id"
     skills ||--o{ skill_mappings : "skill_id"
     skills ||--o{ skill_evidences : "skill_id"
     skills ||--o{ skill_scores : "skill_id"
@@ -41,6 +42,24 @@ erDiagram
         UUID user_id PK "HR (identity users.id)"
         UUID company_id FK
         TIMESTAMPTZ created_at
+        TIMESTAMPTZ updated_at
+    }
+
+    candidate_profiles {
+        UUID user_id PK "identity users.id; không FK xuyên service"
+        VARCHAR full_name
+        DATE dob
+        VARCHAR gender "MALE | FEMALE | OTHER"
+        VARCHAR phone "10 chữ số, bắt đầu bằng 0"
+        VARCHAR email "không đổi email đăng nhập"
+        VARCHAR address
+        VARCHAR avatar_url
+        VARCHAR headline
+        VARCHAR summary
+        VARCHAR program "LMS; chỉ đọc"
+        VARCHAR class_code "LMS; chỉ đọc"
+        VARCHAR course_name "LMS; chỉ đọc"
+        VARCHAR visibility "mặc định PRIVATE"
         TIMESTAMPTZ updated_at
     }
 

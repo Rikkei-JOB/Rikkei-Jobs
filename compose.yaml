@@ -116,6 +116,9 @@ services:
       <<: *backend-env
       SERVER_PORT: "8082"
       PROFILE_DEMO_DATA_ENABLED: ${PROFILE_DEMO_DATA_ENABLED:-false}
+      IDENTITY_SERVICE_URL: http://identity-service:8081
+      LMS_BASE_URL: http://mock:9000
+      LMS_SERVICE_KEY: ${LMS_SERVICE_KEY:-dev-key}
     depends_on:
       postgres:
         condition: service_healthy

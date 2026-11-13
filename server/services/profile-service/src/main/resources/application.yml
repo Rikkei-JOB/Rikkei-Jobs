@@ -23,6 +23,10 @@ spring:
 app:
   profile:
     demo-data-enabled: false
+    identity-base-url: ${IDENTITY_SERVICE_URL:http://localhost:8081}
+    identity-service-key: ${INTERNAL_SERVICE_KEY:dev-internal-key}
+    lms-base-url: ${LMS_BASE_URL:http://localhost:9000}
+    lms-service-key: ${LMS_SERVICE_KEY:dev-key}
   jwt:
     # Must equal identity-service's JWT_SECRET: tokens are issued there and only verified here.
     secret: ${JWT_SECRET:your_super_secret_jwt_key_at_least_256_bits_long_rikkei_jobs}
