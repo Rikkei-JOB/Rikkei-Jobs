@@ -8,7 +8,9 @@ import com.rikkei.jobs.identity.config.exception.ApiException;
 import com.rikkei.jobs.identity.config.exception.ErrorCode;
 import com.rikkei.jobs.identity.dto.request.InternalCreateUserRequest;
 import com.rikkei.jobs.identity.dto.response.InternalUserResponse;
+import com.rikkei.jobs.identity.dto.response.InternalLmsIdentityResponse;
 import com.rikkei.jobs.identity.entity.User;
+import com.rikkei.jobs.identity.entity.UserStatus;
 import com.rikkei.jobs.identity.repository.UserRepository;
 import com.rikkei.jobs.identity.service.InternalUserService;
 import com.rikkei.jobs.identity.service.MailService;
@@ -35,6 +37,16 @@ public class InternalUserServiceImpl implements InternalUserService {
     private final PasswordEncoder passwordEncoder;
     private final MailService mailService;
     private final AppProperties properties;
+
+    @Override
+    @Transactional(readOnly = true)
+    public InternalLmsIdentityResponse getLmsIdentity(UUID id) {
+        User user = userRepository.findById(id)
+                .filter(u -> u.getRole() == Role.CANDIDATE && u.getStatus() == UserStatus.ACTIVE)
+                .filter(u -> u.getLmsUserId() != null && !u.getLmsUserId().isBlank())
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy định danh LMS"));
+        return new InternalLmsIdentityResponse(user.getId(), user.getLmsUserId());
+    }
 
     @Override
     @Transactional

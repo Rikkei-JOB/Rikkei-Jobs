@@ -116,11 +116,16 @@ services:
       <<: *backend-env
       SERVER_PORT: "8082"
       PROFILE_DEMO_DATA_ENABLED: ${PROFILE_DEMO_DATA_ENABLED:-false}
+      PROFILE_FILES_DIR: /app/data/profile-files
+      IDENTITY_SERVICE_URL: http://identity-service:8081
+      LMS_BASE_URL: http://mock:9000
+      LMS_SERVICE_KEY: ${LMS_SERVICE_KEY:-dev-key}
     depends_on:
       postgres:
         condition: service_healthy
       identity-service:
         condition: service_healthy
+    volumes: [profile_files:/app/data/profile-files]
 
   company-service:
     <<: *backend
@@ -240,6 +245,7 @@ volumes:
   postgres_data:
   redis_data:
   company_uploads:
+  profile_files:
   recruitment_cvs:
 
 networks:
