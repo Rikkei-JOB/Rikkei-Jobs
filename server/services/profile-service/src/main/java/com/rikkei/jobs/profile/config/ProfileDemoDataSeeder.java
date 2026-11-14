@@ -34,6 +34,7 @@ public class ProfileDemoDataSeeder implements ApplicationRunner {
     private final SkillRepository skills;
     private final SkillScoreRepository scores;
     private final SkillProfileService core;
+    private final SkillProfileStateRepository states;
 
     @Override
     @Transactional
@@ -75,6 +76,8 @@ public class ProfileDemoDataSeeder implements ApplicationRunner {
     }
 
     private void seedSelfOnlySkill(UUID userId) {
+        // Demo SELF belongs only to the first seed; never resurrect a user's removed skill.
+        if (states.existsById(userId)) return;
         UUID skillId = skills.findByCode("ENGLISH").orElseThrow().getId();
         boolean present = evidences.findAllByUserId(userId).stream()
                 .anyMatch(e -> e.getSource() == EvidenceSource.SELF && e.getSkillId().equals(skillId));

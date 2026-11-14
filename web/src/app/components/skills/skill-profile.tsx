@@ -64,7 +64,7 @@ const SOURCE_LABEL: Record<SkillSource, { label: string; badgeClass: string }> =
     badgeClass: "bg-teal-50 text-teal-700 border-teal-200 dark:bg-teal-950/50 dark:text-teal-300 dark:border-teal-800",
   },
   SELF: {
-    label: "Tự khai báo",
+    label: "Tự khai",
     badgeClass: "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/50 dark:text-amber-300 dark:border-amber-800",
   },
 };
@@ -163,7 +163,7 @@ function SkillProfileContent({ userId, readOnly = false }: SkillProfileProps) {
   const stats = React.useMemo(() => {
     const total = skills.length;
     const verifiedCount = skills.filter((s) => s.verifiedScore !== null).length;
-    const selfCount = skills.filter((s) => s.verifiedScore === null && s.selfScore !== null).length;
+    const selfCount = skills.filter((s) => s.selfScore !== null).length;
     const totalEvidences = skills.reduce((acc, s) => acc + (s.evidences?.length || 0), 0);
     return { total, verifiedCount, selfCount, totalEvidences };
   }, [skills]);
@@ -366,7 +366,8 @@ function SkillProfileContent({ userId, readOnly = false }: SkillProfileProps) {
                                 <ShieldCheck className="h-3 w-3" />
                                 Đã xác thực
                               </span>
-                            ) : isSelfOnly ? (
+                            ) : null}
+                            {item.selfScore !== null ? (
                               <span className="inline-flex items-center gap-1 rounded-md border border-amber-200 bg-amber-50 px-2 py-0.5 text-[11px] font-medium text-amber-700 dark:border-amber-800 dark:bg-amber-950/60 dark:text-amber-300">
                                 <FileBadge className="h-3 w-3" />
                                 Tự khai
@@ -390,6 +391,9 @@ function SkillProfileContent({ userId, readOnly = false }: SkillProfileProps) {
                       </CardHeader>
 
                       <CardContent className="space-y-3 pt-0">
+                        {isVerified && item.selfScore !== null ? (
+                          <p className="text-xs text-amber-700 dark:text-amber-300">Điểm tự đánh giá: {item.selfScore.toFixed(1)} / 100</p>
+                        ) : null}
                         {/* Score Indicator & Progress Bar */}
                         <div className="space-y-1.5">
                           <div className="flex items-center justify-between text-xs">

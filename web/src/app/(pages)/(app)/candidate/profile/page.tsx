@@ -1,4 +1,4 @@
-import { SkillProfile } from "@/app/components/skills/skill-profile"
+import { CandidateSkills } from "@/app/components/skills/candidate-skills"
 import { PersonalProfile } from "@/app/components/profile/personal-profile"
 import { Educations } from "@/app/components/profile/educations"
 import { Certificates } from "@/app/components/profile/certificates"
@@ -14,7 +14,7 @@ export default function CandidateProfilePage() {
       <PersonalProfile />
       <Educations />
       <Certificates />
-      <SkillProfile />
+      <CandidateSkills />
     </div>
   )
 }

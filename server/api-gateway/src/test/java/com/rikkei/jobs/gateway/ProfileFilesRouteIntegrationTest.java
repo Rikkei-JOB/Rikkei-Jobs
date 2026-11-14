@@ -39,6 +39,13 @@ class ProfileFilesRouteIntegrationTest {
         registry.add("PROFILE_SERVICE_URL", () -> "http://127.0.0.1:" + profile.getAddress().getPort());
     }
     @AfterAll static void stop() { profile.stop(0); }
+    @Test void forwardsAuthenticatedSkillCatalogueToProfile() throws Exception {
+        var response = HttpClient.newHttpClient().send(HttpRequest.newBuilder(URI.create("http://localhost:" + port + "/api/v1/skills"))
+            .header("Authorization", "Bearer candidate").GET().build(), HttpResponse.BodyHandlers.ofString());
+        assertThat(response.statusCode()).isEqualTo(200);
+        assertThat(path.get()).isEqualTo("/skills");
+        assertThat(authorization.get()).isEqualTo("Bearer candidate");
+    }
     @Test void forwardsPrivateFileDownloadAndMultipartWithoutChangingBody() throws Exception {
         var http = HttpClient.newHttpClient();
         var response = http.send(HttpRequest.newBuilder(URI.create("http://localhost:" + port + "/api/v1/files/example"))

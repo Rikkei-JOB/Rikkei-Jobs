@@ -1,12 +1,53 @@
 openapi: 3.0.3
 info:
-  title: HS-02 Personal profile, education, certificates and files
-  version: 2.0.0
+  title: HS-02 Complete candidate profile
+  version: 3.0.0
 servers:
   - url: /api/v1
 security:
   - bearerAuth: []
 paths:
+  /skills:
+    get:
+      summary: List database skill catalogue, ordered by group and code
+      description: Requires an authenticated user. Returns IDs for self-assessment; no hardcoded client catalogue.
+      responses:
+        '200':
+          description: Skill catalogue
+          content:
+            application/json:
+              schema:
+                type: array
+                items: {$ref: '#/components/schemas/Skill'}
+        '401': {description: Missing or invalid JWT}
+  /profiles/me/self-skills:
+    put:
+      summary: Replace only the authenticated candidate's SELF skills
+      description: |
+        CANDIDATE only. Body is a JSON array, not a wrapper. Empty [] removes all
+        SELF evidence and self scores. Omitted skills are removed from SELF only.
+        Every ID must exist and be unique; score is 0–100 with at most six decimal
+        places. All changes commit atomically. Verified scores, levels, non-SELF
+        evidence and other users are unchanged. Client ownership/source/verified
+        fields are ignored. Demo startup does not restore removed SELF skills.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: array
+              items: {$ref: '#/components/schemas/SelfSkillInput'}
+      responses:
+        '200':
+          description: Complete updated skill profile, same shape as HS-01 GET /profiles/me/skills
+          content:
+            application/json:
+              schema:
+                type: array
+                items: {$ref: '#/components/schemas/SkillProfile'}
+        '400': {description: Null, unknown, repeated or invalid skill/score; whole update rolled back}
+        '401': {description: Missing or invalid JWT}
+        '403': {description: CANDIDATE role required}
   /files:
     post:
       summary: Upload a private PDF, JPG or PNG, at most 5242880 bytes
@@ -203,6 +244,38 @@ components:
       scheme: bearer
       bearerFormat: JWT
   schemas:
+    SelfSkillInput:
+      type: object
+      required: [skillId, selfScore]
+      properties:
+        skillId: {type: string, format: uuid}
+        selfScore: {type: number, minimum: 0, maximum: 100, multipleOf: 0.000001}
+    Skill:
+      type: object
+      required: [id, code, name, group]
+      properties:
+        id: {type: string, format: uuid}
+        code: {type: string}
+        name: {type: string}
+        group: {type: string}
+    SkillProfile:
+      type: object
+      required: [skill, evidences]
+      properties:
+        skill: {$ref: '#/components/schemas/Skill'}
+        verifiedScore: {type: number, nullable: true, minimum: 0, maximum: 100}
+        selfScore: {type: number, nullable: true, minimum: 0, maximum: 100}
+        level: {type: string, nullable: true, enum: [BASIC, FAIR, GOOD, EXCELLENT]}
+        evidences:
+          type: array
+          items:
+            type: object
+            properties:
+              source: {type: string, enum: [LMS, EXAM, INTERNSHIP, MENTOR, SELF]}
+              title: {type: string}
+              score: {type: number}
+              recordedAt: {type: string, format: date-time}
+              verified: {type: boolean}
     Education:
       type: object
       required: [school, fromDate]
