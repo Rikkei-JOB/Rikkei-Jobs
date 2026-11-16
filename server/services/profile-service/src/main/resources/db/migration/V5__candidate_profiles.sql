@@ -1,0 +1,20 @@
+CREATE TABLE candidate_profiles (
+    user_id UUID PRIMARY KEY,
+    full_name VARCHAR(255) NOT NULL,
+    dob DATE,
+    gender VARCHAR(10),
+    phone VARCHAR(10),
+    email VARCHAR(255) NOT NULL,
+    address VARCHAR(500),
+    avatar_url VARCHAR(1000),
+    headline VARCHAR(255),
+    summary VARCHAR(5000),
+    program VARCHAR(255) NOT NULL,
+    class_code VARCHAR(100) NOT NULL,
+    course_name VARCHAR(255) NOT NULL,
+    visibility VARCHAR(10) NOT NULL DEFAULT 'PRIVATE',
+    updated_at TIMESTAMP(6) WITH TIME ZONE NOT NULL,
+    CONSTRAINT ck_candidate_gender CHECK (gender IN ('MALE', 'FEMALE', 'OTHER')),
+    CONSTRAINT ck_candidate_visibility CHECK (visibility IN ('PRIVATE', 'PUBLIC')),
+    CONSTRAINT ck_candidate_name CHECK (LENGTH(TRIM(full_name)) > 0)
+);

@@ -4,6 +4,8 @@ import com.rikkei.jobs.profile.dto.SkillProfileView;
 import com.rikkei.jobs.profile.dto.SkillProfileView.EvidenceView;
 import com.rikkei.jobs.profile.dto.SkillProfileView.SkillInfo;
 import com.rikkei.jobs.profile.dto.VerifiedSkillRecord;
+import com.rikkei.jobs.profile.dto.SelfSkillRequest;
+import com.rikkei.jobs.common.config.exception.BadRequestException;
 import com.rikkei.jobs.profile.entity.*;
 import com.rikkei.jobs.profile.repository.*;
 import com.rikkei.jobs.profile.service.SkillScoreCalculator.ScoreEvidence;
@@ -14,6 +16,7 @@ import org.springframework.transaction.annotation.Isolation;
 
 import java.time.Clock;
 import java.time.Instant;
+import java.math.BigDecimal;
 import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -136,6 +139,60 @@ public class SkillProfileService {
             score.setUpdatedAt(now);
             changed.add(score);
         }
+        scores.saveAll(changed);
+        return getSkills(userId);
+    }
+
+    public List<SkillInfo> getCatalogue() {
+        return skills.findAll().stream()
+            .sorted(Comparator.comparing(Skill::getGroup).thenComparing(Skill::getCode))
+            .map(s -> new SkillInfo(s.getId(), s.getCode(), s.getName(), s.getGroup())).toList();
+    }
+
+    /** Full replacement of SELF only; verified scores and external evidence remain untouched. */
+    @Transactional
+    public List<SkillProfileView> replaceSelfSkills(UUID userId, List<SelfSkillRequest> request) {
+        requireUser(userId);
+        if (request == null || request.stream().anyMatch(Objects::isNull))
+            throw new BadRequestException("Danh sách kỹ năng không được chứa giá trị null.");
+        Map<UUID, Skill> catalogue = skills.findAll().stream().collect(Collectors.toMap(Skill::getId, Function.identity()));
+        Set<UUID> selected = new HashSet<>();
+        for (SelfSkillRequest item : request) {
+            if (!catalogue.containsKey(item.skillId()) || !selected.add(item.skillId()))
+                throw new BadRequestException("Kỹ năng không tồn tại hoặc bị lặp trong danh sách.");
+        }
+        lockProfile(userId);
+        Instant now = clock.instant();
+        List<SkillEvidence> old = evidences.findAllByUserId(userId);
+        Set<UUID> nonSelf = old.stream().filter(e -> e.getSource() != EvidenceSource.SELF)
+            .map(SkillEvidence::getSkillId).collect(Collectors.toSet());
+        evidences.deleteAll(old.stream().filter(e -> e.getSource() == EvidenceSource.SELF).toList());
+        evidences.flush(); // Remove old canonical refs before inserting their replacements.
+        Map<UUID, SkillScore> existing = scores.findAllByIdUserId(userId).stream()
+            .collect(Collectors.toMap(s -> s.getId().getSkillId(), Function.identity()));
+        List<SkillScore> changed = new ArrayList<>();
+        for (SkillScore score : existing.values()) {
+            UUID skillId = score.getId().getSkillId();
+            score.setSelfScore(null);
+            score.setUpdatedAt(now);
+            if (!selected.contains(skillId) && score.getVerifiedScore() == null && !nonSelf.contains(skillId)) scores.delete(score);
+            else changed.add(score);
+        }
+        List<SkillEvidence> replacements = new ArrayList<>();
+        for (SelfSkillRequest item : request) {
+            var evidence = new SkillEvidence();
+            evidence.setUserId(userId); evidence.setSkillId(item.skillId());
+            evidence.setSource(EvidenceSource.SELF); evidence.setSourceRef("self"); evidence.setTitle("Tự khai");
+            evidence.setScore(item.selfScore()); evidence.setWeight(BigDecimal.ONE);
+            evidence.setRecordedAt(now); evidence.setVerified(false);
+            replacements.add(evidence);
+            SkillScore score = existing.get(item.skillId());
+            if (score == null) {
+                score = new SkillScore(); score.setId(new SkillScoreId(userId, item.skillId())); changed.add(score);
+            }
+            score.setSelfScore(item.selfScore()); score.setUpdatedAt(now);
+        }
+        evidences.saveAll(replacements);
         scores.saveAll(changed);
         return getSkills(userId);
     }

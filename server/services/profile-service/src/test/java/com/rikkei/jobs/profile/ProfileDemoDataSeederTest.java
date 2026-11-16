@@ -26,6 +26,7 @@ class ProfileDemoDataSeederTest {
     @Autowired ExternalSkillRecordRepository external;
     @Autowired SkillEvidenceRepository evidences;
     @Autowired SkillProfileStateRepository states;
+    @Autowired SkillScoreRepository scores;
 
     @Test
     void seedsRealIdentityIdsAndSelfOnlySkillWithoutPublishingOrDuplicating() {
@@ -51,5 +52,12 @@ class ProfileDemoDataSeederTest {
             assertThat(state.isConsented()).isFalse();
             assertThat(state.isApproved()).isFalse();
         });
+        // A user removed the demo self skill; a later dev startup must not restore it.
+        var english = skills.stream().filter(v -> v.skill().code().equals("ENGLISH")).findFirst().orElseThrow();
+        evidences.deleteAll(evidences.findAllByUserId(realCandidate).stream()
+                .filter(e -> e.getSource() == EvidenceSource.SELF).toList());
+        scores.deleteById(new com.rikkei.jobs.profile.entity.SkillScoreId(realCandidate, english.skill().id()));
+        seeder.run(null);
+        assertThat(core.getSkills(realCandidate)).noneMatch(v -> v.skill().code().equals("ENGLISH"));
     }
 }

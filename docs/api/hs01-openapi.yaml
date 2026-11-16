@@ -6,6 +6,8 @@ info:
     Backend HS-01. Success responses are JSON arrays without a wrapper.
     Scores and evidence belong to the internal UUID from the identity JWT, not lmsUserId.
     Verified imports, publication consent and profile approval have no HTTP mutation endpoints in HS-01.
+    HS-02 adds GET /skills and PUT /profiles/me/self-skills (see hs02-openapi.yaml).
+    Self-declared scores never contribute to verifiedScore or its level.
 servers:
   - url: http://localhost:8080/api/v1
     description: Gateway strips /api/v1; profile-service receives /profiles/...

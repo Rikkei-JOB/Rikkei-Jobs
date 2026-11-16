@@ -6,6 +6,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -15,6 +16,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.rikkei.jobs.common.config.security.jwt.JwtUtils;
 import com.rikkei.jobs.common.config.security.principle.Role;
 import com.rikkei.jobs.identity.entity.User;
+import com.rikkei.jobs.identity.entity.UserStatus;
 import com.rikkei.jobs.identity.repository.PasswordResetTokenRepository;
 import com.rikkei.jobs.identity.repository.UserRepository;
 import com.rikkei.jobs.identity.service.MailService;
@@ -228,5 +230,59 @@ class InternalUserApiTest {
                         .content(json.writeValueAsString(
                                 body("hr10@example.com", "HR Muoi", "HR", UUID.randomUUID()))))
                 .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void resolvesOnlyCandidateLmsIdentityWithoutExposingAccountFields() throws Exception {
+        User user = lmsUser(Role.CANDIDATE, "lms-sv-001", UserStatus.ACTIVE);
+        String result = mvc.perform(get("/internal/users/{id}/lms-identity", user.getId())
+                        .header("X-Internal-Key", KEY))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.userId").value(user.getId().toString()))
+                .andExpect(jsonPath("$.lmsUserId").value("lms-sv-001"))
+                .andReturn().getResponse().getContentAsString();
+        assertThat(json.readTree(result).size()).isEqualTo(2);
+    }
+
+    @Test
+    void lmsIdentityRequiresInternalKeyEvenWithValidJwt() throws Exception {
+        UUID id = UUID.randomUUID();
+        mvc.perform(get("/internal/users/{id}/lms-identity", id))
+                .andExpect(status().isUnauthorized());
+        mvc.perform(get("/internal/users/{id}/lms-identity", id).header("X-Internal-Key", "wrong"))
+                .andExpect(status().isUnauthorized());
+        mvc.perform(get("/internal/users/{id}/lms-identity", id)
+                        .header("Authorization", "Bearer " + jwtUtils.generateJwtToken(id, Role.CANDIDATE, null)))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void lmsIdentityHidesMissingUnlinkedInactiveAndNonCandidateUsers() throws Exception {
+        var hidden = java.util.List.of(UUID.randomUUID(),
+                lmsUser(Role.CANDIDATE, null, UserStatus.ACTIVE).getId(),
+                lmsUser(Role.CANDIDATE, "   ", UserStatus.ACTIVE).getId(),
+                lmsUser(Role.HR, "lms-hr-001", UserStatus.ACTIVE).getId(),
+                lmsUser(Role.CANDIDATE, "lms-locked-001", UserStatus.LOCKED).getId());
+        for (UUID id : hidden) {
+            mvc.perform(get("/internal/users/{id}/lms-identity", id).header("X-Internal-Key", KEY))
+                    .andExpect(status().isNotFound())
+                    .andExpect(jsonPath("$.code").value("NOT_FOUND"));
+        }
+    }
+
+    @Test
+    void lmsIdentityRejectsMalformedUserId() throws Exception {
+        mvc.perform(get("/internal/users/not-a-uuid/lms-identity").header("X-Internal-Key", KEY))
+                .andExpect(status().isBadRequest());
+    }
+
+    private User lmsUser(Role role, String lmsId, UserStatus status) {
+        User user = new User();
+        user.setEmail(UUID.randomUUID() + "@example.com");
+        user.setFullName("Candidate");
+        user.setRole(role);
+        user.setLmsUserId(lmsId);
+        user.setStatus(status);
+        return users.saveAndFlush(user);
     }
 }

@@ -3,6 +3,7 @@ package com.rikkei.jobs.profile.controller;
 import com.rikkei.jobs.common.config.security.principle.AuthPrincipal;
 import com.rikkei.jobs.common.config.security.principle.Roles;
 import com.rikkei.jobs.profile.dto.SkillProfileView;
+import com.rikkei.jobs.profile.dto.SelfSkillRequest;
 import com.rikkei.jobs.profile.service.SkillProfileAccessService;
 import com.rikkei.jobs.profile.service.SkillProfileService;
 import java.util.List;
@@ -12,6 +13,8 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -43,5 +46,12 @@ public class SkillProfileController {
     @PreAuthorize(Roles.CANDIDATE)
     public List<SkillProfileView> recomputeOwnSkills(@AuthenticationPrincipal AuthPrincipal principal) {
         return skills.recomputeSkills(principal.getUserId());
+    }
+
+    @PutMapping("/me/self-skills")
+    @PreAuthorize(Roles.CANDIDATE)
+    public List<SkillProfileView> replaceSelfSkills(@AuthenticationPrincipal AuthPrincipal principal,
+                                                   @RequestBody List<SelfSkillRequest> request) {
+        return skills.replaceSelfSkills(principal.getUserId(), request);
     }
 }
