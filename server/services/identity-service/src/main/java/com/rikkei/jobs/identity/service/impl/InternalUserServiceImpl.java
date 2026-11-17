@@ -40,6 +40,16 @@ public class InternalUserServiceImpl implements InternalUserService {
 
     @Override
     @Transactional(readOnly = true)
+    public InternalUserResponse getCandidate(UUID id) {
+        User user = userRepository.findById(id)
+                .filter(u -> u.getRole() == Role.CANDIDATE)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy ứng viên"));
+        return new InternalUserResponse(user.getId(), user.getEmail(), user.getFullName(), user.getRole(),
+                user.getCompanyId());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public InternalLmsIdentityResponse getLmsIdentity(UUID id) {
         User user = userRepository.findById(id)
                 .filter(u -> u.getRole() == Role.CANDIDATE && u.getStatus() == UserStatus.ACTIVE)

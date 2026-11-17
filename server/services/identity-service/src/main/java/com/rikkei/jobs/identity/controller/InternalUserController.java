@@ -26,8 +26,13 @@ public class InternalUserController {
 
     private final InternalUserService internalUserService;
 
+    @GetMapping("/{id}")
+    public InternalUserResponse candidate(@PathVariable("id") UUID id) {
+        return internalUserService.getCandidate(id);
+    }
+
     @GetMapping("/{id}/lms-identity")
-    public InternalLmsIdentityResponse lmsIdentity(@PathVariable UUID id) {
+    public InternalLmsIdentityResponse lmsIdentity(@PathVariable("id") UUID id) {
         return internalUserService.getLmsIdentity(id);
     }
 
@@ -39,7 +44,7 @@ public class InternalUserController {
 
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void delete(@PathVariable UUID id) {
+    public void delete(@PathVariable("id") UUID id) {
         internalUserService.deleteHrUser(id);
     }
 }

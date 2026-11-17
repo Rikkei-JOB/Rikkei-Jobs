@@ -14,6 +14,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class ApplicationTransitionServiceImpl implements ApplicationTransitionService {
     private final ApplicationRepository applications;
     private final ApplicationStatusHistoryRepository histories;
+    private final ApplicationStatusNotificationRepository statusNotifications;
     private final InterviewRoundRepository rounds;
     private final ApplicationStatusPolicy policy;
     private final OfferEligibilityPolicy offerEligibility;
@@ -49,7 +50,12 @@ public class ApplicationTransitionServiceImpl implements ApplicationTransitionSe
         var history = new ApplicationStatusHistory();
         history.setId(UUID.randomUUID()); history.setApplicationId(a.getId()); history.setFromStatus(a.getStatus());
         history.setToStatus(target); history.setActorId(actorId); history.setNote(note); history.setCreatedAt(now);
-        a.setStatus(target); a.setUpdatedAt(now); histories.save(history);
+        a.setStatus(target); a.setUpdatedAt(now); histories.saveAndFlush(history);
+        var notification = new ApplicationStatusNotification();
+        notification.setId(UUID.randomUUID()); notification.setStatusHistoryId(history.getId());
+        notification.setApplicationId(a.getId()); notification.setUserId(a.getUserId());
+        notification.setStatus("PENDING"); notification.setCreatedAt(now); notification.setNextAttemptAt(now);
+        statusNotifications.save(notification);
         return applications.saveAndFlush(a);
     }
 }

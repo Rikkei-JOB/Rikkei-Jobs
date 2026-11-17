@@ -11,6 +11,8 @@ public interface InternalUserService {
 
     InternalLmsIdentityResponse getLmsIdentity(UUID id);
 
+    InternalUserResponse getCandidate(UUID id);
+
     /** Tạo user HR với mật khẩu tạm gửi qua email; gửi mail lỗi thì không lưu user (MAIL_UNAVAILABLE). */
     InternalUserResponse createUser(InternalCreateUserRequest request);
 

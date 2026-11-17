@@ -158,7 +158,9 @@ services:
       SERVER_PORT: "8083"
       COMPANY_SERVICE_URL: ${DOCKER_RECRUITMENT_COMPANY_URL:-http://company-service:8085}
       PROFILE_SERVICE_URL: ${DOCKER_RECRUITMENT_PROFILE_URL:-http://profile-service:8082}
+      IDENTITY_SERVICE_URL: http://identity-service:8081
       RECRUITMENT_COMPANY_SERVICE_KEY: ${RECRUITMENT_COMPANY_SERVICE_KEY:-${INTERNAL_SERVICE_KEY:-dev-internal-key}}
+      RECRUITMENT_IDENTITY_SERVICE_KEY: ${RECRUITMENT_IDENTITY_SERVICE_KEY:-${INTERNAL_SERVICE_KEY:-dev-internal-key}}
       RECRUITMENT_CV_STORAGE_DIR: /app/data/cv-snapshots
       RECRUITMENT_OUTBOX_ENABLED: ${RECRUITMENT_OUTBOX_ENABLED:-true}
     volumes: [recruitment_cvs:/app/data/cv-snapshots]
@@ -168,6 +170,8 @@ services:
       company-service:
         condition: service_healthy
       profile-service:
+        condition: service_healthy
+      identity-service:
         condition: service_healthy
       mailhog:
         condition: service_started
