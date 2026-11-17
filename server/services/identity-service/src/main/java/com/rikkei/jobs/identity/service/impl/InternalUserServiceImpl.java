@@ -8,6 +8,7 @@ import com.rikkei.jobs.identity.config.exception.ApiException;
 import com.rikkei.jobs.identity.config.exception.ErrorCode;
 import com.rikkei.jobs.identity.dto.request.InternalCreateUserRequest;
 import com.rikkei.jobs.identity.dto.response.InternalUserResponse;
+import com.rikkei.jobs.identity.dto.response.InternalUserStatusResponse;
 import com.rikkei.jobs.identity.dto.response.InternalLmsIdentityResponse;
 import com.rikkei.jobs.identity.entity.User;
 import com.rikkei.jobs.identity.entity.UserStatus;
@@ -22,10 +23,17 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Clock;
+import java.time.Instant;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 
 @Slf4j
@@ -37,6 +45,7 @@ public class InternalUserServiceImpl implements InternalUserService {
     private final PasswordEncoder passwordEncoder;
     private final MailService mailService;
     private final AppProperties properties;
+    private final Clock clock;
 
     @Override
     @Transactional(readOnly = true)
@@ -99,5 +108,56 @@ public class InternalUserServiceImpl implements InternalUserService {
             throw new ConflictException("Chỉ xoá được tài khoản HR");
         }
         userRepository.delete(user);
+    }
+
+    @Override
+    @Transactional
+    public InternalUserStatusResponse lockHr(UUID id, String reason) {
+        User user = findHr(id, "Chỉ khoá được tài khoản HR");
+        Instant now = clock.instant();
+        user.setStatus(UserStatus.LOCKED);
+        user.setLockedReason(reason);
+        user.setLockedAt(now);
+        return InternalUserStatusResponse.from(userRepository.save(user), now);
+    }
+
+    @Override
+    @Transactional
+    public InternalUserStatusResponse unlockHr(UUID id) {
+        User user = findHr(id, "Chỉ mở khoá được tài khoản HR");
+        // Không bị cán bộ khoá thì không đụng tới khoá tạm của NT-01 (tự hết hạn).
+        if (user.isAdminLocked()) {
+            user.setStatus(UserStatus.ACTIVE);
+            user.setLockedReason(null);
+            user.setLockedAt(null);
+            user.setLockedUntil(null);
+            user.setFailedLoginCount(0);
+            user = userRepository.save(user);
+        }
+        return InternalUserStatusResponse.from(user, clock.instant());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<InternalUserStatusResponse> lookup(List<UUID> ids) {
+        Instant now = clock.instant();
+        Set<UUID> distinct = new LinkedHashSet<>(ids);
+        // findAllById không bảo đảm thứ tự: dựng map rồi duyệt theo thứ tự id đầu vào đã bỏ trùng.
+        Map<UUID, User> byId = new HashMap<>();
+        userRepository.findAllById(distinct).forEach(u -> byId.put(u.getId(), u));
+        return distinct.stream()
+                .map(byId::get)
+                .filter(Objects::nonNull)
+                .map(u -> InternalUserStatusResponse.from(u, now))
+                .toList();
+    }
+
+    private User findHr(UUID id, String notHrMessage) {
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy người dùng"));
+        if (user.getRole() != Role.HR) {
+            throw new ConflictException(notHrMessage);
+        }
+        return user;
     }
 }
