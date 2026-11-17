@@ -60,6 +60,7 @@ export function InterviewRounds({ application, readOnly, onChanged }: { applicat
       {canEdit && <RoundEditor applicationId={application.id} round={round} onSaved={onChanged} />}
       {application.roundRevisions.filter(item => item.roundId === round.id).map(item => <p key={item.id} className="mt-3 text-xs text-muted-foreground">
         {formatApplicationDate(item.createdAt)} · {item.oldResult} → {item.newResult}{item.oldScore !== item.newScore ? ` · ${item.oldScore ?? "—"} → ${item.newScore ?? "—"} điểm` : ""}
+        {item.oldNote !== item.newNote ? ` · Ghi chú: ${item.oldNote || "—"} → ${item.newNote || "—"}` : ""}
       </p>)}
     </article>)}</div>
     {canEdit && <div className="mt-6 grid gap-3 border-t pt-5 sm:grid-cols-3"><h3 className="font-medium sm:col-span-3">Thêm vòng phỏng vấn</h3>

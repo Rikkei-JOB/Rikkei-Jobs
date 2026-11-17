@@ -118,7 +118,6 @@ services:
       PROFILE_DEMO_DATA_ENABLED: ${PROFILE_DEMO_DATA_ENABLED:-false}
       PROFILE_FILES_DIR: /app/data/profile-files
       IDENTITY_SERVICE_URL: http://identity-service:8081
-      MATCH_SERVICE_URL: ${DOCKER_RECRUITMENT_MATCH_URL:-http://company-service:8085}
       LMS_BASE_URL: http://mock:9000
       LMS_SERVICE_KEY: ${LMS_SERVICE_KEY:-dev-key}
     depends_on:
@@ -160,6 +159,7 @@ services:
       COMPANY_SERVICE_URL: ${DOCKER_RECRUITMENT_COMPANY_URL:-http://company-service:8085}
       PROFILE_SERVICE_URL: ${DOCKER_RECRUITMENT_PROFILE_URL:-http://profile-service:8082}
       IDENTITY_SERVICE_URL: http://identity-service:8081
+      MATCH_SERVICE_URL: ${DOCKER_RECRUITMENT_MATCH_URL:-http://company-service:8085}
       RECRUITMENT_COMPANY_SERVICE_KEY: ${RECRUITMENT_COMPANY_SERVICE_KEY:-${INTERNAL_SERVICE_KEY:-dev-internal-key}}
       RECRUITMENT_IDENTITY_SERVICE_KEY: ${RECRUITMENT_IDENTITY_SERVICE_KEY:-${INTERNAL_SERVICE_KEY:-dev-internal-key}}
       RECRUITMENT_CV_STORAGE_DIR: /app/data/cv-snapshots

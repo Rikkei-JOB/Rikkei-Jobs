@@ -87,5 +87,9 @@ class ApplicationDependencyClientsTest {
         mock.expect(anything()).andRespond(withStatus(HttpStatus.FORBIDDEN));
         assertThatThrownBy(() -> client.get(jobId, userId, "Bearer hr"))
             .isInstanceOf(RecruitmentDependencyException.class).extracting("status").isEqualTo(502);
+        mock.reset();
+        mock.expect(anything()).andRespond(withSuccess("{}", MediaType.APPLICATION_JSON));
+        assertThatThrownBy(() -> client.get(jobId, userId, "Bearer hr"))
+            .isInstanceOf(RecruitmentDependencyException.class).extracting("status").isEqualTo(502);
     }
 }
