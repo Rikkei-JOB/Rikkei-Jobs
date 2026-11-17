@@ -156,8 +156,8 @@ Tên lớp test ở cột cuối là các lớp trong `server/services/company-s
 
 ## 9. Checklist nộp PR
 
-- [ ] Nhánh `feature/DN-01-company-hr`, PR **vào `test`**, tiêu đề `[DN-01] Doanh nghiệp: hồ sơ công ty, tài khoản HR`
+- [x] Nhánh `feature/DN-01-company-hr`, PR **vào `test`**, tiêu đề `[DN-01] Doanh nghiệp: hồ sơ công ty, tài khoản HR` (đã merge, PR #9)
 - [x] Có: cách chạy, dữ liệu mẫu, OpenAPI (`company-openapi.yaml`, tag `internal` của `identity-openapi.yaml`), request mẫu
-- [x] Đã chạy toàn luồng theo mục 5, sáu tiêu chí ở mục 7 đạt (mục 8)
-- [ ] Tự chạy `npm run lint` và `npm run build` ở `web/` (CI chỉ chạy `type-check`); lỗi lint sẵn có ở `skill-profile.tsx` thuộc HS-01, không thuộc DN-01
-- [ ] Một bạn trong nhóm review trước, mentor duyệt PR
+- [x] Đã chạy toàn luồng theo mục 5 trên máy thật (API và giao diện), sáu tiêu chí ở mục 7 đạt (mục 8)
+- [x] Tự chạy `npm run lint` và `npm run build` ở `web/` (CI chỉ chạy `type-check`); lỗi lint sẵn có ở `skill-profile.tsx` thuộc HS-01, không thuộc DN-01
+- [x] Một bạn trong nhóm review trước, mentor duyệt PR

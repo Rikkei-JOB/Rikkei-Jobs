@@ -127,20 +127,6 @@ Lưu ý (giống DN-01):
 
 Các lớp test nằm ở `server/services/company-service/src/test` và `server/services/identity-service/src/test` (thêm `HttpIdentityClientLockTest`, `CompanyRouteIntegrationTest` ở gateway).
 
-### Ảnh màn hình cần chụp
-
-Lưu vào `docs/api/screenshots/DN-05/` (chưa có ảnh; chụp được khi chạy đủ hệ thống):
-
-| Tệp | Nội dung |
-| --- | --- |
-| `staff-company-list.png` | `/staff/companies` có kết quả tìm theo tên |
-| `staff-company-detail.png` | `/staff/companies/[id]` với một HR đang hoạt động |
-| `staff-lock-dialog.png` | Hộp thoại khoá, báo lỗi khi bỏ trống lý do |
-| `staff-hr-locked.png` | Bảng HR sau khi khoá (trạng thái, lý do) |
-| `login-account-disabled.png` | `/login` báo "Tài khoản đã bị khoá" |
-| `hr-company-edit.png` | `/hr/company` hai cột sau khi lưu |
-| `hr-company-preview.png` | `/hr/company/preview` |
-
 ## 7. Trạng thái xác minh
 
 Đã chạy trên nhánh `feature/DN-05-company-hr-ui`:
@@ -156,10 +142,12 @@ Lưu vào `docs/api/screenshots/DN-05/` (chưa có ảnh; chụp được khi ch
 - Khoá: thiếu lý do → 400 `VALIDATION_ERROR`; staff1 khoá hr2 → 200 `LOCKED`; token cũ của hr2 gọi `GET /companies/me` và `GET /auth/me` → 401 `ACCOUNT_DISABLED`; hr2 đăng nhập → 403 "Tài khoản đã bị khoá".
 - Mở khoá → 200 `ACTIVE`; hr2 đăng nhập lại → 200, `GET /companies/me` → 200; DB: `users.locked_at`, `locked_reason` và `company_hr.locked_at` đều về null.
 
-**Chưa chạy:** kiểm tra trên giao diện và ảnh màn hình. Các bước tay còn lại:
+**2026-11-17, chạy toàn luồng trên giao diện** theo mục 5 và kịch bản ở mục 6 (PostgreSQL và MailHog trong Docker, mock LMS, identity và company-service profile `dev`, gateway, web): **sáu tiêu chí ở mục 6 đều đạt**:
 
-1. Giao diện: hr2 mở `/hr/company` ở tab 1; staff1 khoá hr2 trên `/staff/companies/{id}` ở tab 2; thao tác tiếp ở tab 1 → về `/login`; đăng nhập báo "Tài khoản đã bị khoá"; mở khoá rồi đăng nhập được. Sửa hồ sơ, đổi logo, lưu, "Xem như ứng viên".
-2. Chụp các ảnh ở danh sách trên.
+- staff1 tìm công ty theo tên và theo mã số thuế ở `/staff/companies`, mở chi tiết, thêm HR;
+- khoá hr2 trên `/staff/companies/[id]`: bỏ trống lý do bị chặn ngay trong hộp thoại; khoá xong, hr2 đang mở `/hr/company` thao tác tiếp bị đưa về `/login`, đăng nhập báo "Tài khoản đã bị khoá";
+- mở khoá hr2 → hr2 đăng nhập lại được;
+- HR sửa hồ sơ, đổi logo (xem trước rồi "Dùng ảnh này"), lưu, "Xem như ứng viên" hiện đúng bản đã lưu.
 
 ## 8. Khác với thiết kế ban đầu
 
@@ -172,6 +160,6 @@ Lưu vào `docs/api/screenshots/DN-05/` (chưa có ảnh; chụp được khi ch
 
 - [ ] Nhánh `feature/DN-05-company-hr-ui`, PR **vào `test`**, tiêu đề `[DN-05] Giao diện doanh nghiệp: hồ sơ công ty, tài khoản HR`
 - [x] Có: cách chạy, OpenAPI (`company-openapi.yaml`, `identity-openapi.yaml`), request mẫu `DN-05.http`, migration `V2` của identity và company
-- [x] Đi toàn luồng theo mục 7
+- [x] Đi toàn luồng theo mục 7 (API và giao diện, sáu tiêu chí đạt)
 - [x] Tự chạy `npm run lint` và `npm run build` ở `web/` (CI chỉ chạy `type-check`)
 - [x] Một bạn trong nhóm review trước, mentor duyệt PR
