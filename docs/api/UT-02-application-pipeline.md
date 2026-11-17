@@ -21,7 +21,11 @@ UT-01 cần JD/CV thật hoặc mock contract của [UT-01](UT-01-applications.m
 | --- | --- | --- |
 | HR | Chỉ đơn có `companyId` bằng JWT; đoán ID công ty khác nhận 404 | Có, chỉ theo `allowedTransitions`; thêm/sửa vòng khi `INTERVIEW` |
 | STAFF | Tất cả, lọc company/JD/status | Không, nhận 403 |
+| ADMIN | Tất cả, lọc company/JD/status | Không, nhận 403 |
+| MENTOR | Chỉ danh sách vòng được mời, không có liên hệ ứng viên hoặc CV | Chỉ nhập kết quả vòng gắn với email tài khoản khi đơn ở INTERVIEW; không chuyển bước/thêm vòng |
 | CANDIDATE | Đơn của mình theo API UT-01 | Không; chỉ rút đơn theo luật UT-01 |
+
+Trang `/admin/applications` dùng danh sách và chi tiết chỉ đọc. ADMIN không gọi điểm khớp DN-06 vì API đó chỉ nhận HR/STAFF; trường `match` là null. Trang `/mentor/reviews` gọi `GET/PUT /mentor/rounds`; recruitment lấy email mentor hiện hành qua identity nội bộ trước khi lọc theo `interviewer_email`. Đơn không thuộc mentor không xuất hiện; sửa vòng khác nhận 404. Số điện thoại trong chi tiết HR/STAFF/ADMIN lấy từ hồ sơ HS-02 qua `GET /internal/profiles/{userId}/phone` sau khi kiểm quyền đơn, với JWT của người xem và `X-Internal-Key`; chưa có số thì trả null. Profile-service không trả thêm dữ liệu hồ sơ qua endpoint này. `RECRUITMENT_PROFILE_SERVICE_KEY` có thể ghi đè `INTERNAL_SERVICE_KEY` và phải khớp khóa của profile-service.
 
 DN-05: recruitment-service hỏi trạng thái HR hiện hành qua `POST /internal/users/lookup` trên identity-service ở mỗi request HR. Tài khoản bị cán bộ khoá nhận `401 ACCOUNT_DISABLED` dù JWT còn hạn; identity tạm lỗi nhận 503 để không xử lý bằng trạng thái chưa xác thực. Endpoint tra ứng viên của UT-02 là `/internal/users/candidates/lookup` riêng.
 
@@ -44,6 +48,10 @@ Playwright fixtures `web/e2e/ut02-hr-workflow.spec.ts` và `web/e2e/ut02-staff-a
 
 ![STAFF chi tiết chỉ đọc](screenshots/ut02-staff-detail.png)
 
+![ADMIN chi tiết chỉ đọc và số điện thoại](screenshots/ut02-admin-detail.png)
+
+![MENTOR chấm vòng được mời](screenshots/ut02-mentor-reviews.png)
+
 ## Kiểm chứng
 
 ```powershell
@@ -64,3 +72,7 @@ Test recruitment dùng Testcontainers PostgreSQL hoặc một DB kiểm thử **
 Checklist nghiệm thu: SUBMITTED→INTERVIEW 409; HR công ty B xem đơn A 404; STAFF tải CV được; vòng cuối FAIL hoặc PENDING chặn offer; mỗi chuyển bước có một event email; response chi tiết có CV, ứng viên, match hiện hành, vòng và lịch sử; FE chỉ hiện nút theo `allowedTransitions`.
 
 Trước khi merge, một thành viên nhóm review PR `[UT-02]` rồi mentor duyệt. Branch tích hợp cần xác nhận với nhóm vì mô tả task ghi `develop`, trong khi repo hiện dùng `test` và chưa có branch `develop`.
+
+### Kiểm chứng bổ sung phân quyền 2026-11-17
+
+`mvn -f server/pom.xml clean test`: 619 test, 0 failure/error, 1 skipped; cả 12 module SUCCESS. Frontend type-check, lint (0 error, 1 warning có sẵn ở `commitlint.config.mjs`), production build và 28/28 Playwright test đạt. Test mới kiểm ADMIN đọc nhưng không sửa, Mentor chỉ thấy/chấm vòng được mời, lấy số điện thoại sau kiểm quyền sở hữu, và hai cập nhật vòng đồng thời ghi revision theo kết quả đã commit. Review code độc lập không ghi nhận lỗi mức critical/important.

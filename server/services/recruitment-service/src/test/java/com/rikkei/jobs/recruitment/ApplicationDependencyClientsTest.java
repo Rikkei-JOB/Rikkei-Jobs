@@ -13,6 +13,37 @@ import static org.springframework.test.web.client.match.MockRestRequestMatchers.
 import static org.springframework.test.web.client.response.MockRestResponseCreators.*;
 
 class ApplicationDependencyClientsTest {
+    @Test void mentorLookupVerifiesCurrentIdentityAndRole() {
+        var builder = RestClient.builder().baseUrl("http://identity");
+        var mock = MockRestServiceServer.bindTo(builder).build();
+        var client = new HttpMentorIdentityClient(builder.build(), "test-key");
+        var id = UUID.randomUUID();
+        mock.expect(requestTo("http://identity/internal/users/lookup"))
+            .andExpect(header("X-Internal-Key", "test-key"))
+            .andRespond(withSuccess("[{\"userId\":\"" + id + "\",\"email\":\"mentor@example.test\",\"role\":\"MENTOR\",\"status\":\"ACTIVE\"}]", MediaType.APPLICATION_JSON));
+        assertThat(client.email(id)).isEqualTo("mentor@example.test");
+        mock.verify(); mock.reset();
+        mock.expect(anything()).andRespond(withSuccess("[{\"userId\":\"" + id + "\",\"email\":\"mentor@example.test\",\"role\":\"HR\",\"status\":\"ACTIVE\"}]", MediaType.APPLICATION_JSON));
+        assertThatThrownBy(() -> client.email(id)).isInstanceOf(RecruitmentDependencyException.class)
+            .extracting("status").isEqualTo(503);
+    }
+
+    @Test void contactLookupForwardsTokenAndValidatesCandidate() {
+        var builder = RestClient.builder().baseUrl("http://profile");
+        var mock = MockRestServiceServer.bindTo(builder).build();
+        var client = new HttpCandidateContactClient(builder.build(), "test-key");
+        var id = UUID.randomUUID();
+        mock.expect(requestTo("http://profile/internal/profiles/" + id + "/phone"))
+            .andExpect(header("Authorization", "Bearer hr"))
+            .andExpect(header("X-Internal-Key", "test-key"))
+            .andRespond(withSuccess("{\"userId\":\"" + id + "\",\"phone\":\"0912345678\"}", MediaType.APPLICATION_JSON));
+        assertThat(client.phone(id, "Bearer hr")).isEqualTo("0912345678");
+        mock.verify(); mock.reset();
+        mock.expect(anything()).andRespond(withSuccess("{\"userId\":\"" + UUID.randomUUID() + "\"}", MediaType.APPLICATION_JSON));
+        assertThatThrownBy(() -> client.phone(id, "Bearer hr")).isInstanceOf(RecruitmentDependencyException.class)
+            .extracting("status").isEqualTo(502);
+    }
+
     @Test void profileForwardsCandidateTokenAndOnlyAcceptsPdf() {
         var builder = RestClient.builder().baseUrl("http://profile");
         var mock = MockRestServiceServer.bindTo(builder).build();

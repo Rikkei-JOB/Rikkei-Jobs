@@ -9,6 +9,7 @@ import com.rikkei.jobs.recruitment.dto.request.UpdateRoundRequest;
 import com.rikkei.jobs.recruitment.entity.*;
 import com.rikkei.jobs.recruitment.repository.*;
 import com.rikkei.jobs.recruitment.service.InterviewRoundService;
+import com.rikkei.jobs.recruitment.client.MentorIdentityClient;
 import java.math.BigDecimal;
 import java.time.Clock;
 import java.time.Instant;
@@ -27,7 +28,8 @@ class InterviewRoundServiceTest {
     private final InterviewRoundRepository rounds = mock(InterviewRoundRepository.class);
     private final InterviewRoundRevisionRepository revisions = mock(InterviewRoundRevisionRepository.class);
     private final Clock clock = Clock.fixed(Instant.parse("2030-01-01T00:00:00Z"), ZoneOffset.UTC);
-    private final InterviewRoundService service = new InterviewRoundService(applications, rounds, revisions, clock);
+    private final InterviewRoundService service = new InterviewRoundService(applications, rounds, revisions, clock,
+        mock(MentorIdentityClient.class));
     private final UUID companyId = UUID.randomUUID(), applicationId = UUID.randomUUID(), actorId = UUID.randomUUID();
     private final AuthPrincipal hr = new AuthPrincipal(actorId, Role.HR, companyId);
     private Application application;

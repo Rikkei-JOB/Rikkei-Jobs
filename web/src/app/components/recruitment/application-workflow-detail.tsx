@@ -13,7 +13,7 @@ import { hrApplicationService } from "@/services/hr-application.service";
 import { InterviewRounds } from "./interview-rounds";
 import { MatchCard } from "./match-card";
 
-export function ApplicationWorkflowDetail({ id, role }: { id: string; role: "HR" | "STAFF" }) {
+export function ApplicationWorkflowDetail({ id, role }: { id: string; role: "HR" | "STAFF" | "ADMIN" }) {
   const allowed = useAuthGuard({ roles: [role] });
   const [application, setApplication] = useState<HrApplicationDetail | null>(null);
   const [error, setError] = useState("");
@@ -49,7 +49,7 @@ export function ApplicationWorkflowDetail({ id, role }: { id: string; role: "HR"
     finally { setDownloading(false); }
   }
   if (!allowed) return null;
-  const root = role === "HR" ? "/hr/recruitment" : "/staff/applications";
+  const root = role === "HR" ? "/hr/recruitment" : role === "ADMIN" ? "/admin/applications" : "/staff/applications";
   return <main className="min-h-screen bg-muted/20 px-4 py-8 sm:px-6"><div className="mx-auto max-w-5xl space-y-5">
     <Link href={root} className="text-sm text-primary underline">← Danh sách đơn ứng tuyển</Link>
     {error && <div role="alert" className="rounded-lg border border-destructive/30 bg-destructive/5 p-4 text-sm">{error}<Button variant="outline" className="ml-3" onClick={reload}>Tải lại</Button></div>}
@@ -59,6 +59,7 @@ export function ApplicationWorkflowDetail({ id, role }: { id: string; role: "HR"
       <section className="rounded-xl border bg-background p-5 sm:p-7"><div className="flex flex-wrap items-start justify-between gap-3">
         <div><p className="text-sm text-muted-foreground">{application.companyName}</p><h1 className="mt-1 text-2xl font-semibold">{application.jobTitle}</h1>
           <p className="mt-2 text-sm">Ứng viên: <strong>{application.candidate.fullName}</strong> · {application.candidate.email}</p>
+          {application.candidate.phone && <p className="mt-1 text-sm">Điện thoại: {application.candidate.phone}</p>}
           <p className="mt-1 text-xs text-muted-foreground">Nộp ngày {formatApplicationDate(application.createdAt)}</p></div>
         <ApplicationStatusBadge status={application.status} /></div>
         <Button variant="outline" className="mt-5" disabled={downloading} onClick={downloadCv}>{downloading ? "Đang tải…" : "Tải CV đã nộp"}</Button>
@@ -71,7 +72,7 @@ export function ApplicationWorkflowDetail({ id, role }: { id: string; role: "HR"
         <div className="mt-3 flex flex-wrap gap-2">{application.allowedTransitions.map(target => <Button key={target} variant={target === "REJECTED" ? "outline" : "default"}
           disabled={busy} onClick={() => transition(target)}>Chuyển sang {APPLICATION_STATUS[target].label}</Button>)}</div>
       </section>}
-      <InterviewRounds application={application} readOnly={role === "STAFF"} onChanged={reload} />
+      <InterviewRounds application={application} readOnly={role !== "HR"} onChanged={reload} />
       <section className="rounded-xl border bg-background p-5"><h2 className="text-lg font-semibold">Lịch sử trạng thái</h2>
         <ol className="mt-4 space-y-4 border-l pl-5">{application.history.map(item => <li key={item.id} className="relative text-sm before:absolute before:-left-[25px] before:top-1 before:h-2 before:w-2 before:rounded-full before:bg-primary">
           <strong>{APPLICATION_STATUS[item.toStatus].label}</strong><span className="ml-2 text-muted-foreground">{formatApplicationDate(item.createdAt)}</span>

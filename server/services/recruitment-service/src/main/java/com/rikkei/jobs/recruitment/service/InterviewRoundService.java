@@ -4,6 +4,9 @@ import com.rikkei.jobs.common.config.exception.*;
 import com.rikkei.jobs.common.config.security.principle.*;
 import com.rikkei.jobs.recruitment.dto.request.*;
 import com.rikkei.jobs.recruitment.dto.response.InterviewRoundResponse;
+import com.rikkei.jobs.recruitment.dto.response.MentorRoundResponse;
+import com.rikkei.jobs.recruitment.client.MentorIdentityClient;
+import com.rikkei.jobs.common.dto.response.PageResponse;
 import com.rikkei.jobs.recruitment.entity.*;
 import com.rikkei.jobs.recruitment.repository.*;
 import java.math.BigDecimal;
@@ -13,6 +16,8 @@ import java.util.Objects;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service @RequiredArgsConstructor
@@ -21,6 +26,7 @@ public class InterviewRoundService {
     private final InterviewRoundRepository rounds;
     private final InterviewRoundRevisionRepository revisions;
     private final Clock clock;
+    private final MentorIdentityClient mentors;
 
     @Transactional
     public InterviewRoundResponse create(AuthPrincipal actor, UUID applicationId, CreateRoundRequest request) {
@@ -45,6 +51,51 @@ public class InterviewRoundService {
         requireEditable(actor, applicationId);
         var round = rounds.findByIdAndApplicationId(roundId, applicationId)
             .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy vòng phỏng vấn."));
+        return saveResult(actor, round, request);
+    }
+
+    @Transactional(readOnly = true)
+    public PageResponse<MentorRoundResponse> listInvited(AuthPrincipal actor, int page, int size) {
+        requireMentor(actor);
+        if (page < 1 || size < 1 || size > 100) throw new BadRequestException("page/size không hợp lệ.");
+        String email = mentors.email(actor.getUserId());
+        var result = rounds.findByInterviewerEmailIgnoreCase(email,
+            PageRequest.of(page - 1, size, Sort.by(Sort.Order.desc("createdAt"), Sort.Order.desc("id"))));
+        var items = result.getContent().stream().map(round -> {
+            var application = applications.findById(round.getApplicationId())
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy đơn ứng tuyển."));
+            return new MentorRoundResponse(application.getJobTitle(), application.getCompanyName(),
+                application.getStatus(), toResponse(round));
+        }).toList();
+        return PageResponse.of(result, items);
+    }
+
+    @Transactional
+    public InterviewRoundResponse updateInvited(AuthPrincipal actor, UUID roundId, UpdateRoundRequest request) {
+        requireMentor(actor);
+        String email = mentors.email(actor.getUserId());
+        UUID applicationId = rounds.findApplicationIdByRoundId(roundId)
+            .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy vòng phỏng vấn."));
+        var application = applications.findForUpdate(applicationId)
+            .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy vòng phỏng vấn."));
+        // Load the round after the application lock so revisions see the last committed result.
+        var round = rounds.findById(roundId)
+            .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy vòng phỏng vấn."));
+        if (!round.getInterviewerEmail().equalsIgnoreCase(email))
+            throw new ResourceNotFoundException("Không tìm thấy vòng phỏng vấn.");
+        if (application.getStatus() != ApplicationStatus.INTERVIEW)
+            throw new ConflictException("Chỉ có thể sửa vòng khi đơn đang phỏng vấn.");
+        return saveResult(actor, round, request);
+    }
+
+    private void requireMentor(AuthPrincipal actor) {
+        if (actor == null || actor.getRole() != Role.MENTOR)
+            throw new ForbiddenException("Chỉ mentor được ghi vòng được mời.");
+    }
+
+    private InterviewRoundResponse saveResult(AuthPrincipal actor, InterviewRound round, UpdateRoundRequest request) {
+        UUID applicationId = round.getApplicationId();
+        UUID roundId = round.getId();
         if (request == null || request.result() == null) throw new BadRequestException("Kết quả vòng phỏng vấn không hợp lệ.");
         BigDecimal score = request.result() == InterviewRoundResult.PENDING ? null : request.score();
         if (score != null && (score.compareTo(BigDecimal.ZERO) < 0 || score.compareTo(BigDecimal.valueOf(100)) > 0)) {

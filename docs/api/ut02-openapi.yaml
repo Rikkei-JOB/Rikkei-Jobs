@@ -2,7 +2,7 @@ openapi: 3.0.3
 info:
   title: UT-02 HR application workflow
   version: 1.0.0
-  description: HR xử lý đơn của công ty mình; STAFF chỉ đọc. UT-07 sở hữu API gửi offer.
+  description: HR xử lý đơn của công ty mình; STAFF và ADMIN chỉ đọc; MENTOR chấm vòng được mời. UT-07 sở hữu API gửi offer.
 servers:
   - url: http://localhost:8080/api/v1/recruitment
 security:
@@ -10,7 +10,7 @@ security:
 paths:
   /applications/{id}:
     get:
-      summary: Chi tiết đơn cho HR sở hữu JD hoặc STAFF
+      summary: Chi tiết đơn cho HR sở hữu JD, STAFF hoặc ADMIN
       operationId: getHrApplicationDetail
       parameters:
         - $ref: '#/components/parameters/ApplicationId'
@@ -31,7 +31,7 @@ paths:
         '503': { $ref: '#/components/responses/Error' }
   /applications/{id}/cv:
     get:
-      summary: Tải bản CV đã nộp (CANDIDATE chủ đơn, HR cùng công ty, STAFF)
+      summary: Tải bản CV đã nộp (CANDIDATE chủ đơn, HR cùng công ty, STAFF, ADMIN)
       operationId: downloadApplicationCv
       parameters:
         - $ref: '#/components/parameters/ApplicationId'
@@ -165,7 +165,7 @@ paths:
         '503': { $ref: '#/components/responses/Error' }
   /staff/applications:
     get:
-      summary: STAFF lọc toàn bộ đơn
+      summary: STAFF hoặc ADMIN lọc toàn bộ đơn
       operationId: listStaffApplications
       parameters:
         - name: companyId
@@ -180,6 +180,62 @@ paths:
         '400': { $ref: '#/components/responses/Error' }
         '401': { $ref: '#/components/responses/Error' }
         '403': { $ref: '#/components/responses/Error' }
+        '503': { $ref: '#/components/responses/Error' }
+  /mentor/rounds:
+    get:
+      summary: MENTOR xem các vòng được mời bằng email tài khoản hiện hành
+      operationId: listInvitedMentorRounds
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Size'
+      responses:
+        '200':
+          description: Chỉ gồm thông tin JD, công ty, trạng thái và vòng; không có liên hệ ứng viên
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items, total, page, size]
+                properties:
+                  items: { type: array, items: { $ref: '#/components/schemas/MentorRound' } }
+                  total: { type: integer, format: int64 }
+                  page: { type: integer }
+                  size: { type: integer }
+        '400': { $ref: '#/components/responses/Error' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '503': { $ref: '#/components/responses/Error' }
+  /mentor/rounds/{roundId}:
+    put:
+      summary: MENTOR ghi kết quả vòng được mời khi đơn ở INTERVIEW
+      operationId: updateInvitedMentorRound
+      parameters:
+        - name: roundId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [result]
+              properties:
+                result: { type: string, enum: [PENDING, PASS, FAIL] }
+                score: { type: number, minimum: 0, maximum: 100, nullable: true }
+                note: { type: string, maxLength: 2000, nullable: true }
+      responses:
+        '200':
+          description: Vòng sau cập nhật; revision ghi actorId của mentor
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Round' }
+        '400': { $ref: '#/components/responses/Error' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '409': { $ref: '#/components/responses/Error' }
         '503': { $ref: '#/components/responses/Error' }
 components:
   securitySchemes:
@@ -255,6 +311,15 @@ components:
         userId: { type: string, format: uuid }
         fullName: { type: string }
         email: { type: string, format: email }
+        phone: { type: string, nullable: true, description: Số điện thoại hiện tại từ profile-service }
+    MentorRound:
+      type: object
+      required: [jobTitle, companyName, applicationStatus, round]
+      properties:
+        jobTitle: { type: string }
+        companyName: { type: string }
+        applicationStatus: { $ref: '#/components/schemas/Status' }
+        round: { $ref: '#/components/schemas/Round' }
     MatchSkill:
       type: object
       required: [skill, required, minScore, candidateScore]

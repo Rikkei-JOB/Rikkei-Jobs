@@ -7,6 +7,8 @@ import com.rikkei.jobs.common.config.security.principle.AuthPrincipal;
 import com.rikkei.jobs.common.config.security.principle.Role;
 import com.rikkei.jobs.common.dto.response.PageResponse;
 import com.rikkei.jobs.recruitment.client.IdentityCandidateClient;
+import com.rikkei.jobs.recruitment.client.CandidateContactClient;
+import com.rikkei.jobs.recruitment.client.CandidateIdentity;
 import com.rikkei.jobs.recruitment.client.JobMatchClient;
 import com.rikkei.jobs.recruitment.dto.response.*;
 import com.rikkei.jobs.recruitment.entity.*;
@@ -27,6 +29,7 @@ public class HrApplicationReadService {
     private final InterviewRoundRepository rounds;
     private final InterviewRoundRevisionRepository revisions;
     private final IdentityCandidateClient identities;
+    private final CandidateContactClient contacts;
     private final JobMatchClient matches;
     private final HrTransitionPolicy policy;
 
@@ -37,8 +40,12 @@ public class HrApplicationReadService {
             .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy đơn ứng tuyển."));
         if (actor.getRole() == Role.HR && !application.getCompanyId().equals(actor.getCompanyId()))
             throw new ResourceNotFoundException("Không tìm thấy đơn ứng tuyển.");
-        var candidate = identities.get(application.getUserId());
-        var match = matches.get(application.getJobId(), application.getUserId(), bearer).orElse(null);
+        var identity = identities.get(application.getUserId());
+        var candidate = new CandidateIdentity(identity.userId(), identity.fullName(), identity.email(),
+            contacts.phone(application.getUserId(), bearer));
+        // DN-06 authorizes HR and STAFF, but not ADMIN. ADMIN can inspect the workflow without a match lookup.
+        var match = actor.getRole() == Role.ADMIN ? null
+            : matches.get(application.getJobId(), application.getUserId(), bearer).orElse(null);
         var roundData = rounds.findByApplicationIdOrderByRoundNoAsc(id).stream()
             .map(r -> new InterviewRoundResponse(r.getId(), r.getApplicationId(), r.getRoundNo(), r.getName(),
                 r.getInterviewerEmail(), r.getScheduledAt(), r.getResult(), r.getScore(), r.getNote(), r.getCreatedAt())).toList();
@@ -66,8 +73,8 @@ public class HrApplicationReadService {
     @Transactional(readOnly = true)
     public PageResponse<HrApplicationSummaryResponse> listStaff(AuthPrincipal actor, UUID companyId,
         UUID jobId, ApplicationStatus status, int page, int size) {
-        if (actor == null || actor.getRole() != Role.STAFF)
-            throw new ForbiddenException("Chỉ STAFF được xem toàn bộ đơn.");
+        if (actor == null || (actor.getRole() != Role.STAFF && actor.getRole() != Role.ADMIN))
+            throw new ForbiddenException("Chỉ STAFF hoặc ADMIN được xem toàn bộ đơn.");
         return list(companyId, jobId, status, page, size);
     }
 
@@ -89,7 +96,7 @@ public class HrApplicationReadService {
     }
 
     private void requireReader(AuthPrincipal actor) {
-        if (actor == null || (actor.getRole() != Role.HR && actor.getRole() != Role.STAFF))
+        if (actor == null || (actor.getRole() != Role.HR && actor.getRole() != Role.STAFF && actor.getRole() != Role.ADMIN))
             throw new ForbiddenException("Bạn không có quyền xem đơn này.");
     }
 }

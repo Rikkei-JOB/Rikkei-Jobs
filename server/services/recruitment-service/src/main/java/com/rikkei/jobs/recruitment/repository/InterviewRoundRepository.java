@@ -5,12 +5,17 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 public interface InterviewRoundRepository extends JpaRepository<InterviewRound, UUID> {
     List<InterviewRound> findByApplicationIdOrderByRoundNoAsc(UUID applicationId);
     Optional<InterviewRound> findByIdAndApplicationId(UUID id, UUID applicationId);
+    @Query("select r.applicationId from InterviewRound r where r.id = :id")
+    Optional<UUID> findApplicationIdByRoundId(@Param("id") UUID id);
+    Page<InterviewRound> findByInterviewerEmailIgnoreCase(String interviewerEmail, Pageable pageable);
     @Query("select coalesce(max(r.roundNo), 0) from InterviewRound r where r.applicationId = :applicationId")
     int maxRoundNo(@Param("applicationId") UUID applicationId);
 }

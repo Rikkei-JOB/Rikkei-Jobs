@@ -1,6 +1,6 @@
 import { api } from "@/services/api";
 import type { ApplicationStatus } from "@/interface/application";
-import type { HrApplicationDetail, HrApplicationPage, InterviewRound, RoundResult } from "@/interface/hr-application";
+import type { HrApplicationDetail, HrApplicationPage, InterviewRound, MentorRoundPage, RoundResult } from "@/interface/hr-application";
 
 const root = "/recruitment";
 const idPath = (id: string) => `${root}/applications/${encodeURIComponent(id)}`;
@@ -23,5 +23,11 @@ export const hrApplicationService = {
   },
   async downloadCv(id: string) {
     return (await api.get<Blob>(`${idPath(id)}/cv`, { responseType: "blob" })).data;
+  },
+  async listMentorRounds(params: { page?: number; size?: number } = {}) {
+    return (await api.get<MentorRoundPage>(`${root}/mentor/rounds`, { params })).data;
+  },
+  async updateMentorRound(roundId: string, payload: { result: RoundResult; score: number | null; note: string | null }) {
+    return (await api.put<InterviewRound>(`${root}/mentor/rounds/${encodeURIComponent(roundId)}`, payload)).data;
   },
 };

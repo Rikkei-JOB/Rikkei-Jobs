@@ -11,7 +11,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 @RestController @RequestMapping("/recruitment/applications") @RequiredArgsConstructor
-@PreAuthorize("hasAnyRole('HR','STAFF')")
+@PreAuthorize("hasAnyRole('HR','STAFF','ADMIN')")
 public class ApplicationDetailController {
     private final HrApplicationReadService service;
     @GetMapping("/{id}")

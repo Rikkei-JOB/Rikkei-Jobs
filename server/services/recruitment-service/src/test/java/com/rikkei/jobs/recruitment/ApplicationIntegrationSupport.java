@@ -5,6 +5,8 @@ import com.rikkei.jobs.common.config.security.principle.Role;
 import com.rikkei.jobs.recruitment.client.JobApplicationClient;
 import com.rikkei.jobs.recruitment.client.HrAccountStatusClient;
 import com.rikkei.jobs.recruitment.client.ProfileCvClient;
+import com.rikkei.jobs.recruitment.client.CandidateContactClient;
+import com.rikkei.jobs.recruitment.client.MentorIdentityClient;
 import com.rikkei.jobs.recruitment.dto.integration.CvPdf;
 import com.rikkei.jobs.recruitment.dto.integration.JobApplicationContext;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -40,6 +42,8 @@ abstract class ApplicationIntegrationSupport {
     @MockBean JobApplicationClient jobs;
     @MockBean HrAccountStatusClient hrAccounts;
     @MockBean ProfileCvClient cvs;
+    @MockBean CandidateContactClient contacts;
+    @MockBean MentorIdentityClient mentors;
     @MockBean Clock clock;
     UUID user = UUID.randomUUID(), job = UUID.randomUUID(), company = UUID.randomUUID(), cv = UUID.randomUUID();
 
@@ -67,6 +71,7 @@ abstract class ApplicationIntegrationSupport {
         when(clock.instant()).thenReturn(NOW);
         when(clock.getZone()).thenReturn(ZoneOffset.UTC);
         when(hrAccounts.state(any(UUID.class), any(UUID.class))).thenReturn(HrAccountStatusClient.State.ACTIVE);
+        when(contacts.phone(any(UUID.class), anyString())).thenReturn(null);
         when(jobs.getContext(job)).thenReturn(context("APPROVED", NOW.plusSeconds(3600), false));
         when(cvs.exportOwnedPdf(eq(cv), anyString())).thenReturn(new CvPdf("%PDF-1.7\noriginal-cv".getBytes(java.nio.charset.StandardCharsets.UTF_8)));
     }

@@ -23,8 +23,12 @@ export interface HrApplicationPage { items: HrApplicationSummary[]; total: numbe
 export interface HrApplicationDetail {
   id: string; jobId: string; jobTitle: string; companyId: string; companyName: string;
   status: ApplicationStatus; createdAt: string; updatedAt: string;
-  candidate: { userId: string; fullName: string; email: string };
+  candidate: { userId: string; fullName: string; email: string; phone?: string | null };
   cvId: string; cvSnapshotUrl: string; coverLetter: string | null;
   match: MatchScore | null; rounds: InterviewRound[]; roundRevisions: RoundRevision[];
   history: ApplicationHistoryItem[]; allowedTransitions: ApplicationStatus[];
 }
+export interface MentorRoundItem {
+  jobTitle: string; companyName: string; applicationStatus: ApplicationStatus; round: InterviewRound;
+}
+export interface MentorRoundPage { items: MentorRoundItem[]; total: number; page: number; size: number }

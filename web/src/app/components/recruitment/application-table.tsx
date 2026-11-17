@@ -11,7 +11,7 @@ import type { HrApplicationPage } from "@/interface/hr-application";
 import { hrApplicationService } from "@/services/hr-application.service";
 import { getErrorMessage } from "@/services/api";
 
-export function ApplicationTable({ role }: { role: "HR" | "STAFF" }) {
+export function ApplicationTable({ role }: { role: "HR" | "STAFF" | "ADMIN" }) {
   const allowed = useAuthGuard({ roles: [role] });
   const router = useRouter();
   const search = useSearchParams();
@@ -23,7 +23,7 @@ export function ApplicationTable({ role }: { role: "HR" | "STAFF" }) {
   const [data, setData] = useState<HrApplicationPage | null>(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
-  const root = role === "HR" ? "/hr/recruitment" : "/staff/applications";
+  const root = role === "HR" ? "/hr/recruitment" : role === "ADMIN" ? "/admin/applications" : "/staff/applications";
 
   useEffect(() => {
     if (!allowed) return;
@@ -50,7 +50,7 @@ export function ApplicationTable({ role }: { role: "HR" | "STAFF" }) {
     <header><h1 className="text-3xl font-semibold">{role === "HR" ? "Đơn ứng tuyển" : "Toàn bộ đơn ứng tuyển"}</h1>
       <p className="mt-2 text-sm text-muted-foreground">Theo dõi tiến trình tuyển dụng và mở từng đơn để xem chi tiết.</p></header>
     <section className="grid gap-3 rounded-xl border bg-background p-4 sm:grid-cols-3">
-      {role === "STAFF" && <label className="text-sm">Mã công ty<input aria-label="Mã công ty" defaultValue={companyId} key={`company-${companyId}`}
+      {role !== "HR" && <label className="text-sm">Mã công ty<input aria-label="Mã công ty" defaultValue={companyId} key={`company-${companyId}`}
         onBlur={event => navigate({ companyId: event.target.value.trim(), page: "" })}
         onKeyDown={event => { if (event.key === "Enter") event.currentTarget.blur(); }}
         className="mt-1 w-full rounded-lg border bg-background px-3 py-2" placeholder="UUID công ty" /></label>}
