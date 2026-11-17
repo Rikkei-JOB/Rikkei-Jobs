@@ -19,14 +19,18 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
 /** Cố ý không @Transactional: lời gọi HTTP sang identity không được nằm trong transaction đang mở. */
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class StaffCompanyServiceImpl implements StaffCompanyService {
@@ -64,7 +68,13 @@ public class StaffCompanyServiceImpl implements StaffCompanyService {
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy công ty"));
         List<UUID> hrIds = companyHrRepository.findByCompanyId(id).stream().map(CompanyHr::getUserId).toList();
         // Không có HR thì khỏi gọi identity (lookup yêu cầu 1–100 id).
-        List<StaffHrAccount> hrAccounts = hrIds.isEmpty() ? List.of() : identity.lookupUsers(hrIds).stream()
+        List<IdentityUserStatus> found = hrIds.isEmpty() ? List.of() : identity.lookupUsers(hrIds);
+        Set<UUID> foundIds = found.stream().map(IdentityUserStatus::userId).collect(Collectors.toSet());
+        List<UUID> missing = hrIds.stream().filter(h -> !foundIds.contains(h)).toList();
+        if (!missing.isEmpty()) {
+            log.warn("HR {} có trong company_hr của công ty {} nhưng không còn ở identity", missing, id);
+        }
+        List<StaffHrAccount> hrAccounts = found.stream()
                 .sorted(Comparator.comparing(IdentityUserStatus::email,
                         Comparator.nullsLast(String.CASE_INSENSITIVE_ORDER)))
                 .map(StaffHrAccountMapping::from)

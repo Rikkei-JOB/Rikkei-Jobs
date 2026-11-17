@@ -1,5 +1,6 @@
 package com.rikkei.jobs.company;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -21,10 +22,14 @@ import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.springframework.boot.test.system.CapturedOutput;
+import org.springframework.boot.test.system.OutputCaptureExtension;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.test.web.servlet.ResultActions;
 
+@ExtendWith(OutputCaptureExtension.class)
 class StaffCompanyListApiTest extends CompanyApiTestSupport {
 
     private Company a;
@@ -160,10 +165,11 @@ class StaffCompanyListApiTest extends CompanyApiTestSupport {
     }
 
     @Test
-    void detailDropsUsersMissingInIdentity() throws Exception {
+    void detailDropsUsersMissingInIdentity(CapturedOutput output) throws Exception {
         when(identity.lookupUsers(anyList())).thenReturn(List.of(idUser(HR1, "one@x.vn", "ACTIVE")));
         detail(a.getId()).andExpect(status().isOk())
                 .andExpect(jsonPath("$.hrAccounts.length()").value(1));
+        assertThat(output.getOut()).contains("nhưng không còn ở identity").contains(HR2.toString());
     }
 
     @Test
