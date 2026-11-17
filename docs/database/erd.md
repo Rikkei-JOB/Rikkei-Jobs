@@ -217,6 +217,55 @@ erDiagram
 | company-service | `company` | `companies`, `company_hr` | `V1__company_init.sql` | DN-01 |
 | profile-service | `profile` | `skills`, `skill_mappings`, `skill_evidences`, `skill_scores`, `external_records`, `skill_profile_states` | `V1__skill_profile.sql` → `V3__external_records_and_profile_state.sql` | HS-01 |
 | profile-service | `profile` | `manual_overrides`, `sync_runs`; thêm `source_key`, `payload`, `synced_at` vào `external_records` | `V8__nt05_external_sync.sql` | NT-05 |
+| recruitment-service | `recruitment` | `applications`, `application_status_history`, `application_notification_outbox`, `interview_rounds`, `interview_round_revisions`, `application_status_notification_outbox` | `V1__applications.sql` → `V3__status_notification_outbox.sql` | UT-01, UT-02 |
+
+### Quan hệ tuyển dụng UT-02
+
+```mermaid
+erDiagram
+    applications ||--o{ application_status_history : status
+    applications ||--o{ interview_rounds : rounds
+    interview_rounds ||--o{ interview_round_revisions : audit
+    application_status_history ||--o| application_status_notification_outbox : email
+    applications ||--o{ application_notification_outbox : initial_hr_email
+    applications {
+      UUID id PK
+      UUID job_id "JD ở company-service"
+      UUID user_id "ứng viên ở identity-service"
+      UUID company_id "công ty ở company-service"
+      VARCHAR status
+      UUID cv_id "CV ở profile-service"
+    }
+    interview_rounds {
+      UUID id PK
+      UUID application_id FK
+      INT round_no "unique với application_id"
+      VARCHAR result "PENDING | PASS | FAIL"
+      NUMERIC score "0..100; nullable"
+    }
+    interview_round_revisions {
+      UUID id PK
+      UUID round_id FK
+      UUID application_id FK
+      VARCHAR old_result
+      VARCHAR new_result
+    }
+    application_status_history {
+      UUID id PK
+      UUID application_id FK
+      VARCHAR from_status
+      VARCHAR to_status
+    }
+    application_status_notification_outbox {
+      UUID id PK
+      UUID status_history_id FK "unique"
+      UUID application_id FK
+      UUID user_id "email hiện hành tra từ identity"
+      VARCHAR status "PENDING | PROCESSING | SENT | FAILED"
+    }
+```
+
+Điểm khớp DN-06 không lưu trong schema recruitment. Chi tiết UT-02 đọc điểm hiện hành qua API của owner DN-06.
 
 ## Quy ước
 

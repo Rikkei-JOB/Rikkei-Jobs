@@ -216,6 +216,22 @@ paths:
             application/json:
               schema: { $ref: '#/components/schemas/Error' }
   /internal/users/{id}:
+    get:
+      tags: [internal]
+      summary: Lấy email và tên hiện hành của ứng viên (recruitment-service)
+      servers:
+        - url: http://localhost:8081
+      security: [{ internalKey: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        '200':
+          description: User role CANDIDATE
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/InternalUserResponse' }
+        '401': { description: INVALID_SERVICE_KEY }
+        '404': { description: Không có user CANDIDATE với ID đó }
     delete:
       tags: [internal]
       summary: Xoá tài khoản HR (hoàn tác khi company-service ghi liên kết lỗi)
@@ -318,6 +334,33 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Error' }
+  /internal/users/candidates/lookup:
+    post:
+      tags: [internal]
+      summary: Lấy tên/email ứng viên theo lô cho một trang danh sách UT-02
+      servers:
+        - url: http://localhost:8081
+      security: [{ internalKey: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: array
+              minItems: 1
+              maxItems: 100
+              items: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Danh sách cùng thứ tự ID được hỏi, bỏ ID trùng
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/InternalUserResponse' }
+        '400': { description: Danh sách ID không hợp lệ }
+        '401': { description: INVALID_SERVICE_KEY }
+        '404': { description: Một ID không thuộc user CANDIDATE }
   /internal/users/lookup:
     post:
       tags: [internal]

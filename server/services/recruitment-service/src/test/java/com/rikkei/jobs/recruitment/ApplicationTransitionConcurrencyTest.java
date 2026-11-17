@@ -4,6 +4,7 @@ import com.rikkei.jobs.common.config.exception.ConflictException;
 import com.rikkei.jobs.common.config.security.principle.*;
 import com.rikkei.jobs.recruitment.dto.request.*;
 import com.rikkei.jobs.recruitment.entity.ApplicationStatus;
+import com.rikkei.jobs.recruitment.entity.InterviewRoundResult;
 import com.rikkei.jobs.recruitment.service.*;
 import java.util.*;
 import java.util.concurrent.*;
@@ -14,6 +15,7 @@ import static org.assertj.core.api.Assertions.*;
 class ApplicationTransitionConcurrencyTest extends ApplicationIntegrationSupport {
     @Autowired ApplicationService service;
     @Autowired ApplicationTransitionService transitions;
+    @Autowired InterviewRoundService rounds;
 
     private List<Integer> race(Callable<Integer> first, Callable<Integer> second) throws Exception {
         try (var pool = Executors.newFixedThreadPool(2)) {
@@ -62,6 +64,9 @@ class ApplicationTransitionConcurrencyTest extends ApplicationIntegrationSupport
         var id = apply();
         transitions.transition(id, ApplicationStatus.SCREENING, UUID.randomUUID(), null);
         transitions.transition(id, ApplicationStatus.INTERVIEW, UUID.randomUUID(), null);
+        var hr = new AuthPrincipal(UUID.randomUUID(), Role.HR, company);
+        var round = rounds.create(hr, id, new CreateRoundRequest("Kỹ thuật", "a@example.test", null));
+        rounds.update(hr, id, round.id(), new UpdateRoundRequest(InterviewRoundResult.PASS, null, null));
         var results = race(() -> {
             try { transitions.transition(id, ApplicationStatus.OFFER, UUID.randomUUID(), null); return 200; }
             catch (ConflictException ex) { return 409; }
@@ -72,5 +77,28 @@ class ApplicationTransitionConcurrencyTest extends ApplicationIntegrationSupport
         assertThat(results).containsExactlyInAnyOrder(200,409);
         assertThat(count("application_status_history")).isEqualTo(4);
         assertThat(jdbc.queryForObject("select status from recruitment.applications where id=?", String.class, id)).isIn("OFFER","WITHDRAWN");
+    }
+
+    @Test void offerAndRoundCorrectionSerializeOnTheSameApplication() throws Exception {
+        var id = apply();
+        transitions.transition(id, ApplicationStatus.SCREENING, UUID.randomUUID(), null);
+        transitions.transition(id, ApplicationStatus.INTERVIEW, UUID.randomUUID(), null);
+        var hr = new AuthPrincipal(UUID.randomUUID(), Role.HR, company);
+        var round = rounds.create(hr, id, new CreateRoundRequest("Kỹ thuật", "a@example.test", null));
+        rounds.update(hr, id, round.id(), new UpdateRoundRequest(InterviewRoundResult.PASS, null, null));
+        var results = race(() -> {
+            try { transitions.transition(id, ApplicationStatus.OFFER, hr.getUserId(), null); return 200; }
+            catch (ConflictException ex) { return 409; }
+        }, () -> {
+            try {
+                rounds.update(hr, id, round.id(), new UpdateRoundRequest(InterviewRoundResult.FAIL, null, null));
+                return 200;
+            } catch (ConflictException ex) { return 409; }
+        });
+        assertThat(results).containsExactlyInAnyOrder(200, 409);
+        var status = jdbc.queryForObject("select status from recruitment.applications where id=?", String.class, id);
+        var result = jdbc.queryForObject("select result from recruitment.interview_rounds where id=?", String.class, round.id());
+        if ("OFFER".equals(status)) assertThat(result).isEqualTo("PASS");
+        else { assertThat(status).isEqualTo("INTERVIEW"); assertThat(result).isEqualTo("FAIL"); }
     }
 }

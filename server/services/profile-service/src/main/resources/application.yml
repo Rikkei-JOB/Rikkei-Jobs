@@ -33,6 +33,7 @@ app:
     files-dir: ${PROFILE_FILES_DIR:.runtime/profile-files}
     identity-base-url: ${IDENTITY_SERVICE_URL:http://localhost:8081}
     identity-service-key: ${INTERNAL_SERVICE_KEY:dev-internal-key}
+    internal-service-key: ${INTERNAL_SERVICE_KEY:}
     lms-base-url: ${LMS_BASE_URL:http://localhost:9000}
     lms-service-key: ${LMS_SERVICE_KEY:dev-key}
   # NT-05: đồng bộ dữ liệu học tập, thi, thực tập từ mock (docs/api/NT-05-dong-bo-du-lieu.md).

@@ -87,6 +87,44 @@ class InternalUserApiTest {
     }
 
     @Test
+    void internalCandidateLookupReturnsCurrentNameAndEmailOnlyWithServiceKey() throws Exception {
+        User candidate = new User();
+        candidate.setEmail("candidate@example.test");
+        candidate.setFullName("Nguyễn Văn An");
+        candidate.setRole(Role.CANDIDATE);
+        candidate = users.saveAndFlush(candidate);
+        UUID id = candidate.getId();
+
+        mvc.perform(get("/internal/users/{id}", id).header("X-Internal-Key", KEY))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.userId").value(id.toString()))
+                .andExpect(jsonPath("$.fullName").value("Nguyễn Văn An"))
+                .andExpect(jsonPath("$.email").value("candidate@example.test"));
+        mvc.perform(get("/internal/users/{id}", id))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.code").value("INVALID_SERVICE_KEY"));
+        mvc.perform(get("/internal/users/{id}", UUID.randomUUID()).header("X-Internal-Key", KEY))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void batchLookupRequiresServiceKeyAndReturnsOnlyCandidateIdentities() throws Exception {
+        User first = new User(); first.setEmail("first@example.test"); first.setFullName("Ứng viên Một"); first.setRole(Role.CANDIDATE);
+        User second = new User(); second.setEmail("second@example.test"); second.setFullName("Ứng viên Hai"); second.setRole(Role.CANDIDATE);
+        first = users.saveAndFlush(first); second = users.saveAndFlush(second);
+        String ids = json.writeValueAsString(java.util.List.of(first.getId(), second.getId()));
+        mvc.perform(post("/internal/users/candidates/lookup").header("X-Internal-Key", KEY)
+                .contentType(MediaType.APPLICATION_JSON).content(ids))
+            .andExpect(status().isOk()).andExpect(jsonPath("$[0].userId").value(first.getId().toString()))
+            .andExpect(jsonPath("$[1].userId").value(second.getId().toString()));
+        mvc.perform(post("/internal/users/candidates/lookup").contentType(MediaType.APPLICATION_JSON).content(ids))
+            .andExpect(status().isUnauthorized());
+        mvc.perform(post("/internal/users/candidates/lookup").header("X-Internal-Key", KEY)
+                .contentType(MediaType.APPLICATION_JSON).content(json.writeValueAsString(java.util.List.of(UUID.randomUUID()))))
+            .andExpect(status().isNotFound());
+    }
+
+    @Test
     void createsHrWithMustChangePasswordAndEmailsTempPassword() throws Exception {
         UUID companyId = UUID.randomUUID();
         postUser(body("hr3@rikkeijobs.test", "HR Ba", "HR", companyId), KEY)

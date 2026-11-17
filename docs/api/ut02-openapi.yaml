@@ -1,0 +1,401 @@
+openapi: 3.0.3
+info:
+  title: UT-02 HR application workflow
+  version: 1.0.0
+  description: HR xử lý đơn của công ty mình; STAFF và ADMIN chỉ đọc; MENTOR chấm vòng được mời. UT-07 sở hữu API gửi offer.
+servers:
+  - url: http://localhost:8080/api/v1/recruitment
+security:
+  - bearerAuth: []
+paths:
+  /applications/{id}:
+    get:
+      summary: Chi tiết đơn cho HR sở hữu JD, STAFF hoặc ADMIN
+      operationId: getHrApplicationDetail
+      parameters:
+        - $ref: '#/components/parameters/ApplicationId'
+      responses:
+        '200':
+          description: Chi tiết ứng viên, CV, điểm khớp hiện tại, vòng và lịch sử
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ApplicationDetail' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404':
+          description: Không có đơn hoặc HR thuộc công ty khác
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '502': { $ref: '#/components/responses/Error' }
+        '503': { $ref: '#/components/responses/Error' }
+  /applications/{id}/cv:
+    get:
+      summary: Tải bản CV đã nộp (CANDIDATE chủ đơn, HR cùng công ty, STAFF, ADMIN)
+      operationId: downloadApplicationCv
+      parameters:
+        - $ref: '#/components/parameters/ApplicationId'
+      responses:
+        '200':
+          description: Bản PDF đã chụp khi nộp đơn
+          headers:
+            Cache-Control: { schema: { type: string, example: 'private, no-store' } }
+          content:
+            application/pdf:
+              schema: { type: string, format: binary }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+  /applications/{id}/transition:
+    post:
+      summary: HR chuyển bước hợp lệ
+      operationId: transitionApplication
+      description: SUBMITTED→SCREENING|REJECTED; SCREENING→INTERVIEW|REJECTED; INTERVIEW→REJECTED. Mỗi lần thành công tạo lịch sử và email ứng viên.
+      parameters:
+        - $ref: '#/components/parameters/ApplicationId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [toStatus]
+              properties:
+                toStatus: { $ref: '#/components/schemas/Status' }
+                note: { type: string, nullable: true, maxLength: 1000 }
+            example: { toStatus: SCREENING, note: 'Đã đọc CV' }
+      responses:
+        '200':
+          description: Trạng thái đã commit
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [id, status, updatedAt]
+                properties:
+                  id: { type: string, format: uuid }
+                  status: { $ref: '#/components/schemas/Status' }
+                  updatedAt: { type: string, format: date-time }
+        '400': { $ref: '#/components/responses/Error' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '409':
+          description: Sai luật chuyển; code INVALID_TRANSITION
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+              example: { code: INVALID_TRANSITION, message: 'Không thể chuyển trạng thái từ SUBMITTED sang INTERVIEW.' }
+  /applications/{id}/rounds:
+    post:
+      summary: HR thêm vòng khi đơn ở INTERVIEW
+      operationId: createInterviewRound
+      parameters:
+        - $ref: '#/components/parameters/ApplicationId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, interviewerEmail]
+              properties:
+                name: { type: string, minLength: 1, maxLength: 255 }
+                interviewerEmail: { type: string, format: email, maxLength: 320 }
+                scheduledAt: { type: string, format: date-time, nullable: true }
+            example: { name: 'Kỹ thuật', interviewerEmail: 'interviewer@example.test' }
+      responses:
+        '201':
+          description: Vòng được thêm với result PENDING
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Round' }
+        '400': { $ref: '#/components/responses/Error' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '409': { $ref: '#/components/responses/Error' }
+  /applications/{id}/rounds/{roundId}:
+    put:
+      summary: HR cập nhật kết quả vòng và ghi audit khi đơn ở INTERVIEW
+      operationId: updateInterviewRound
+      parameters:
+        - $ref: '#/components/parameters/ApplicationId'
+        - name: roundId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [result]
+              properties:
+                result: { type: string, enum: [PENDING, PASS, FAIL] }
+                score: { type: number, minimum: 0, maximum: 100, nullable: true }
+                note: { type: string, maxLength: 2000, nullable: true }
+            example: { result: PASS, score: 85, note: 'Đạt yêu cầu' }
+      responses:
+        '200':
+          description: Vòng sau cập nhật
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Round' }
+        '400': { $ref: '#/components/responses/Error' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '409': { $ref: '#/components/responses/Error' }
+  /hr/applications:
+    get:
+      summary: HR xem đơn thuộc công ty trong JWT
+      operationId: listHrApplications
+      parameters:
+        - $ref: '#/components/parameters/JobId'
+        - $ref: '#/components/parameters/Status'
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Size'
+      responses:
+        '200': { $ref: '#/components/responses/ApplicationPage' }
+        '400': { $ref: '#/components/responses/Error' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '503': { $ref: '#/components/responses/Error' }
+  /staff/applications:
+    get:
+      summary: STAFF hoặc ADMIN lọc toàn bộ đơn
+      operationId: listStaffApplications
+      parameters:
+        - name: companyId
+          in: query
+          schema: { type: string, format: uuid }
+        - $ref: '#/components/parameters/JobId'
+        - $ref: '#/components/parameters/Status'
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Size'
+      responses:
+        '200': { $ref: '#/components/responses/ApplicationPage' }
+        '400': { $ref: '#/components/responses/Error' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '503': { $ref: '#/components/responses/Error' }
+  /mentor/rounds:
+    get:
+      summary: MENTOR xem các vòng được mời bằng email tài khoản hiện hành
+      operationId: listInvitedMentorRounds
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Size'
+      responses:
+        '200':
+          description: Chỉ gồm thông tin JD, công ty, trạng thái và vòng; không có liên hệ ứng viên
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items, total, page, size]
+                properties:
+                  items: { type: array, items: { $ref: '#/components/schemas/MentorRound' } }
+                  total: { type: integer, format: int64 }
+                  page: { type: integer }
+                  size: { type: integer }
+        '400': { $ref: '#/components/responses/Error' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '503': { $ref: '#/components/responses/Error' }
+  /mentor/rounds/{roundId}:
+    put:
+      summary: MENTOR ghi kết quả vòng được mời khi đơn ở INTERVIEW
+      operationId: updateInvitedMentorRound
+      parameters:
+        - name: roundId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [result]
+              properties:
+                result: { type: string, enum: [PENDING, PASS, FAIL] }
+                score: { type: number, minimum: 0, maximum: 100, nullable: true }
+                note: { type: string, maxLength: 2000, nullable: true }
+      responses:
+        '200':
+          description: Vòng sau cập nhật; revision ghi actorId của mentor
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Round' }
+        '400': { $ref: '#/components/responses/Error' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '409': { $ref: '#/components/responses/Error' }
+        '503': { $ref: '#/components/responses/Error' }
+components:
+  securitySchemes:
+    bearerAuth: { type: http, scheme: bearer, bearerFormat: JWT }
+  parameters:
+    ApplicationId:
+      name: id
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+    JobId:
+      name: jobId
+      in: query
+      schema: { type: string, format: uuid }
+    Status:
+      name: status
+      in: query
+      schema: { $ref: '#/components/schemas/Status' }
+    Page:
+      name: page
+      in: query
+      schema: { type: integer, minimum: 1, default: 1 }
+    Size:
+      name: size
+      in: query
+      schema: { type: integer, minimum: 1, maximum: 100, default: 20 }
+  responses:
+    Error:
+      description: Lỗi theo code và message
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    ApplicationPage:
+      description: Danh sách phân trang bắt đầu từ page 1
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [items, total, page, size]
+            properties:
+              items: { type: array, items: { $ref: '#/components/schemas/ApplicationSummary' } }
+              total: { type: integer, format: int64 }
+              page: { type: integer }
+              size: { type: integer }
+  schemas:
+    Error:
+      type: object
+      required: [code, message]
+      properties:
+        code: { type: string }
+        message: { type: string }
+    Status:
+      type: string
+      enum: [SUBMITTED, SCREENING, INTERVIEW, OFFER, HIRED, REJECTED, WITHDRAWN]
+    ApplicationSummary:
+      type: object
+      required: [id, jobId, jobTitle, companyId, companyName, userId, candidateName, status, createdAt, updatedAt]
+      properties:
+        id: { type: string, format: uuid }
+        jobId: { type: string, format: uuid }
+        jobTitle: { type: string }
+        companyId: { type: string, format: uuid }
+        companyName: { type: string }
+        userId: { type: string, format: uuid }
+        candidateName: { type: string }
+        status: { $ref: '#/components/schemas/Status' }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+    Candidate:
+      type: object
+      required: [userId, fullName, email]
+      properties:
+        userId: { type: string, format: uuid }
+        fullName: { type: string }
+        email: { type: string, format: email }
+        phone: { type: string, nullable: true, description: Số điện thoại hiện tại từ profile-service }
+    MentorRound:
+      type: object
+      required: [jobTitle, companyName, applicationStatus, round]
+      properties:
+        jobTitle: { type: string }
+        companyName: { type: string }
+        applicationStatus: { $ref: '#/components/schemas/Status' }
+        round: { $ref: '#/components/schemas/Round' }
+    MatchSkill:
+      type: object
+      required: [skill, required, minScore, candidateScore]
+      properties:
+        skill: { type: string }
+        required: { type: boolean }
+        minScore: { type: number }
+        candidateScore: { type: number }
+    Match:
+      type: object
+      required: [score, belowMinimum, met, missing]
+      properties:
+        score: { type: number, minimum: 0, maximum: 100 }
+        belowMinimum: { type: boolean }
+        met: { type: array, items: { $ref: '#/components/schemas/MatchSkill' } }
+        missing: { type: array, items: { $ref: '#/components/schemas/MatchSkill' } }
+    Round:
+      type: object
+      required: [id, applicationId, roundNo, name, interviewerEmail, result, createdAt]
+      properties:
+        id: { type: string, format: uuid }
+        applicationId: { type: string, format: uuid }
+        roundNo: { type: integer, minimum: 1 }
+        name: { type: string }
+        interviewerEmail: { type: string, format: email }
+        scheduledAt: { type: string, format: date-time, nullable: true }
+        result: { type: string, enum: [PENDING, PASS, FAIL] }
+        score: { type: number, nullable: true }
+        note: { type: string, nullable: true }
+        createdAt: { type: string, format: date-time }
+    RoundRevision:
+      type: object
+      required: [id, roundId, actorId, oldResult, newResult, createdAt]
+      properties:
+        id: { type: string, format: uuid }
+        roundId: { type: string, format: uuid }
+        actorId: { type: string, format: uuid }
+        oldResult: { type: string, enum: [PENDING, PASS, FAIL] }
+        newResult: { type: string, enum: [PENDING, PASS, FAIL] }
+        oldScore: { type: number, nullable: true }
+        newScore: { type: number, nullable: true }
+        oldNote: { type: string, nullable: true }
+        newNote: { type: string, nullable: true }
+        createdAt: { type: string, format: date-time }
+    History:
+      type: object
+      required: [id, toStatus, actorId, createdAt]
+      properties:
+        id: { type: string, format: uuid }
+        fromStatus:
+          allOf: [{ $ref: '#/components/schemas/Status' }]
+          nullable: true
+        toStatus: { $ref: '#/components/schemas/Status' }
+        actorId: { type: string, format: uuid }
+        note: { type: string, nullable: true }
+        createdAt: { type: string, format: date-time }
+    ApplicationDetail:
+      type: object
+      required: [id, jobId, jobTitle, companyId, companyName, status, createdAt, updatedAt, candidate, cvId, cvSnapshotUrl, rounds, roundRevisions, history, allowedTransitions]
+      properties:
+        id: { type: string, format: uuid }
+        jobId: { type: string, format: uuid }
+        jobTitle: { type: string }
+        companyId: { type: string, format: uuid }
+        companyName: { type: string }
+        status: { $ref: '#/components/schemas/Status' }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+        candidate: { $ref: '#/components/schemas/Candidate' }
+        cvId: { type: string, format: uuid }
+        cvSnapshotUrl: { type: string }
+        coverLetter: { type: string, nullable: true }
+        match:
+          allOf: [{ $ref: '#/components/schemas/Match' }]
+          nullable: true
+        rounds: { type: array, items: { $ref: '#/components/schemas/Round' } }
+        roundRevisions: { type: array, items: { $ref: '#/components/schemas/RoundRevision' } }
+        history: { type: array, items: { $ref: '#/components/schemas/History' } }
+        allowedTransitions: { type: array, items: { $ref: '#/components/schemas/Status' } }

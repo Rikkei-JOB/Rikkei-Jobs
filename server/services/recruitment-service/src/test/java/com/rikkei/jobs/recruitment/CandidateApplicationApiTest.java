@@ -94,7 +94,7 @@ class CandidateApplicationApiTest extends ApplicationIntegrationSupport {
         var other = token(UUID.randomUUID(), Role.CANDIDATE, null);
         mvc.perform(get("/recruitment/me/applications/" + id).header("Authorization", other)).andExpect(status().isForbidden());
         mvc.perform(get("/recruitment/applications/" + id + "/cv").header("Authorization", other)).andExpect(status().isForbidden());
-        mvc.perform(get("/recruitment/applications/" + id + "/cv").header("Authorization", token(UUID.randomUUID(), Role.HR, UUID.randomUUID()))).andExpect(status().isForbidden());
+        mvc.perform(get("/recruitment/applications/" + id + "/cv").header("Authorization", token(UUID.randomUUID(), Role.HR, UUID.randomUUID()))).andExpect(status().isNotFound());
         mvc.perform(get("/recruitment/applications/" + id + "/cv").header("Authorization", token(UUID.randomUUID(), Role.HR, company)))
             .andExpect(status().isOk()).andExpect(content().contentType("application/pdf")).andExpect(header().string("Cache-Control", "private, no-store"))
             .andExpect(content().bytes(snapshots.read(id)));

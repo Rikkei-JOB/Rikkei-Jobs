@@ -13,7 +13,7 @@ import org.springframework.web.bind.annotation.*;
 public class ApplicationSnapshotController {
     private final ApplicationService service;
     @GetMapping(value="/{id}/cv", produces=MediaType.APPLICATION_PDF_VALUE)
-    @PreAuthorize("hasAnyRole('CANDIDATE','HR')")
+    @PreAuthorize("hasAnyRole('CANDIDATE','HR','STAFF','ADMIN')")
     public ResponseEntity<byte[]> cv(@AuthenticationPrincipal AuthPrincipal actor, @PathVariable UUID id) {
         return ResponseEntity.ok().contentType(MediaType.APPLICATION_PDF)
             .header(HttpHeaders.CACHE_CONTROL, "private, no-store")

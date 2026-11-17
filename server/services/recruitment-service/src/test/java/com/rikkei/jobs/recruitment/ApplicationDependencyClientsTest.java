@@ -13,6 +13,37 @@ import static org.springframework.test.web.client.match.MockRestRequestMatchers.
 import static org.springframework.test.web.client.response.MockRestResponseCreators.*;
 
 class ApplicationDependencyClientsTest {
+    @Test void mentorLookupVerifiesCurrentIdentityAndRole() {
+        var builder = RestClient.builder().baseUrl("http://identity");
+        var mock = MockRestServiceServer.bindTo(builder).build();
+        var client = new HttpMentorIdentityClient(builder.build(), "test-key");
+        var id = UUID.randomUUID();
+        mock.expect(requestTo("http://identity/internal/users/lookup"))
+            .andExpect(header("X-Internal-Key", "test-key"))
+            .andRespond(withSuccess("[{\"userId\":\"" + id + "\",\"email\":\"mentor@example.test\",\"role\":\"MENTOR\",\"status\":\"ACTIVE\"}]", MediaType.APPLICATION_JSON));
+        assertThat(client.email(id)).isEqualTo("mentor@example.test");
+        mock.verify(); mock.reset();
+        mock.expect(anything()).andRespond(withSuccess("[{\"userId\":\"" + id + "\",\"email\":\"mentor@example.test\",\"role\":\"HR\",\"status\":\"ACTIVE\"}]", MediaType.APPLICATION_JSON));
+        assertThatThrownBy(() -> client.email(id)).isInstanceOf(RecruitmentDependencyException.class)
+            .extracting("status").isEqualTo(503);
+    }
+
+    @Test void contactLookupForwardsTokenAndValidatesCandidate() {
+        var builder = RestClient.builder().baseUrl("http://profile");
+        var mock = MockRestServiceServer.bindTo(builder).build();
+        var client = new HttpCandidateContactClient(builder.build(), "test-key");
+        var id = UUID.randomUUID();
+        mock.expect(requestTo("http://profile/internal/profiles/" + id + "/phone"))
+            .andExpect(header("Authorization", "Bearer hr"))
+            .andExpect(header("X-Internal-Key", "test-key"))
+            .andRespond(withSuccess("{\"userId\":\"" + id + "\",\"phone\":\"0912345678\"}", MediaType.APPLICATION_JSON));
+        assertThat(client.phone(id, "Bearer hr")).isEqualTo("0912345678");
+        mock.verify(); mock.reset();
+        mock.expect(anything()).andRespond(withSuccess("{\"userId\":\"" + UUID.randomUUID() + "\"}", MediaType.APPLICATION_JSON));
+        assertThatThrownBy(() -> client.phone(id, "Bearer hr")).isInstanceOf(RecruitmentDependencyException.class)
+            .extracting("status").isEqualTo(502);
+    }
+
     @Test void profileForwardsCandidateTokenAndOnlyAcceptsPdf() {
         var builder = RestClient.builder().baseUrl("http://profile");
         var mock = MockRestServiceServer.bindTo(builder).build();
@@ -53,6 +84,64 @@ class ApplicationDependencyClientsTest {
     @Test void missingServiceKeyFailsClosedWithoutCallingCompany() {
         var client = new HttpJobApplicationClient(RestClient.create("http://company"), "/unused/{jobId}", "");
         assertThatThrownBy(() -> client.getContext(UUID.randomUUID())).isInstanceOf(RecruitmentDependencyException.class)
+            .extracting("status").isEqualTo(503);
+    }
+
+    @Test void identityBatchUsesServiceKeyAndRejectsNonCandidate() {
+        var builder = RestClient.builder().baseUrl("http://identity");
+        var mock = MockRestServiceServer.bindTo(builder).build();
+        var client = new HttpIdentityCandidateClient(builder.build(), "test-key");
+        var id = UUID.randomUUID();
+        mock.expect(requestTo("http://identity/internal/users/candidates/lookup"))
+            .andExpect(header("X-Internal-Key", "test-key"))
+            .andRespond(withSuccess("[{\"userId\":\"" + id + "\",\"email\":\"a@example.test\",\"fullName\":\"Ứng viên A\",\"role\":\"CANDIDATE\"}]", MediaType.APPLICATION_JSON));
+        assertThat(client.getBatch(java.util.List.of(id)).get(id).fullName()).isEqualTo("Ứng viên A");
+        mock.verify(); mock.reset();
+        mock.expect(anything()).andRespond(withSuccess("[{\"userId\":\"" + id + "\",\"email\":\"h@example.test\",\"fullName\":\"HR\",\"role\":\"HR\"}]", MediaType.APPLICATION_JSON));
+        assertThatThrownBy(() -> client.getBatch(java.util.List.of(id)))
+            .isInstanceOf(RecruitmentDependencyException.class).extracting("status").isEqualTo(502);
+    }
+
+    @Test void matchClientKeepsAuthFailuresVisibleAndAllowsUnavailableScore() {
+        var builder = RestClient.builder().baseUrl("http://match");
+        var mock = MockRestServiceServer.bindTo(builder).build();
+        var client = new HttpJobMatchClient(builder.build());
+        var jobId = UUID.randomUUID(); var userId = UUID.randomUUID();
+        mock.expect(requestTo("http://match/jobs/" + jobId + "/match/" + userId))
+            .andExpect(header("Authorization", "Bearer hr"))
+            .andRespond(withSuccess("{\"score\":80,\"belowMinimum\":false,\"met\":[],\"missing\":[]}", MediaType.APPLICATION_JSON));
+        assertThat(client.get(jobId, userId, "Bearer hr")).get().extracting("score").isEqualTo(new java.math.BigDecimal("80"));
+        mock.verify(); mock.reset();
+        mock.expect(anything()).andRespond(withStatus(HttpStatus.SERVICE_UNAVAILABLE));
+        assertThat(client.get(jobId, userId, "Bearer hr")).isEmpty();
+        mock.reset();
+        mock.expect(anything()).andRespond(withStatus(HttpStatus.FORBIDDEN));
+        assertThatThrownBy(() -> client.get(jobId, userId, "Bearer hr"))
+            .isInstanceOf(RecruitmentDependencyException.class).extracting("status").isEqualTo(502);
+        mock.reset();
+        mock.expect(anything()).andRespond(withSuccess("{}", MediaType.APPLICATION_JSON));
+        assertThatThrownBy(() -> client.get(jobId, userId, "Bearer hr"))
+            .isInstanceOf(RecruitmentDependencyException.class).extracting("status").isEqualTo(502);
+    }
+
+    @Test void hrAccountStatusUsesDn05ContractAndFailsClosed() {
+        var builder = RestClient.builder().baseUrl("http://identity");
+        var mock = MockRestServiceServer.bindTo(builder).build();
+        var client = new HttpHrAccountStatusClient(builder.build(), "test-key");
+        var id = UUID.randomUUID(); var company = UUID.randomUUID();
+        mock.expect(requestTo("http://identity/internal/users/lookup"))
+            .andExpect(header("X-Internal-Key", "test-key"))
+            .andRespond(withSuccess("[{\"userId\":\"" + id + "\",\"role\":\"HR\",\"companyId\":\"" + company + "\",\"status\":\"ACTIVE\"}]", MediaType.APPLICATION_JSON));
+        assertThat(client.state(id, company)).isEqualTo(HrAccountStatusClient.State.ACTIVE);
+        mock.verify(); mock.reset();
+        mock.expect(anything()).andRespond(withSuccess("[{\"userId\":\"" + id + "\",\"role\":\"HR\",\"companyId\":\"" + company + "\",\"status\":\"LOCKED\"}]", MediaType.APPLICATION_JSON));
+        assertThat(client.state(id, company)).isEqualTo(HrAccountStatusClient.State.LOCKED);
+        mock.reset();
+        mock.expect(anything()).andRespond(withSuccess("[]", MediaType.APPLICATION_JSON));
+        assertThat(client.state(id, company)).isEqualTo(HrAccountStatusClient.State.LOCKED);
+        mock.reset();
+        mock.expect(anything()).andRespond(withStatus(HttpStatus.SERVICE_UNAVAILABLE));
+        assertThatThrownBy(() -> client.state(id, company)).isInstanceOf(RecruitmentDependencyException.class)
             .extracting("status").isEqualTo(503);
     }
 }

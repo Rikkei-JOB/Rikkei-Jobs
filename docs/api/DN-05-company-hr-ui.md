@@ -75,7 +75,7 @@ Cùng khoá `X-Internal-Key` như DN-01 (thiếu hoặc sai → 401 `INVALID_SER
 
 Quên mật khẩu với tài khoản bị khoá vẫn trả 200 nhưng **không** cấp token và không gửi thư; đặt lại mật khẩu cũ không mở khoá. Khoá cán bộ khác khoá tạm: `ACCOUNT_LOCKED` (429) vẫn là khoá 15 phút do sai mật khẩu.
 
-> **Phạm vi chặn.** Hiện **chỉ identity-service và company-service** từ chối HR bị khoá khi token còn hạn. Các service khác (profile, recruitment...) chỉ kiểm tra JWT nên vẫn nhận token cũ tới khi hết hạn (8 giờ). Khi service nào có API dành cho HR thì phải thêm bộ lọc tương tự `HrLockedFilter` (hoặc gọi lookup) ở service đó.
+> **Phạm vi chặn.** UT-02 đã nối recruitment-service với `POST /internal/users/lookup`: HR bị khoá nhận 401 ngay cả khi JWT còn hạn; identity tạm lỗi thì recruitment trả 503. Các service khác có API HR cần kiểm tra trạng thái tương tự trước khi xử lý token cũ.
 
 ## 4. Giao diện
 

@@ -112,7 +112,9 @@ public class ApplicationServiceImpl implements ApplicationService {
         var a = get(id);
         boolean owner = actor.getRole() == Role.CANDIDATE && a.getUserId().equals(actor.getUserId());
         boolean hr = actor.getRole() == Role.HR && a.getCompanyId().equals(actor.getCompanyId());
-        if (!owner && !hr) throw new ForbiddenException("Bạn không có quyền xem CV của đơn này.");
+        boolean staff = actor.getRole() == Role.STAFF || actor.getRole() == Role.ADMIN;
+        if (actor.getRole() == Role.HR && !hr) throw new ResourceNotFoundException("Không tìm thấy đơn ứng tuyển.");
+        if (!owner && !hr && !staff) throw new ForbiddenException("Bạn không có quyền xem CV của đơn này.");
         return snapshots.read(id);
     }
     private Application get(UUID id) {

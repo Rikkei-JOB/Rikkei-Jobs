@@ -27,6 +27,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
     "spring.datasource.username=${HS02_TEST_DB_USER:sa}", "spring.datasource.password=${HS02_TEST_DB_PASSWORD:}",
     "app.jwt.secret=test_secret_test_secret_test_secret_test_secret",
     "app.profile.identity-service-key=identity-test", "app.profile.lms-service-key=lms-test",
+    "app.profile.internal-service-key=contact-test",
     "logging.level.root=WARN", "debug=false"
 })
 @AutoConfigureMockMvc
@@ -81,6 +82,26 @@ class CandidateProfileApiTest {
             + "\"email\":\"candidate1@rikkeijobs.test\",\"program\":\"Kỹ sư phần mềm\","
             + "\"classCode\":\"KS25-CNTT1\",\"courseName\":\"K25\"}";
     }
+    @Test void internalPhoneRequiresRoleAndKeyAndReturnsOnlyContact() throws Exception {
+        jdbc.update("insert into profile.candidate_profiles(user_id,full_name,email,phone,program,class_code,course_name,visibility,updated_at) values (?,?,?,?,?,?,?,?,CURRENT_TIMESTAMP)",
+            owner, "Applicant", "applicant@example.test", "0912345678", "Program", "Class", "Course", "PRIVATE");
+        String hr = "Bearer " + jwt.generateJwtToken(UUID.randomUUID(), Role.HR, UUID.randomUUID());
+        String candidate = "Bearer " + token;
+        mvc.perform(get("/internal/profiles/{id}/phone", owner).header("Authorization", hr)
+            .header("X-Internal-Key", "contact-test"))
+            .andExpect(status().isOk()).andExpect(jsonPath("$.phone").value("0912345678"))
+            .andExpect(jsonPath("$.email").doesNotExist());
+        mvc.perform(get("/internal/profiles/{id}/phone", owner).header("Authorization", hr)
+            .header("X-Internal-Key", "wrong"))
+            .andExpect(status().isUnauthorized());
+        mvc.perform(get("/internal/profiles/{id}/phone", owner).header("Authorization", candidate)
+            .header("X-Internal-Key", "contact-test"))
+            .andExpect(status().isForbidden());
+        mvc.perform(get("/internal/profiles/{id}/phone", UUID.randomUUID()).header("Authorization", hr)
+            .header("X-Internal-Key", "contact-test"))
+            .andExpect(status().isOk()).andExpect(jsonPath("$.phone").doesNotExist());
+    }
+
     @Test void createsPrivateProfileFromLmsOnceAndReadsItOffline() throws Exception {
         mvc.perform(get("/profiles/me").header("Authorization", "Bearer " + token))
             .andExpect(status().isOk()).andExpect(jsonPath("$.userId").value(owner.toString()))

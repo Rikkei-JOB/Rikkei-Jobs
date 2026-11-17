@@ -48,12 +48,16 @@ export const ROLE_MENU: Record<Role, MenuItem[]> = {
   STAFF: [
     { label: "Duyệt hồ sơ", href: "/staff/profiles", icon: Users },
     { label: "Duyệt JD", href: "/staff/jobs", icon: FileCheck2 },
+    { label: "Đơn ứng tuyển", href: "/staff/applications", icon: UserSearch },
     { label: "Doanh nghiệp", href: "/staff/companies", icon: Building2 },
     { label: "Ghép thực tập", href: "/staff/internships", icon: Handshake },
     { label: "Đồng bộ dữ liệu", href: "/staff/sync", icon: RefreshCw },
     { label: "Báo cáo", href: "/staff/reports", icon: BarChart3 },
   ],
-  ADMIN: [{ label: "Quản trị", href: "/admin/settings", icon: Settings }],
+  ADMIN: [
+    { label: "Quản trị", href: "/admin/settings", icon: Settings },
+    { label: "Đơn ứng tuyển", href: "/admin/applications", icon: UserSearch },
+  ],
 };
 
 /** Mục menu đang mở (khớp đúng hoặc là trang con của nó). */
