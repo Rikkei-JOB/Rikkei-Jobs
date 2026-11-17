@@ -24,6 +24,12 @@ public interface JobService {
     /** Thay toàn bộ danh sách kỹ năng (mảng rỗng = xoá hết). */
     JobResponse replaceSkills(UUID hrUserId, UUID jobId, List<JobSkillRequest> skills, String authorization);
 
+    /** Gửi duyệt: chỉ từ DRAFT/REJECTED (xoá rejectReason), qua kiểm tra gửi duyệt; sai trạng thái → INVALID_JOB_STATUS. */
+    JobResponse submit(UUID hrUserId, UUID jobId);
+
+    /** Đóng JD: chỉ từ APPROVED; sai trạng thái → INVALID_JOB_STATUS. */
+    JobResponse close(UUID hrUserId, UUID jobId);
+
     JobResponse get(UUID hrUserId, UUID jobId);
 
     /** page từ 1, size 1–100; {@code status} null = mọi trạng thái; mới cập nhật trước. */

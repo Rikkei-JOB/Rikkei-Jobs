@@ -105,6 +105,37 @@ public class JobController {
     }
 
     @Operation(
+            summary = "Gửi duyệt JD",
+            description = "Vai trò: HR. Chỉ từ DRAFT hoặc REJECTED (xoá lý do trả lại); kiểm đủ trường, hạn nộp, "
+                    + "lương và ít nhất một kỹ năng bắt buộc, errors liệt kê mọi điều kiện sai. Không có body.")
+    @ApiResponse(responseCode = "200", description = "JD đã chuyển PENDING")
+    @ApiResponse(responseCode = "400", description = "VALIDATION_ERROR: thiếu hoặc sai điều kiện gửi duyệt (errors theo field); BAD_REQUEST: id không phải UUID")
+    @ApiResponse(responseCode = "401", description = "UNAUTHORIZED: thiếu hoặc sai token; ACCOUNT_DISABLED: HR bị khoá")
+    @ApiResponse(responseCode = "403", description = "FORBIDDEN: không phải HR; COMPANY_LOCKED: công ty đang bị khoá")
+    @ApiResponse(responseCode = "404", description = "NOT_FOUND: không có JD hoặc JD của công ty khác")
+    @ApiResponse(responseCode = "409", description = "INVALID_JOB_STATUS: JD không ở DRAFT/REJECTED; CONFLICT: JD vừa được lưu ở nơi khác")
+    @PostMapping("/{id}/submit")
+    @PreAuthorize(Roles.HR)
+    public JobResponse submit(@PathVariable UUID id, @AuthenticationPrincipal AuthPrincipal principal) {
+        return jobService.submit(principal.getUserId(), id);
+    }
+
+    @Operation(
+            summary = "Đóng JD",
+            description = "Vai trò: HR. Chỉ đóng JD đang APPROVED. Không có body.")
+    @ApiResponse(responseCode = "200", description = "JD đã chuyển CLOSED")
+    @ApiResponse(responseCode = "400", description = "BAD_REQUEST: id không phải UUID")
+    @ApiResponse(responseCode = "401", description = "UNAUTHORIZED: thiếu hoặc sai token; ACCOUNT_DISABLED: HR bị khoá")
+    @ApiResponse(responseCode = "403", description = "FORBIDDEN: không phải HR; COMPANY_LOCKED: công ty đang bị khoá")
+    @ApiResponse(responseCode = "404", description = "NOT_FOUND: không có JD hoặc JD của công ty khác")
+    @ApiResponse(responseCode = "409", description = "INVALID_JOB_STATUS: JD không ở APPROVED; CONFLICT: JD vừa được lưu ở nơi khác")
+    @PostMapping("/{id}/close")
+    @PreAuthorize(Roles.HR)
+    public JobResponse close(@PathVariable UUID id, @AuthenticationPrincipal AuthPrincipal principal) {
+        return jobService.close(principal.getUserId(), id);
+    }
+
+    @Operation(
             summary = "Xem JD",
             description = "Vai trò: HR (DN-02). Chỉ JD của công ty mình; công ty LOCKED vẫn xem được.")
     @ApiResponse(responseCode = "200", description = "Chi tiết JD kèm kỹ năng")

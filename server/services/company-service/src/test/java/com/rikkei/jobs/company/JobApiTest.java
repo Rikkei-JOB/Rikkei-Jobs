@@ -176,6 +176,21 @@ class JobApiTest extends CompanyApiTestSupport {
     }
 
     @Test
+    void createWithSkillsPersistsSkills() throws Exception {
+        String id = JSON.readTree(postJob(hr1(), body("title", "Lập trình viên Java",
+                        "skills", List.of(skill(SQL, false, 40), skill(JAVA, true, 70))))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.skills", hasSize(2)))
+                .andExpect(jsonPath("$.skills[0].skillId").value(JAVA.toString()))
+                .andExpect(jsonPath("$.skills[0].required").value(true))
+                .andExpect(jsonPath("$.skills[1].skillId").value(SQL.toString()))
+                .andReturn().getResponse().getContentAsString()).get("id").asText();
+        List<JobSkill> rows = jobSkills.findByJobId(UUID.fromString(id));
+        assertThat(rows).hasSize(2);
+        assertThat(rows).extracting(JobSkill::getSkillId).containsExactlyInAnyOrder(JAVA, SQL);
+    }
+
+    @Test
     void createAndUpdateInternshipType() throws Exception {
         String id = JSON.readTree(postJob(hr1(), body("title", "Thực tập sinh", "type", "INTERNSHIP",
                         "level", "INTERN"))

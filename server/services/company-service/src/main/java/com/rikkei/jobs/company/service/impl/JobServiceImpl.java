@@ -69,7 +69,7 @@ public class JobServiceImpl implements JobService {
         job.setCreatedBy(hrUserId);
         job.setStatus(JobStatus.DRAFT);
         applyGeneral(job, req);
-        Job saved = jobRepository.save(job);
+        Job saved = jobRepository.saveAndFlush(job);
 
         List<JobSkill> skills = req.getSkills() == null
                 ? List.of()
@@ -98,6 +98,34 @@ public class JobServiceImpl implements JobService {
         }
         checkCatalog(skills, authorization);
         return finishEdit(job, skills);
+    }
+
+    @Override
+    @Transactional
+    public JobResponse submit(UUID hrUserId, UUID jobId) {
+        Job job = ownJob(writableCompany(hrUserId), jobId);
+        if (job.getStatus() != JobStatus.DRAFT && job.getStatus() != JobStatus.REJECTED) {
+            throw new CompanyException(CompanyErrorCode.INVALID_JOB_STATUS);
+        }
+        List<JobSkill> skills = jobSkillRepository.findByJobId(job.getId());
+        Map<String, String> errors = JobRules.submitErrors(job, skills, JobRules.today(clock));
+        if (!errors.isEmpty()) {
+            throw new JobValidationException(errors);
+        }
+        job.setStatus(JobStatus.PENDING);
+        job.setRejectReason(null);
+        return jobMapper.toResponse(jobRepository.saveAndFlush(job), skills);
+    }
+
+    @Override
+    @Transactional
+    public JobResponse close(UUID hrUserId, UUID jobId) {
+        Job job = ownJob(writableCompany(hrUserId), jobId);
+        if (job.getStatus() != JobStatus.APPROVED) {
+            throw new CompanyException(CompanyErrorCode.INVALID_JOB_STATUS);
+        }
+        job.setStatus(JobStatus.CLOSED);
+        return jobMapper.toResponse(jobRepository.saveAndFlush(job), jobSkillRepository.findByJobId(job.getId()));
     }
 
     @Override
