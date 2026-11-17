@@ -1,7 +1,10 @@
 package com.rikkei.jobs.identity.controller;
 
 import com.rikkei.jobs.identity.dto.request.InternalCreateUserRequest;
+import com.rikkei.jobs.identity.dto.request.InternalLockUserRequest;
+import com.rikkei.jobs.identity.dto.request.InternalUserLookupRequest;
 import com.rikkei.jobs.identity.dto.response.InternalUserResponse;
+import com.rikkei.jobs.identity.dto.response.InternalUserStatusResponse;
 import com.rikkei.jobs.identity.dto.response.InternalLmsIdentityResponse;
 import com.rikkei.jobs.identity.service.InternalUserService;
 import jakarta.validation.Valid;
@@ -9,6 +12,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -16,8 +20,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.util.UUID;
 import java.util.List;
+import java.util.UUID;
 
 /** API nội bộ cho company-service; được InternalKeyFilter bảo vệ bằng X-Internal-Key và gateway không định tuyến tới. */
 @RestController
@@ -32,8 +36,8 @@ public class InternalUserController {
         return internalUserService.getCandidate(id);
     }
 
-    @PostMapping("/lookup")
-    public List<InternalUserResponse> lookup(@RequestBody List<UUID> ids) {
+    @PostMapping("/candidates/lookup")
+    public List<InternalUserResponse> lookupCandidates(@RequestBody List<UUID> ids) {
         return internalUserService.getCandidates(ids);
     }
 
@@ -52,5 +56,20 @@ public class InternalUserController {
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void delete(@PathVariable("id") UUID id) {
         internalUserService.deleteHrUser(id);
+    }
+
+    @PatchMapping("/{id}/lock")
+    public InternalUserStatusResponse lock(@PathVariable UUID id, @Valid @RequestBody InternalLockUserRequest request) {
+        return internalUserService.lockHr(id, request.getReason());
+    }
+
+    @PatchMapping("/{id}/unlock")
+    public InternalUserStatusResponse unlock(@PathVariable UUID id) {
+        return internalUserService.unlockHr(id);
+    }
+
+    @PostMapping("/lookup")
+    public List<InternalUserStatusResponse> lookup(@Valid @RequestBody InternalUserLookupRequest request) {
+        return internalUserService.lookup(request.getUserIds());
     }
 }

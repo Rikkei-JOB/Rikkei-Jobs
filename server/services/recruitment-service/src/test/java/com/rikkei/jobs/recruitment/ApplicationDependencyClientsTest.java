@@ -61,7 +61,7 @@ class ApplicationDependencyClientsTest {
         var mock = MockRestServiceServer.bindTo(builder).build();
         var client = new HttpIdentityCandidateClient(builder.build(), "test-key");
         var id = UUID.randomUUID();
-        mock.expect(requestTo("http://identity/internal/users/lookup"))
+        mock.expect(requestTo("http://identity/internal/users/candidates/lookup"))
             .andExpect(header("X-Internal-Key", "test-key"))
             .andRespond(withSuccess("[{\"userId\":\"" + id + "\",\"email\":\"a@example.test\",\"fullName\":\"Ứng viên A\",\"role\":\"CANDIDATE\"}]", MediaType.APPLICATION_JSON));
         assertThat(client.getBatch(java.util.List.of(id)).get(id).fullName()).isEqualTo("Ứng viên A");
@@ -91,5 +91,26 @@ class ApplicationDependencyClientsTest {
         mock.expect(anything()).andRespond(withSuccess("{}", MediaType.APPLICATION_JSON));
         assertThatThrownBy(() -> client.get(jobId, userId, "Bearer hr"))
             .isInstanceOf(RecruitmentDependencyException.class).extracting("status").isEqualTo(502);
+    }
+
+    @Test void hrAccountStatusUsesDn05ContractAndFailsClosed() {
+        var builder = RestClient.builder().baseUrl("http://identity");
+        var mock = MockRestServiceServer.bindTo(builder).build();
+        var client = new HttpHrAccountStatusClient(builder.build(), "test-key");
+        var id = UUID.randomUUID(); var company = UUID.randomUUID();
+        mock.expect(requestTo("http://identity/internal/users/lookup"))
+            .andExpect(header("X-Internal-Key", "test-key"))
+            .andRespond(withSuccess("[{\"userId\":\"" + id + "\",\"role\":\"HR\",\"companyId\":\"" + company + "\",\"status\":\"ACTIVE\"}]", MediaType.APPLICATION_JSON));
+        assertThat(client.state(id, company)).isEqualTo(HrAccountStatusClient.State.ACTIVE);
+        mock.verify(); mock.reset();
+        mock.expect(anything()).andRespond(withSuccess("[{\"userId\":\"" + id + "\",\"role\":\"HR\",\"companyId\":\"" + company + "\",\"status\":\"LOCKED\"}]", MediaType.APPLICATION_JSON));
+        assertThat(client.state(id, company)).isEqualTo(HrAccountStatusClient.State.LOCKED);
+        mock.reset();
+        mock.expect(anything()).andRespond(withSuccess("[]", MediaType.APPLICATION_JSON));
+        assertThat(client.state(id, company)).isEqualTo(HrAccountStatusClient.State.LOCKED);
+        mock.reset();
+        mock.expect(anything()).andRespond(withStatus(HttpStatus.SERVICE_UNAVAILABLE));
+        assertThatThrownBy(() -> client.state(id, company)).isInstanceOf(RecruitmentDependencyException.class)
+            .extracting("status").isEqualTo(503);
     }
 }

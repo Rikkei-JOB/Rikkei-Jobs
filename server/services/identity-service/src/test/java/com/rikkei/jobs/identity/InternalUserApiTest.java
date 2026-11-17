@@ -113,13 +113,13 @@ class InternalUserApiTest {
         User second = new User(); second.setEmail("second@example.test"); second.setFullName("Ứng viên Hai"); second.setRole(Role.CANDIDATE);
         first = users.saveAndFlush(first); second = users.saveAndFlush(second);
         String ids = json.writeValueAsString(java.util.List.of(first.getId(), second.getId()));
-        mvc.perform(post("/internal/users/lookup").header("X-Internal-Key", KEY)
+        mvc.perform(post("/internal/users/candidates/lookup").header("X-Internal-Key", KEY)
                 .contentType(MediaType.APPLICATION_JSON).content(ids))
             .andExpect(status().isOk()).andExpect(jsonPath("$[0].userId").value(first.getId().toString()))
             .andExpect(jsonPath("$[1].userId").value(second.getId().toString()));
-        mvc.perform(post("/internal/users/lookup").contentType(MediaType.APPLICATION_JSON).content(ids))
+        mvc.perform(post("/internal/users/candidates/lookup").contentType(MediaType.APPLICATION_JSON).content(ids))
             .andExpect(status().isUnauthorized());
-        mvc.perform(post("/internal/users/lookup").header("X-Internal-Key", KEY)
+        mvc.perform(post("/internal/users/candidates/lookup").header("X-Internal-Key", KEY)
                 .contentType(MediaType.APPLICATION_JSON).content(json.writeValueAsString(java.util.List.of(UUID.randomUUID()))))
             .andExpect(status().isNotFound());
     }

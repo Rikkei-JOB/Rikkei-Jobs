@@ -25,6 +25,7 @@ public class SsoUserServiceImpl implements SsoUserService {
 
         Optional<User> byLms = userRepository.findByLmsUserId(info.getLmsUserId());
         if (byLms.isPresent()) {
+            ensureNotAdminLocked(byLms.get());
             return byLms.get();
         }
 
@@ -35,6 +36,7 @@ public class SsoUserServiceImpl implements SsoUserService {
             if (!existing.getRole().isLmsRole() || existing.getLmsUserId() != null) {
                 throw new ApiException(ErrorCode.INVALID_TICKET);
             }
+            ensureNotAdminLocked(existing);
             existing.setLmsUserId(info.getLmsUserId());
             return existing;
         }
@@ -45,5 +47,11 @@ public class SsoUserServiceImpl implements SsoUserService {
         user.setRole(info.getRole());
         user.setLmsUserId(info.getLmsUserId());
         return userRepository.saveAndFlush(user);
+    }
+
+    private void ensureNotAdminLocked(User user) {
+        if (user.isAdminLocked()) {
+            throw new ApiException(ErrorCode.ACCOUNT_DISABLED);
+        }
     }
 }

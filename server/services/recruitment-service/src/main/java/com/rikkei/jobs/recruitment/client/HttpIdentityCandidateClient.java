@@ -52,7 +52,7 @@ public class HttpIdentityCandidateClient implements IdentityCandidateClient {
         if (userIds.isEmpty()) return Map.of();
         requireKey();
         try {
-            var response = client.post().uri("/internal/users/lookup")
+            var response = client.post().uri("/internal/users/candidates/lookup")
                 .header("X-Internal-Key", serviceKey).body(userIds).retrieve().body(InternalUser[].class);
             if (response == null || response.length != userIds.stream().distinct().count())
                 throw invalidIdentity();

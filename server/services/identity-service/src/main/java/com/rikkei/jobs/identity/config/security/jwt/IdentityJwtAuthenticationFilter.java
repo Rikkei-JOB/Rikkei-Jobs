@@ -43,6 +43,11 @@ public class IdentityJwtAuthenticationFilter extends OncePerRequestFilter {
             AuthPrincipal principal = jwtUtils.getPrincipalFromJwtToken(jwt);
             Optional<User> user = userRepository.findById(principal.getUserId());
             if (user.isPresent()) {
+                // Khoá bởi cán bộ có hiệu lực ngay với token đã cấp, trên mọi đường dẫn kể cả /auth/**.
+                if (user.get().isAdminLocked()) {
+                    writeAccountDisabled(response);
+                    return;
+                }
                 if (Boolean.TRUE.equals(user.get().getMustChangePassword()) && !isAuthEndpoint(request)) {
                     writeMustChangePassword(response);
                     return;
@@ -68,6 +73,15 @@ public class IdentityJwtAuthenticationFilter extends OncePerRequestFilter {
     private boolean isAuthEndpoint(HttpServletRequest request) {
         String path = request.getRequestURI().substring(request.getContextPath().length());
         return path.startsWith("/auth/");
+    }
+
+    private void writeAccountDisabled(HttpServletResponse response) throws IOException {
+        ErrorCode code = ErrorCode.ACCOUNT_DISABLED;
+        response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+        response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+        response.setCharacterEncoding("UTF-8");
+        objectMapper.writeValue(response.getWriter(),
+                ErrorResponse.of(code.name(), code.defaultMessage()));
     }
 
     private void writeMustChangePassword(HttpServletResponse response) throws IOException {

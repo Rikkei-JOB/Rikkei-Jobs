@@ -34,6 +34,11 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Error' }
+        '403':
+          description: ACCOUNT_DISABLED - tài khoản đã bị cán bộ khoá
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
   /auth/login:
     post:
       tags: [auth]
@@ -51,6 +56,11 @@ paths:
               schema: { $ref: '#/components/schemas/LoginResponse' }
         '401':
           description: INVALID_CREDENTIALS
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '403':
+          description: ACCOUNT_DISABLED - tài khoản đã bị cán bộ khoá (kể cả khi nhập sai mật khẩu)
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Error' }
@@ -250,7 +260,81 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Error' }
-  /internal/users/lookup:
+  /internal/users/{id}/lock:
+    patch:
+      tags: [internal]
+      summary: Khoá tài khoản HR bởi cán bộ (company-service gọi)
+      description: Không đi qua gateway - gọi thẳng http://localhost:8081/internal/users/{id}/lock. Đặt locked_at và lý do (bắt buộc, cắt khoảng trắng, tối đa 500 ký tự). Từ lúc này đăng nhập và SSO trả 403 ACCOUNT_DISABLED, token đã cấp bị bộ lọc JWT từ chối 401 ACCOUNT_DISABLED. Khoá lại tài khoản đã khoá thì cập nhật lý do.
+      servers:
+        - url: http://localhost:8081
+          description: Gọi thẳng identity-service (không qua gateway)
+      security: [{ internalKey: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/InternalLockUserRequest' }
+      responses:
+        '200':
+          description: Trạng thái sau khi khoá
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/InternalUserStatusResponse' }
+        '400':
+          description: VALIDATION_ERROR - lý do trống hoặc quá 500 ký tự
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '401':
+          description: INVALID_SERVICE_KEY
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '404':
+          description: NOT_FOUND - không có user
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '409':
+          description: CONFLICT - user không phải HR
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+  /internal/users/{id}/unlock:
+    patch:
+      tags: [internal]
+      summary: Mở khoá tài khoản HR (company-service gọi)
+      description: Không đi qua gateway - gọi thẳng http://localhost:8081/internal/users/{id}/unlock. Xoá lý do, locked_at, locked_until và đưa bộ đếm sai mật khẩu về 0. Tài khoản không bị cán bộ khoá thì không đổi gì (khoá tạm do sai mật khẩu tự hết hạn) và vẫn trả 200.
+      servers:
+        - url: http://localhost:8081
+          description: Gọi thẳng identity-service (không qua gateway)
+      security: [{ internalKey: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        '200':
+          description: Trạng thái sau khi mở khoá
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/InternalUserStatusResponse' }
+        '401':
+          description: INVALID_SERVICE_KEY
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '404':
+          description: NOT_FOUND - không có user
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '409':
+          description: CONFLICT - user không phải HR
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+  /internal/users/candidates/lookup:
     post:
       tags: [internal]
       summary: Lấy tên/email ứng viên theo lô cho một trang danh sách UT-02
@@ -277,6 +361,38 @@ paths:
         '400': { description: Danh sách ID không hợp lệ }
         '401': { description: INVALID_SERVICE_KEY }
         '404': { description: Một ID không thuộc user CANDIDATE }
+  /internal/users/lookup:
+    post:
+      tags: [internal]
+      summary: Tra cứu hàng loạt trạng thái tài khoản (company-service gọi)
+      description: Không đi qua gateway - gọi thẳng http://localhost:8081/internal/users/lookup. 1 đến 100 id; id không tồn tại bị bỏ qua, id trùng chỉ trả một lần, giữ thứ tự đầu vào.
+      servers:
+        - url: http://localhost:8081
+          description: Gọi thẳng identity-service (không qua gateway)
+      security: [{ internalKey: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/InternalUserLookupRequest' }
+      responses:
+        '200':
+          description: Trạng thái các tài khoản tìm thấy
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/InternalUserStatusResponse' }
+        '400':
+          description: VALIDATION_ERROR - danh sách rỗng hoặc quá 100 id
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '401':
+          description: INVALID_SERVICE_KEY
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
 components:
   securitySchemes:
     internalKey:
@@ -363,6 +479,29 @@ components:
         fullName: { type: string }
         role: { $ref: '#/components/schemas/Role' }
         companyId: { type: string, format: uuid, nullable: true }
+    InternalLockUserRequest:
+      type: object
+      required: [reason]
+      properties:
+        reason: { type: string, maxLength: 500, description: "Bắt buộc, không rỗng sau khi cắt khoảng trắng" }
+    InternalUserLookupRequest:
+      type: object
+      required: [userIds]
+      properties:
+        userIds: { type: array, minItems: 1, maxItems: 100, items: { type: string, format: uuid } }
+    InternalUserStatusResponse:
+      type: object
+      description: status là LOCKED khi và chỉ khi bị cán bộ khoá (lockedAt khác null), ngược lại ACTIVE. tempLockedUntil chỉ có khi đang khoá tạm do sai mật khẩu còn hạn.
+      properties:
+        userId: { type: string, format: uuid }
+        email: { type: string }
+        fullName: { type: string }
+        role: { $ref: '#/components/schemas/Role' }
+        companyId: { type: string, format: uuid, nullable: true }
+        status: { type: string, enum: [ACTIVE, LOCKED] }
+        lockedReason: { type: string, nullable: true }
+        lockedAt: { type: string, format: date-time, nullable: true }
+        tempLockedUntil: { type: string, format: date-time, nullable: true }
     Message:
       type: object
       properties:

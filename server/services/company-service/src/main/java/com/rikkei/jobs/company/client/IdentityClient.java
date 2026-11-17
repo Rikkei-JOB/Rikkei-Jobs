@@ -1,5 +1,6 @@
 package com.rikkei.jobs.company.client;
 
+import java.util.List;
 import java.util.UUID;
 
 /** Gọi API nội bộ /internal/users của identity-service. */
@@ -13,4 +14,16 @@ public interface IdentityClient {
 
     /** Xoá tài khoản HR (bù trừ khi ghi liên kết lỗi). 204 hoặc 404 coi là xong. */
     void deleteUser(UUID userId);
+
+    /**
+     * Khoá tài khoản HR kèm lý do. 404 thì ném ResourceNotFoundException, 409 (không phải HR) thì ConflictException,
+     * 400 thì BadRequestException; lỗi mạng, timeout, 5xx, 401 thì CompanyException(EXTERNAL_UNAVAILABLE).
+     */
+    IdentityUserStatus lockUser(UUID userId, String reason);
+
+    /** Mở khoá tài khoản HR; lỗi map giống {@link #lockUser}. */
+    IdentityUserStatus unlockUser(UUID userId);
+
+    /** Tra trạng thái nhiều tài khoản (tối đa 100 id); id lạ bị bỏ qua. */
+    List<IdentityUserStatus> lookupUsers(List<UUID> userIds);
 }

@@ -13,7 +13,7 @@ npm --prefix web run dev
 
 Mở `/hr/recruitment` bằng HR của công ty A, `/staff/applications` bằng STAFF. MailHog hiển thị email ở cổng cấu hình trong `infra/compose.yaml`. API qua gateway dùng `/api/v1/recruitment`; [OpenAPI UT-02](ut02-openapi.yaml) mô tả request, response và lỗi. Swagger UI của service ở `/api/docs`.
 
-UT-01 cần JD/CV thật hoặc mock contract của [UT-01](UT-01-applications.md). `MATCH_SERVICE_URL` trỏ tới owner DN-06, mặc định company-service; nếu DN-06 chưa có hoặc trả 404/503 thì chi tiết hiển thị `match:null`. Không tính điểm từ PDF. `IDENTITY_SERVICE_URL` và `RECRUITMENT_IDENTITY_SERVICE_KEY` dùng để lấy tên, email ứng viên hiện hành qua `/internal/users/{id}` hoặc batch `/internal/users/lookup`. Trong Compose, các URL và key đã nối giữa service. Nếu owner DN-06 đặt endpoint ở prefix khác, cập nhật `MATCH_SERVICE_URL` khi tích hợp.
+UT-01 cần JD/CV thật hoặc mock contract của [UT-01](UT-01-applications.md). `MATCH_SERVICE_URL` trỏ tới owner DN-06, mặc định company-service; nếu DN-06 chưa có hoặc trả 404/503 thì chi tiết hiển thị `match:null`. Không tính điểm từ PDF. `IDENTITY_SERVICE_URL` và `RECRUITMENT_IDENTITY_SERVICE_KEY` dùng để lấy tên, email ứng viên hiện hành qua `/internal/users/{id}` hoặc batch `/internal/users/candidates/lookup`. Trong Compose, các URL và key đã nối giữa service. Nếu owner DN-06 đặt endpoint ở prefix khác, cập nhật `MATCH_SERVICE_URL` khi tích hợp.
 
 ## Quyền và luật
 
@@ -22,6 +22,8 @@ UT-01 cần JD/CV thật hoặc mock contract của [UT-01](UT-01-applications.m
 | HR | Chỉ đơn có `companyId` bằng JWT; đoán ID công ty khác nhận 404 | Có, chỉ theo `allowedTransitions`; thêm/sửa vòng khi `INTERVIEW` |
 | STAFF | Tất cả, lọc company/JD/status | Không, nhận 403 |
 | CANDIDATE | Đơn của mình theo API UT-01 | Không; chỉ rút đơn theo luật UT-01 |
+
+DN-05: recruitment-service hỏi trạng thái HR hiện hành qua `POST /internal/users/lookup` trên identity-service ở mỗi request HR. Tài khoản bị cán bộ khoá nhận `401 ACCOUNT_DISABLED` dù JWT còn hạn; identity tạm lỗi nhận 503 để không xử lý bằng trạng thái chưa xác thực. Endpoint tra ứng viên của UT-02 là `/internal/users/candidates/lookup` riêng.
 
 Map HR: `SUBMITTED → SCREENING|REJECTED`, `SCREENING → INTERVIEW|REJECTED`, `INTERVIEW → REJECTED`. Sai cặp nhận `409 INVALID_TRANSITION`. UT-07 sở hữu API gửi offer: core transition chỉ cho `INTERVIEW → OFFER` khi có ít nhất một vòng, không vòng nào `PENDING`, vòng có `roundNo` lớn nhất `PASS`. Vòng cuối `FAIL` hoặc còn `PENDING` nhận 409. Core khoá hàng đơn trước khi kiểm và cập nhật, cũng khoá cùng hàng khi thêm/sửa vòng.
 

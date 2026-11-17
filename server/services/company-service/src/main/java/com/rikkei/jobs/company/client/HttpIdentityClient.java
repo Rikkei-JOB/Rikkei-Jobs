@@ -3,15 +3,20 @@ package com.rikkei.jobs.company.client;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.rikkei.jobs.common.config.exception.BadRequestException;
+import com.rikkei.jobs.common.config.exception.ConflictException;
+import com.rikkei.jobs.common.config.exception.ResourceNotFoundException;
 import com.rikkei.jobs.common.config.security.principle.Role;
 import com.rikkei.jobs.company.config.AppProperties;
 import com.rikkei.jobs.company.config.exception.CompanyErrorCode;
 import com.rikkei.jobs.company.config.exception.CompanyException;
 import java.net.http.HttpClient;
 import java.time.Duration;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.function.Supplier;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.MediaType;
 import org.springframework.http.client.JdkClientHttpRequestFactory;
 import org.springframework.stereotype.Component;
@@ -87,6 +92,63 @@ public class HttpIdentityClient implements IdentityClient {
                 return;
             }
             log.error("identity xoá user lỗi với mã trạng thái {}", e.getStatusCode());
+            throw new CompanyException(CompanyErrorCode.EXTERNAL_UNAVAILABLE);
+        } catch (RestClientException e) {
+            log.error("Không kết nối được identity-service: {}", e.getMessage());
+            throw new CompanyException(CompanyErrorCode.EXTERNAL_UNAVAILABLE);
+        }
+    }
+
+    @Override
+    public IdentityUserStatus lockUser(UUID userId, String reason) {
+        return callStatus(() -> restClient.patch()
+                .uri("/internal/users/{id}/lock", userId)
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(Map.of("reason", reason))
+                .retrieve()
+                .body(IdentityUserStatus.class));
+    }
+
+    @Override
+    public IdentityUserStatus unlockUser(UUID userId) {
+        return callStatus(() -> restClient.patch()
+                .uri("/internal/users/{id}/unlock", userId)
+                .retrieve()
+                .body(IdentityUserStatus.class));
+    }
+
+    @Override
+    public List<IdentityUserStatus> lookupUsers(List<UUID> userIds) {
+        return callStatus(() -> restClient.post()
+                .uri("/internal/users/lookup")
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(Map.of("userIds", userIds))
+                .retrieve()
+                .body(new ParameterizedTypeReference<List<IdentityUserStatus>>() { }));
+    }
+
+    /** Gọi identity và đổi lỗi HTTP/mạng sang ngoại lệ của service; phản hồi rỗng coi như identity lỗi. */
+    private <T> T callStatus(Supplier<T> call) {
+        try {
+            T result = call.get();
+            if (result == null) {
+                log.error("identity trả phản hồi rỗng");
+                throw new CompanyException(CompanyErrorCode.EXTERNAL_UNAVAILABLE);
+            }
+            return result;
+        } catch (RestClientResponseException e) {
+            int status = e.getStatusCode().value();
+            String message = text(parse(e.getResponseBodyAsString()), "message");
+            if (status == 404) {
+                throw new ResourceNotFoundException(message != null ? message : "Không tìm thấy tài khoản");
+            }
+            if (status == 409) {
+                throw new ConflictException(message != null ? message : "Xung đột trạng thái tài khoản");
+            }
+            if (status == 400) {
+                throw new BadRequestException(message != null ? message : "Dữ liệu không hợp lệ");
+            }
+            log.error("identity trả lỗi với mã trạng thái {}", status);
             throw new CompanyException(CompanyErrorCode.EXTERNAL_UNAVAILABLE);
         } catch (RestClientException e) {
             log.error("Không kết nối được identity-service: {}", e.getMessage());
