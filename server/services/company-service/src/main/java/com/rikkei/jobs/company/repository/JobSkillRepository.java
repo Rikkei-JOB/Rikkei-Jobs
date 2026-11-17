@@ -13,7 +13,11 @@ public interface JobSkillRepository extends JpaRepository<JobSkill, JobSkillId> 
 
     List<JobSkill> findByJobId(UUID jobId);
 
-    @Modifying
+    /**
+     * Xoá hàng loạt: flush thay đổi đang chờ trước khi chạy. Không tự clear context (sẽ tách cả Job đang sửa),
+     * nên nơi gọi không được nạp JobSkill của JD này trước khi xoá rồi chèn lại cùng khoá.
+     */
+    @Modifying(flushAutomatically = true)
     @Query("delete from JobSkill s where s.jobId = :jobId")
     void deleteByJobId(@Param("jobId") UUID jobId);
 }
