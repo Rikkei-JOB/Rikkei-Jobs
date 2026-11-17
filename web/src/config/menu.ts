@@ -9,6 +9,7 @@ import {
   GraduationCap,
   Handshake,
   Map,
+  RefreshCw,
   Send,
   Settings,
   UserRound,
@@ -50,6 +51,7 @@ export const ROLE_MENU: Record<Role, MenuItem[]> = {
     { label: "Đơn ứng tuyển", href: "/staff/applications", icon: UserSearch },
     { label: "Doanh nghiệp", href: "/staff/companies", icon: Building2 },
     { label: "Ghép thực tập", href: "/staff/internships", icon: Handshake },
+    { label: "Đồng bộ dữ liệu", href: "/staff/sync", icon: RefreshCw },
     { label: "Báo cáo", href: "/staff/reports", icon: BarChart3 },
   ],
   ADMIN: [
