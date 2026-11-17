@@ -16,6 +16,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.UUID;
 import com.rikkei.jobs.company.client.IdentityClient;
+import com.rikkei.jobs.company.client.SkillCatalogClient;
 import org.junit.jupiter.api.BeforeEach;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -48,6 +49,7 @@ public abstract class CompanyApiTestSupport {
     @Autowired protected JobRepository jobs;
     @Autowired protected JobSkillRepository jobSkills;
     @MockBean protected IdentityClient identity;
+    @MockBean protected SkillCatalogClient skillCatalog;
 
     @DynamicPropertySource
     static void uploadDir(DynamicPropertyRegistry registry) {
