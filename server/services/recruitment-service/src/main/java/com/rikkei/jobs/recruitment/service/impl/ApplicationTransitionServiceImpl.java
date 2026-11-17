@@ -14,7 +14,9 @@ import org.springframework.transaction.annotation.Transactional;
 public class ApplicationTransitionServiceImpl implements ApplicationTransitionService {
     private final ApplicationRepository applications;
     private final ApplicationStatusHistoryRepository histories;
+    private final InterviewRoundRepository rounds;
     private final ApplicationStatusPolicy policy;
+    private final OfferEligibilityPolicy offerEligibility;
     private final Clock clock;
 
     @Override @Transactional
@@ -37,6 +39,9 @@ public class ApplicationTransitionServiceImpl implements ApplicationTransitionSe
     }
     private Application change(Application a, ApplicationStatus target, UUID actorId, String note) {
         policy.requireTransition(a.getStatus(), target);
+        if (target == ApplicationStatus.OFFER) {
+            offerEligibility.requireEligible(rounds.findByApplicationIdOrderByRoundNoAsc(a.getId()));
+        }
         if (actorId == null || (note != null && note.length() > 1000)) throw new BadRequestException("Dữ liệu lịch sử không hợp lệ.");
         var now = clock.instant();
         // PostgreSQL stores microseconds. Preserve chronology even with a fixed or adjusted clock.
