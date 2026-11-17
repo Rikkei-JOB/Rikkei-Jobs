@@ -9,9 +9,15 @@ import lombok.Setter;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.Instant;
+import java.util.Map;
 import java.util.UUID;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
-/** HS-01 fallback input contract for NT-05; only final verified results contribute to evidence. */
+/**
+ * Kết quả từ hệ thống ngoài làm nguồn bằng chứng cho HS-01; chỉ kết quả đã chốt (verified) mới được tính.
+ * NT-05 đồng bộ từ mock: {@code sourceKey} là khoá ổn định bên nguồn, {@code payload} giữ nguyên bản ghi gốc.
+ */
 @Entity
 @Table(name = "external_records", uniqueConstraints = @UniqueConstraint(
         columnNames = {"user_id", "source", "source_ref"}))
@@ -41,6 +47,12 @@ public class ExternalSkillRecord {
     private Instant recordedAt;
     @Column(nullable = false)
     private boolean verified;
+    @Column(name = "source_key")
+    private String sourceKey;
+    @JdbcTypeCode(SqlTypes.JSON)
+    private Map<String, Object> payload;
+    @Column(name = "synced_at")
+    private Instant syncedAt;
 
     public VerifiedSkillRecord normalized() {
         if (!verified || score == null || scoreMax == null || scoreMax.signum() <= 0
