@@ -51,6 +51,13 @@ public class User {
     @Column(name = "locked_until")
     private Instant lockedUntil;
 
+    @Column(name = "locked_reason", length = 500)
+    private String lockedReason;
+
+    // Khác null nghĩa là tài khoản bị cán bộ khoá (khác với khoá tạm do sai mật khẩu).
+    @Column(name = "locked_at")
+    private Instant lockedAt;
+
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false, length = 10)
     private UserStatus status;
@@ -70,6 +77,10 @@ public class User {
         if (this.status == null) {
             this.status = UserStatus.ACTIVE;
         }
+    }
+
+    public boolean isAdminLocked() {
+        return lockedAt != null;
     }
 
     public boolean isLockedAt(Instant now) {

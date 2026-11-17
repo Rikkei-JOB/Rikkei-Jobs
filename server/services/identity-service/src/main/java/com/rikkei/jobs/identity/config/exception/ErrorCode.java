@@ -15,6 +15,7 @@ public enum ErrorCode {
 
     MUST_CHANGE_PASSWORD(HttpStatus.FORBIDDEN, "Bạn phải đổi mật khẩu trước khi tiếp tục"),
     ACCOUNT_LOCKED(HttpStatus.TOO_MANY_REQUESTS, "Tài khoản đang bị khoá"),
+    ACCOUNT_DISABLED(HttpStatus.FORBIDDEN, "Tài khoản đã bị khoá"),
 
     EMAIL_EXISTS(HttpStatus.CONFLICT, "Email đã được sử dụng"),
     INVALID_SERVICE_KEY(HttpStatus.UNAUTHORIZED, "Thiếu hoặc sai khoá dịch vụ nội bộ"),
