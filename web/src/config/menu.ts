@@ -47,6 +47,7 @@ export const ROLE_MENU: Record<Role, MenuItem[]> = {
   STAFF: [
     { label: "Duyệt hồ sơ", href: "/staff/profiles", icon: Users },
     { label: "Duyệt JD", href: "/staff/jobs", icon: FileCheck2 },
+    { label: "Đơn ứng tuyển", href: "/staff/applications", icon: UserSearch },
     { label: "Doanh nghiệp", href: "/staff/companies", icon: Building2 },
     { label: "Ghép thực tập", href: "/staff/internships", icon: Handshake },
     { label: "Báo cáo", href: "/staff/reports", icon: BarChart3 },
