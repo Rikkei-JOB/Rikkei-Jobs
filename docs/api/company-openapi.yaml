@@ -2,7 +2,7 @@ openapi: 3.0.3
 info:
   title: Rikkei Jobs - company-service
   version: 1.0.0
-  description: DN-01 hồ sơ doanh nghiệp và tài khoản HR. Theo docs/conventions.md - thành công trả thẳng DTO (không bọc), mọi lỗi là { code, message, errors? } với message tiếng Việt. Đường dẫn qua gateway; company-service tự phục vụ ở /staff/companies/**, /companies/** (gateway bỏ tiền tố /api/v1).
+  description: DN-01 hồ sơ doanh nghiệp và tài khoản HR; DN-05 danh sách, chi tiết công ty cho cán bộ và khoá/mở khoá HR (/staff/hr-accounts/**). Theo docs/conventions.md - thành công trả thẳng DTO (không bọc), mọi lỗi là { code, message, errors? } với message tiếng Việt. Đường dẫn qua gateway; company-service tự phục vụ ở /staff/companies/**, /companies/** (gateway bỏ tiền tố /api/v1).
 servers:
   - url: http://localhost:8080/api/v1
     description: Qua gateway (gateway bỏ /api/v1, company-service phục vụ /staff/companies/... và /companies/...)
@@ -13,6 +13,37 @@ tags:
     description: HR quản lý công ty của chính mình (role HR)
 paths:
   /staff/companies:
+    get:
+      tags: [staff]
+      summary: Cán bộ xem danh sách công ty
+      description: Vai trò STAFF. Tìm theo tên hoặc mã số thuế (q, không phân biệt hoa thường, % và _ được thoát), lọc theo trạng thái công ty, sắp xếp createdAt giảm dần. jdCount luôn 0 cho tới khi có module tin tuyển dụng.
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: q, in: query, required: false, schema: { type: string } }
+        - { name: status, in: query, required: false, schema: { $ref: '#/components/schemas/CompanyStatus' } }
+        - { name: page, in: query, required: false, schema: { type: integer, minimum: 1, default: 1 } }
+        - { name: size, in: query, required: false, schema: { type: integer, minimum: 1, maximum: 100, default: 20 } }
+      responses:
+        '200':
+          description: Trang công ty
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/StaffCompanyPage' }
+        '400':
+          description: BAD_REQUEST - page/size ngoài khoảng hoặc status không hợp lệ
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '401':
+          description: UNAUTHORIZED - thiếu hoặc sai token, hoặc ACCOUNT_DISABLED
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '403':
+          description: FORBIDDEN (không phải STAFF) hoặc MUST_CHANGE_PASSWORD
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
     post:
       tags: [staff]
       summary: Cán bộ tạo công ty
@@ -98,6 +129,118 @@ paths:
               schema: { $ref: '#/components/schemas/Error' }
         '503':
           description: EXTERNAL_UNAVAILABLE - không gọi được identity-service, hoặc identity trả lỗi (kể cả MAIL_UNAVAILABLE khi không gửi được email; khi đó không có user nào được tạo)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+  /staff/companies/{id}:
+    get:
+      tags: [staff]
+      summary: Cán bộ xem chi tiết công ty kèm tài khoản HR
+      description: Vai trò STAFF. hrAccounts lấy trạng thái từ identity-service qua API nội bộ, sắp xếp theo email; HR không còn ở identity bị bỏ qua.
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        '200':
+          description: Chi tiết công ty
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/StaffCompanyDetail' }
+        '401':
+          description: UNAUTHORIZED - thiếu hoặc sai token, hoặc ACCOUNT_DISABLED
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '403':
+          description: FORBIDDEN (không phải STAFF) hoặc MUST_CHANGE_PASSWORD
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '404':
+          description: NOT_FOUND - không có công ty
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '503':
+          description: EXTERNAL_UNAVAILABLE - không kết nối được identity-service
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+  /staff/hr-accounts/{userId}/lock:
+    post:
+      tags: [staff]
+      summary: Cán bộ khoá tài khoản HR
+      description: Vai trò STAFF. Khoá ở identity-service rồi chép locked_at về company-service. Lý do bắt buộc (sau khi cắt khoảng trắng), tối đa 500 ký tự. Khoá lại tài khoản đã khoá vẫn trả 200. HR bị khoá nhận 401 ACCOUNT_DISABLED ở identity và company-service (các service khác chưa chặn), và 403 ACCOUNT_DISABLED khi đăng nhập.
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: userId, in: path, required: true, schema: { type: string, format: uuid } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/LockHrAccountRequest' }
+      responses:
+        '200':
+          description: Tài khoản HR sau khi khoá
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/StaffHrAccount' }
+        '400':
+          description: VALIDATION_ERROR - lý do trống hoặc quá 500 ký tự (errors.reason)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '401':
+          description: UNAUTHORIZED - thiếu hoặc sai token, hoặc ACCOUNT_DISABLED
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '403':
+          description: FORBIDDEN (không phải STAFF) hoặc MUST_CHANGE_PASSWORD
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '404':
+          description: NOT_FOUND - userId không phải tài khoản HR của công ty nào
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '503':
+          description: EXTERNAL_UNAVAILABLE - không kết nối được identity-service, trạng thái không đổi
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+  /staff/hr-accounts/{userId}/unlock:
+    post:
+      tags: [staff]
+      summary: Cán bộ mở khoá tài khoản HR
+      description: Vai trò STAFF. Mở khoá ở identity-service (xoá lý do, thời điểm khoá, khoá tạm và bộ đếm sai mật khẩu) rồi xoá bản sao ở company-service. Tài khoản không bị cán bộ khoá thì không đổi gì và vẫn trả 200.
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: userId, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        '200':
+          description: Tài khoản HR sau khi mở khoá
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/StaffHrAccount' }
+        '401':
+          description: UNAUTHORIZED - thiếu hoặc sai token, hoặc ACCOUNT_DISABLED
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '403':
+          description: FORBIDDEN (không phải STAFF) hoặc MUST_CHANGE_PASSWORD
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '404':
+          description: NOT_FOUND - userId không phải tài khoản HR của công ty nào
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '503':
+          description: EXTERNAL_UNAVAILABLE - không kết nối được identity-service
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Error' }
@@ -304,12 +447,52 @@ components:
         email: { type: string }
         fullName: { type: string }
         companyId: { type: string, format: uuid }
+    StaffCompanyItem:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string }
+        taxCode: { type: string }
+        status: { $ref: '#/components/schemas/CompanyStatus' }
+        hrCount: { type: integer, format: int64 }
+        jdCount: { type: integer, format: int64, description: Luôn 0 cho tới khi có module tin tuyển dụng }
+        createdAt: { type: string, format: date-time }
+    StaffCompanyPage:
+      type: object
+      properties:
+        items: { type: array, items: { $ref: '#/components/schemas/StaffCompanyItem' } }
+        total: { type: integer, format: int64 }
+        page: { type: integer, description: Bắt đầu từ 1 }
+        size: { type: integer }
+    StaffHrAccount:
+      type: object
+      description: status là LOCKED khi bị cán bộ khoá (lockedAt khác null), ngược lại ACTIVE. tempLockedUntil chỉ có khi đang khoá tạm do sai mật khẩu còn hạn.
+      properties:
+        userId: { type: string, format: uuid }
+        email: { type: string }
+        fullName: { type: string }
+        status: { type: string, enum: [ACTIVE, LOCKED] }
+        lockedReason: { type: string, nullable: true }
+        lockedAt: { type: string, format: date-time, nullable: true }
+        tempLockedUntil: { type: string, format: date-time, nullable: true }
+    StaffCompanyDetail:
+      description: Mọi field của CompanyResponse cộng hrAccounts.
+      allOf:
+        - { $ref: '#/components/schemas/CompanyResponse' }
+        - type: object
+          properties:
+            hrAccounts: { type: array, items: { $ref: '#/components/schemas/StaffHrAccount' } }
+    LockHrAccountRequest:
+      type: object
+      required: [reason]
+      properties:
+        reason: { type: string, minLength: 1, maxLength: 500, description: "Bắt buộc, không rỗng sau khi cắt khoảng trắng" }
     Error:
       type: object
       properties:
         code:
           type: string
           example: VALIDATION_ERROR
-          description: BAD_REQUEST, VALIDATION_ERROR, UNAUTHORIZED, FORBIDDEN, MUST_CHANGE_PASSWORD, COMPANY_LOCKED, NOT_FOUND, METHOD_NOT_ALLOWED, CONFLICT, UNSUPPORTED_MEDIA_TYPE, FILE_TOO_LARGE, INVALID_FILE_TYPE, EXTERNAL_UNAVAILABLE, INTERNAL_ERROR
+          description: BAD_REQUEST, VALIDATION_ERROR, UNAUTHORIZED, ACCOUNT_DISABLED (401, HR bị cán bộ khoá), FORBIDDEN, MUST_CHANGE_PASSWORD, COMPANY_LOCKED, NOT_FOUND, METHOD_NOT_ALLOWED, CONFLICT, UNSUPPORTED_MEDIA_TYPE, FILE_TOO_LARGE, INVALID_FILE_TYPE, EXTERNAL_UNAVAILABLE, INTERNAL_ERROR
         message: { type: string }
         errors: { description: Map field -> thông báo khi VALIDATION_ERROR, type: object, additionalProperties: { type: string } }

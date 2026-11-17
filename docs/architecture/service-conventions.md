@@ -17,7 +17,7 @@
 | profile-service | 8082 | `/profile/**` | `/api/v1/profile/**` |
 | recruitment-service | 8083 | `/recruitment/**` | `/api/v1/recruitment/**` |
 | learning-service | 8084 | `/learning/**` | `/api/v1/learning/**` |
-| company-service | 8085 | `/company/**`, `/companies/**`, `/staff/companies/**` | `/api/v1/company/**`, `/api/v1/companies/**`, `/api/v1/staff/companies/**` |
+| company-service | 8085 | `/company/**`, `/companies/**`, `/staff/companies/**`, `/staff/hr-accounts/**` | `/api/v1/company/**`, `/api/v1/companies/**`, `/api/v1/staff/companies/**`, `/api/v1/staff/hr-accounts/**` |
 | internship-service | 8086 | `/internship/**` | `/api/v1/internship/**` |
 | assessment-service | 8087 | `/assessment/**` | `/api/v1/assessment/**` |
 | ai-service | 8088 | `/ai/**` | `/api/v1/ai/**` |
@@ -58,7 +58,7 @@ Lỗi (mọi service dùng chung `ErrorResponse`): hai field bắt buộc `code`
 | thiếu phần multipart bắt buộc | 400 | `VALIDATION_ERROR` |
 | lỗi không lường trước | 500 | `INTERNAL_ERROR` (chỉ log, không lộ nội dung lỗi cho client) |
 
-Lỗi không lường trước trả 500 (không gộp vào 400 để khỏi che lỗi code). Cột thời gian của identity dùng `Instant` vì cột là `timestamptz` và cần so sánh thời điểm khoá tài khoản chính xác. Ba dòng 404/405/415 do `GlobalExceptionHandler` của `common-core` xử lý nên mọi service đều trả đúng dạng `{code, message}` (trước đây các trường hợp này bị ném lại cho cơ chế mặc định của Spring, chuyển tiếp sang `/error` vốn không nằm trong `permitAll` và không chạy lại bộ lọc JWT, nên client nhận 401 hoặc một thân lỗi mặc định thay vì `{code, message}`). Service có mã lỗi riêng thì thêm enum và `@RestControllerAdvice` của chính nó, ví dụ company-service (`CompanyErrorCode`): `COMPANY_LOCKED` → 403, `FILE_TOO_LARGE` và `INVALID_FILE_TYPE` → 400, `EXTERNAL_UNAVAILABLE` → 503. Identity có thêm `EMAIL_EXISTS` → 409 và `MAIL_UNAVAILABLE` → 503 (API nội bộ), `INVALID_SERVICE_KEY` → 401. Lỗi riêng của identity (`ACCOUNT_LOCKED` → 429, `MUST_CHANGE_PASSWORD` → 403, `TICKET_*` → 401...) vẫn giữ hình dạng `{code, message}`.
+Lỗi không lường trước trả 500 (không gộp vào 400 để khỏi che lỗi code). Cột thời gian của identity dùng `Instant` vì cột là `timestamptz` và cần so sánh thời điểm khoá tài khoản chính xác. Ba dòng 404/405/415 do `GlobalExceptionHandler` của `common-core` xử lý nên mọi service đều trả đúng dạng `{code, message}` (trước đây các trường hợp này bị ném lại cho cơ chế mặc định của Spring, chuyển tiếp sang `/error` vốn không nằm trong `permitAll` và không chạy lại bộ lọc JWT, nên client nhận 401 hoặc một thân lỗi mặc định thay vì `{code, message}`). Service có mã lỗi riêng thì thêm enum và `@RestControllerAdvice` của chính nó, ví dụ company-service (`CompanyErrorCode`): `COMPANY_LOCKED` → 403, `FILE_TOO_LARGE` và `INVALID_FILE_TYPE` → 400, `EXTERNAL_UNAVAILABLE` → 503. Mã `ACCOUNT_DISABLED` ("Tài khoản đã bị khoá", HR bị cán bộ khoá, DN-05): đăng nhập/SSO trả **403**, còn bộ lọc JWT của identity và `HrLockedFilter` của company-service trả **401** (token còn hạn nhưng tài khoản đã khoá). Identity có thêm `EMAIL_EXISTS` → 409 và `MAIL_UNAVAILABLE` → 503 (API nội bộ), `INVALID_SERVICE_KEY` → 401. Lỗi riêng của identity (`ACCOUNT_LOCKED` → 429, `MUST_CHANGE_PASSWORD` → 403, `TICKET_*` → 401...) vẫn giữ hình dạng `{code, message}`.
 
 ## 4. Xác thực và phân quyền
 
@@ -83,6 +83,7 @@ OwnershipGuard.requireOwner(principal, cv.getCandidateId(), "Không tìm thấy 
 
   Lấy `companyId`/`userId` từ `AuthPrincipal`, không từ request. Mẫu đầy đủ: `CompanyController` / `CompanyServiceImpl.getCompany` của company-service (HR thuộc công ty nào lấy từ bảng `company_hr`). Ma trận quyền theo tính năng ở [NT-01-authentication.md](../api/NT-01-authentication.md); khung phân quyền ở [NT-02-phan-quyen.md](../api/NT-02-phan-quyen.md).
 - Tài liệu API sinh từ code (springdoc) tại `/<khu>/api-docs`, xem gộp ở Swagger UI `http://localhost:8080/api/docs`. Ghi vai trò được gọi và các mã lỗi bằng `@Operation`, `@ApiResponse`.
+- **Chặn HR bị cán bộ khoá (DN-05).** Token HR còn hạn vẫn bị từ chối khi `locked_at` khác null: identity-service kiểm DB trong `IdentityJwtAuthenticationFilter`, company-service kiểm `company_hr.locked_at` trong `HrLockedFilter` (đặt ngay sau `JwtAuthenticationFilter`), cùng trả 401 `ACCOUNT_DISABLED`. **Hiện chỉ hai service này chặn**; service nào có API cho HR cũng phải thêm bộ lọc tương tự (hoặc hỏi `POST /internal/users/lookup` của identity), nếu không HR bị khoá vẫn dùng được token cũ tới khi hết hạn (8 giờ).
 - Endpoint công khai không cần token (ví dụ company-service phục vụ ảnh logo cho thẻ `img`, `GET /companies/logos/**`) phải khai báo trong `SecurityFilterChain` riêng của service đó; chain mặc định chỉ mở các đường `/actuator`.
 - Một service cần luật bảo mật riêng thì khai báo bean `SecurityFilterChain` của chính nó, bean mặc định của `common-core` sẽ nhường chỗ.
 
@@ -125,4 +126,4 @@ Mỗi service đọc `JWT_SECRET` (khoá HS256, ≥ 32 byte), cổng `<TÊN>_SER
 
 ## 8. Chưa làm
 
-- Ngoài identity-service (NT-01), company-service (DN-01) và profile-service (HS-01), các service khác chưa có entity, migration nào. `ddl-auto: validate` sẽ báo lỗi ngay khi có entity mà chưa có migration.
+- Ngoài identity-service (NT-01, DN-05), company-service (DN-01, DN-05) và profile-service (HS-01), các service khác chưa có entity, migration nào. `ddl-auto: validate` sẽ báo lỗi ngay khi có entity mà chưa có migration.

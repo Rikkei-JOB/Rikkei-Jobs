@@ -1,0 +1,150 @@
+# DN-05 - request mau (IntelliJ HTTP Client hoac VS Code REST Client).
+# Chay truoc: mock (9000), identity va company-service voi profile dev, gateway (8080). Xem docs/api/DN-05-company-hr-ui.md muc "Cach chay".
+# Chay tu tren xuong: kich ban khoa/mo khoa hr2 (cong ty B). Muc 6 tra hr2 ve trang thai mo khoa.
+
+@gw = http://localhost:8080/api/v1
+@A = 00000000-0000-0000-0000-0000000000a1
+@B = 00000000-0000-0000-0000-0000000000b2
+@hr2 = 00000000-0000-0000-0001-000000000002
+
+############################## 1. Token cua staff1 (SSO) ##############################
+
+### 1a. Xin ve SSO cho staff1 (chi dev) -> 200 {ticket, issuedAt}
+# @name staffTicket
+POST {{gw}}/auth/dev/sso-ticket
+Content-Type: application/json
+
+{ "lmsUserId": "lms-st-001" }
+
+### 1b. Doi ve lay token (trong 60 giay, dung mot lan) -> 200 {accessToken, user}
+# @name staffSso
+POST {{gw}}/auth/sso
+Content-Type: application/json
+
+{ "ticket": "{{staffTicket.response.body.ticket}}" }
+
+############################## 2. Danh sach, tim kiem, chi tiet ##############################
+
+### 2a. Danh sach (trang 1, 20 dong, moi nhat truoc) -> 200 { items, total, page, size }; jdCount luon 0
+GET {{gw}}/staff/companies
+Authorization: Bearer {{staffSso.response.body.accessToken}}
+
+### 2b. Tim theo ten (khong phan biet hoa thuong) -> 200, chi cong ty co "cong ty" trong ten
+GET {{gw}}/staff/companies?q=cong%20ty
+Authorization: Bearer {{staffSso.response.body.accessToken}}
+
+### 2c. Tim theo ma so thue (Cong ty A) -> 200, 1 dong
+GET {{gw}}/staff/companies?q=0101234567
+Authorization: Bearer {{staffSso.response.body.accessToken}}
+
+### 2d. Loc theo trang thai cong ty -> 200
+GET {{gw}}/staff/companies?status=ACTIVE&page=1&size=10
+Authorization: Bearer {{staffSso.response.body.accessToken}}
+
+### 2e. Phan trang sai -> 400 BAD_REQUEST
+GET {{gw}}/staff/companies?page=0&size=500
+Authorization: Bearer {{staffSso.response.body.accessToken}}
+
+### 2f. Chi tiet cong ty A kem hrAccounts (hr1, hr-new) -> 200 StaffCompanyDetail
+GET {{gw}}/staff/companies/{{A}}
+Authorization: Bearer {{staffSso.response.body.accessToken}}
+
+### 2g. Khong phai STAFF -> 403 FORBIDDEN (dung token hr1, xem 4a)
+GET {{gw}}/staff/companies
+Authorization: Bearer {{hr1Login.response.body.accessToken}}
+
+############################## 3. Khoa hr2 ##############################
+
+### 3a. hr2 dang nhap truoc khi bi khoa -> 200 (giu token nay de thu 3d)
+# @name hr2Login
+POST {{gw}}/auth/login
+Content-Type: application/json
+
+{ "email": "hr2@rikkeijobs.test", "password": "Test@123" }
+
+### 3b. Khoa thieu ly do -> 400 VALIDATION_ERROR, errors.reason
+POST {{gw}}/staff/hr-accounts/{{hr2}}/lock
+Authorization: Bearer {{staffSso.response.body.accessToken}}
+Content-Type: application/json
+
+{ "reason": "   " }
+
+### 3c. Khoa hr2 kem ly do -> 200 StaffHrAccount { status: "LOCKED", lockedReason, lockedAt }
+POST {{gw}}/staff/hr-accounts/{{hr2}}/lock
+Authorization: Bearer {{staffSso.response.body.accessToken}}
+Content-Type: application/json
+
+{ "reason": "Vi pham dieu khoan dang tin" }
+
+### 3d. Token hr2 cu van con han nhung bi chan -> 401 ACCOUNT_DISABLED "Tai khoan da bi khoa"
+GET {{gw}}/companies/me
+Authorization: Bearer {{hr2Login.response.body.accessToken}}
+
+### 3e. hr2 dang nhap lai -> 403 ACCOUNT_DISABLED
+POST {{gw}}/auth/login
+Content-Type: application/json
+
+{ "email": "hr2@rikkeijobs.test", "password": "Test@123" }
+
+### 3f. Chi tiet cong ty B thay hr2 LOCKED kem ly do -> 200
+GET {{gw}}/staff/companies/{{B}}
+Authorization: Bearer {{staffSso.response.body.accessToken}}
+
+### 3g. userId khong phai HR cua cong ty nao (staff1) -> 404 NOT_FOUND
+POST {{gw}}/staff/hr-accounts/00000000-0000-0000-0001-000000000005/lock
+Authorization: Bearer {{staffSso.response.body.accessToken}}
+Content-Type: application/json
+
+{ "reason": "Thu" }
+
+############################## 4. HR khac van binh thuong ##############################
+
+### 4a. hr1 (cong ty A) dang nhap -> 200
+# @name hr1Login
+POST {{gw}}/auth/login
+Content-Type: application/json
+
+{ "email": "hr1@rikkeijobs.test", "password": "Test@123" }
+
+### 4b. hr1 xem cong ty cua minh -> 200 "Cong ty A"
+GET {{gw}}/companies/me
+Authorization: Bearer {{hr1Login.response.body.accessToken}}
+
+############################## 5. Mo khoa hr2 ##############################
+
+### 5a. Mo khoa -> 200 StaffHrAccount { status: "ACTIVE", lockedReason: null }
+POST {{gw}}/staff/hr-accounts/{{hr2}}/unlock
+Authorization: Bearer {{staffSso.response.body.accessToken}}
+
+### 5b. hr2 dang nhap lai -> 200
+# @name hr2Login2
+POST {{gw}}/auth/login
+Content-Type: application/json
+
+{ "email": "hr2@rikkeijobs.test", "password": "Test@123" }
+
+### 5c. hr2 xem cong ty cua minh -> 200 "Cong ty B"
+GET {{gw}}/companies/me
+Authorization: Bearer {{hr2Login2.response.body.accessToken}}
+
+############################## 6. API noi bo moi (KHONG qua gateway) ##############################
+
+### 6a. Thieu khoa -> 401 INVALID_SERVICE_KEY
+PATCH http://localhost:8081/internal/users/{{hr2}}/lock
+Content-Type: application/json
+
+{ "reason": "Thu" }
+
+### 6b. Tra cuu hang loat (id la bi bo qua) -> 200 [InternalUserStatusResponse]
+POST http://localhost:8081/internal/users/lookup
+X-Internal-Key: dev-internal-key
+Content-Type: application/json
+
+{ "userIds": ["{{hr2}}", "00000000-0000-0000-0000-00000000dead"] }
+
+### 6c. Danh sach rong -> 400 VALIDATION_ERROR
+POST http://localhost:8081/internal/users/lookup
+X-Internal-Key: dev-internal-key
+Content-Type: application/json
+
+{ "userIds": [] }
