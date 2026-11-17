@@ -91,10 +91,10 @@ Index (người thiết kế chọn): `(company_id, status, updated_at DESC)` ch
 | `job_id` | UUID | NOT NULL, FK → `jobs(id)` ON DELETE CASCADE |
 | `skill_id` | UUID | NOT NULL. `skills.id` của profile-service, không FK chéo schema |
 | `required` | BOOLEAN | NOT NULL |
-| `min_score` | INTEGER | NOT NULL, CHECK `min_score BETWEEN 1 AND 100` (**chờ xác nhận**, xem ghi chú dưới) |
+| `min_score` | INTEGER | NOT NULL, CHECK `min_score BETWEEN 1 AND 100` (chốt, xem ghi chú dưới) |
 | | | PK `(job_id, skill_id)` |
 
-Ghi chú `min_score`: đề ghi 0–100, nhưng UT-02 (đã merge) coi mọi kỹ năng có `minScore <= 0` trong kết quả điểm khớp của DN-06 là lỗi hợp đồng (502 `MATCH_CONTRACT_ERROR`, xem `HttpJobMatchClient`). Đề xuất 1–100 để JD lưu được không làm hỏng màn chi tiết đơn của HR sau này. Chờ người giao task xác nhận trước khi viết migration.
+Ghi chú `min_score`: đề ghi 0–100, nhưng UT-02 (đã merge) coi mọi kỹ năng có `minScore <= 0` trong kết quả điểm khớp của DN-06 là lỗi hợp đồng (502 `MATCH_CONTRACT_ERROR`, xem `HttpJobMatchClient`). Vì vậy chốt 1–100 (người giao task đã xác nhận) để JD lưu được không làm hỏng màn chi tiết đơn của HR sau này; API, zod và thanh trượt cùng giới hạn này.
 
 ID kỹ năng ổn định: HS-01 đã cam kết sửa mã thì giữ nguyên `id` (V4 của profile-service đã làm vậy).
 
@@ -236,7 +236,7 @@ Trên giao diện các ô bắt buộc có dấu sao; "bắt buộc" nghĩa là 
 
 - Ô tìm "Thêm kỹ năng…" lọc trong danh mục, ẩn kỹ năng đã chọn. Kỹ năng thêm vào mặc định ở khối **Bắt buộc**, `minScore` mặc định 40.
 - Khối **Bắt buộc** (đỏ, chú thích "thiếu là không đạt") và khối **Ưu tiên** (xanh, "có thì cộng điểm"), mỗi khối đếm số kỹ năng. Mỗi dòng: tên kỹ năng, thanh trượt, giá trị + tên bậc, nút xoá, và menu/nút chuyển sang khối kia.
-- Thanh trượt (chốt): thang 100 bước 1 (giá trị nhỏ nhất theo `min_score` ở mục 3.2, đề xuất 1), vạch ở 40/70/85, nền chia bốn đoạn màu, nhãn bên phải dạng "70 · Tốt" theo bậc của `docs/conventions.md` (`<40` Cơ bản, `<70` Khá, `<85` Tốt, còn lại Xuất sắc).
+- Thanh trượt (chốt): thang 100 bước 1 (giá trị nhỏ nhất 1, theo mục 3.2), vạch ở 40/70/85, nền chia bốn đoạn màu, nhãn bên phải dạng "70 · Tốt" theo bậc của `docs/conventions.md` (`<40` Cơ bản, `<70` Khá, `<85` Tốt, còn lại Xuất sắc).
 
 **Nút và hành vi** (người thiết kế chọn, người dùng đã đồng ý):
 
