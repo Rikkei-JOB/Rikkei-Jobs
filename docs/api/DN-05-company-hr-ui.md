@@ -47,7 +47,7 @@ Các endpoint DN-01 (`POST /staff/companies`, `POST /staff/companies/{id}/hr-acc
 
 Quy tắc dữ liệu:
 
-- **Danh sách**: `q` tìm theo tên hoặc mã số thuế, không phân biệt hoa thường; `%` và `_` trong `q` được thoát nên tìm đúng nghĩa đen. `status` là `ACTIVE` hoặc `LOCKED` (trạng thái **công ty**). `page` từ 1 (mặc định 1), `size` mặc định 20, tối đa 100. Sắp xếp `createdAt` giảm dần. `hrCount` là số HR của công ty; `jdCount` **luôn 0** cho tới khi có module tin tuyển dụng.
+- **Danh sách**: `q` tìm theo tên hoặc mã số thuế, không phân biệt hoa thường nhưng **phân biệt dấu tiếng Việt**; `%` và `_` trong `q` được thoát nên tìm đúng nghĩa đen. `status` là `ACTIVE` hoặc `LOCKED` (trạng thái **công ty**). `page` từ 1 (mặc định 1), `size` mặc định 20, tối đa 100. Sắp xếp `createdAt` giảm dần. `hrCount` là số HR của công ty; `jdCount` **luôn 0** cho tới khi có module tin tuyển dụng.
 - **Chi tiết**: gồm mọi field của `CompanyResponse` và `hrAccounts[]` (`userId`, `email`, `fullName`, `status`, `lockedReason`, `lockedAt`, `tempLockedUntil`), sắp xếp theo email. company-service lấy trạng thái từ identity qua API nội bộ; HR có trong `company_hr` nhưng không còn ở identity bị bỏ khỏi danh sách (ghi log WARN).
 - **Khoá**: `reason` bắt buộc, cắt khoảng trắng rồi không được rỗng, tối đa 500 ký tự. Khoá lại tài khoản đã khoá vẫn trả 200 (cập nhật lý do). `userId` không phải HR của một công ty nào → 404.
 - **Mở khoá**: xoá `locked_reason`, `locked_at`, `locked_until`, đưa bộ đếm sai mật khẩu về 0. Tài khoản không bị cán bộ khoá thì không đổi gì và trả 200.
@@ -123,7 +123,7 @@ Lưu ý (giống DN-01):
 | 3 | Mở khoá thì đăng nhập lại được | staff1 mở khoá hr2, hr2 đăng nhập | 200 | `StaffHrAccountLockApiTest`, `InternalUserLockApiTest` |
 | 4 | Khoá không lý do bị chặn | `DN-05.http` 3b, hộp thoại khoá để trống | 400 `VALIDATION_ERROR`; giao diện không gửi | `StaffHrAccountLockApiTest` |
 | 5 | HR sửa, lưu, xem trước đúng | `/hr/company` sửa tên, đổi logo, lưu, "Xem trước" | thẻ tóm tắt và trang xem trước khớp bản đã lưu | — (kiểm tay, xem mục 7) |
-| 6 | Tìm công ty theo tên hoặc MST | `DN-05.http` 2a-2b, ô tìm ở `/staff/companies` | trả đúng công ty; `q=%` không khớp mọi dòng | `StaffCompanyListApiTest` |
+| 6 | Tìm công ty theo tên hoặc MST | `DN-05.http` 2b-2c (tên `Công ty`, MST `0101234567`), ô tìm ở `/staff/companies` | trả đúng công ty; tìm theo tên **phân biệt dấu** (`cong ty` không khớp `Công ty`); `q=%` không khớp mọi dòng | `StaffCompanyListApiTest` |
 
 Các lớp test nằm ở `server/services/company-service/src/test` và `server/services/identity-service/src/test` (thêm `HttpIdentityClientLockTest`, `CompanyRouteIntegrationTest` ở gateway).
 
