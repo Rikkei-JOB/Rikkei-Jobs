@@ -19,6 +19,12 @@ public class CompanyExceptionHandler {
                 .body(ErrorResponse.of(ex.getCode().name(), ex.getMessage()));
     }
 
+    @ExceptionHandler(JobValidationException.class)
+    public ResponseEntity<ErrorResponse> handleJobValidation(JobValidationException ex) {
+        return ResponseEntity.badRequest()
+                .body(ErrorResponse.of("VALIDATION_ERROR", "Dữ liệu không hợp lệ", ex.getErrors()));
+    }
+
     @ExceptionHandler(MaxUploadSizeExceededException.class)
     public ResponseEntity<ErrorResponse> handleMaxUploadSize(MaxUploadSizeExceededException ex) {
         CompanyErrorCode code = CompanyErrorCode.FILE_TOO_LARGE;
