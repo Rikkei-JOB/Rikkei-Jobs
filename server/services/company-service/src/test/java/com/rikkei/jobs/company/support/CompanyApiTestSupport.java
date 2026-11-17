@@ -5,6 +5,10 @@ import com.rikkei.jobs.common.config.security.principle.Role;
 import com.rikkei.jobs.company.entity.Company;
 import com.rikkei.jobs.company.entity.CompanyHr;
 import com.rikkei.jobs.company.entity.CompanyStatus;
+import com.rikkei.jobs.company.entity.Job;
+import com.rikkei.jobs.company.entity.JobStatus;
+import com.rikkei.jobs.company.repository.JobRepository;
+import com.rikkei.jobs.company.repository.JobSkillRepository;
 import com.rikkei.jobs.company.repository.CompanyHrRepository;
 import com.rikkei.jobs.company.repository.CompanyRepository;
 import java.io.IOException;
@@ -41,6 +45,8 @@ public abstract class CompanyApiTestSupport {
     @Autowired protected JwtUtils jwt;
     @Autowired protected CompanyRepository companies;
     @Autowired protected CompanyHrRepository companyHrs;
+    @Autowired protected JobRepository jobs;
+    @Autowired protected JobSkillRepository jobSkills;
     @MockBean protected IdentityClient identity;
 
     @DynamicPropertySource
@@ -58,6 +64,8 @@ public abstract class CompanyApiTestSupport {
 
     @BeforeEach
     void cleanTables() {
+        jobSkills.deleteAll();
+        jobs.deleteAll();
         companyHrs.deleteAll();
         companies.deleteAll();
     }
@@ -77,6 +85,15 @@ public abstract class CompanyApiTestSupport {
         company.setStatus(status);
         company.setCreatedBy(UUID.randomUUID());
         return companies.save(company);
+    }
+
+    protected Job saveJob(UUID companyId, JobStatus status) {
+        Job job = new Job();
+        job.setCompanyId(companyId);
+        job.setTitle("JD mẫu");
+        job.setStatus(status);
+        job.setCreatedBy(UUID.randomUUID());
+        return jobs.save(job);
     }
 
     protected void linkHr(UUID userId, UUID companyId) {
