@@ -53,6 +53,7 @@ class CompanyRouteIntegrationTest {
     @CsvSource({
             "/api/v1/companies/me, /companies/me",
             "/api/v1/staff/companies, /staff/companies",
+            "/api/v1/staff/hr-accounts/x/lock, /staff/hr-accounts/x/lock",
             "/api/v1/company/ping, /company/ping"
     })
     void companyRoutesForwardPathAndAuthorization(String gatewayPath, String servicePath) throws Exception {
