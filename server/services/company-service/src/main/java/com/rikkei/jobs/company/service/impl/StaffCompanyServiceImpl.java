@@ -14,6 +14,7 @@ import com.rikkei.jobs.company.entity.CompanyStatus;
 import com.rikkei.jobs.company.repository.CompanyHrRepository;
 import com.rikkei.jobs.company.repository.CompanyRepository;
 import com.rikkei.jobs.company.service.StaffCompanyService;
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
@@ -39,14 +40,25 @@ public class StaffCompanyServiceImpl implements StaffCompanyService {
     private final CompanyHrRepository companyHrRepository;
     private final IdentityClient identity;
 
+    private static final int MAX_QUERY_LENGTH = 100;
+    /** identity chỉ nhận tối đa 100 id mỗi lần lookup. */
+    private static final int LOOKUP_BATCH_SIZE = 100;
+
     @Override
     public PageResponse<StaffCompanyItem> search(String q, CompanyStatus status, int page, int size) {
         if (page < 1 || size < 1 || size > 100) {
             throw new BadRequestException("Phân trang không hợp lệ.");
         }
-        String pattern = "%" + escapeLike(q == null ? "" : q.trim().toLowerCase(Locale.ROOT)) + "%";
+        String keyword = q == null ? "" : q.trim();
+        if (keyword.length() > MAX_QUERY_LENGTH) {
+            throw new BadRequestException("Từ khoá tìm kiếm tối đa 100 ký tự.");
+        }
+        String pattern = "%" + escapeLike(keyword.toLowerCase(Locale.ROOT)) + "%";
         Sort sort = Sort.by(Sort.Order.desc("createdAt"), Sort.Order.asc("id"));
-        Page<Company> result = companyRepository.search(pattern, status, PageRequest.of(page - 1, size, sort));
+        PageRequest pageable = PageRequest.of(page - 1, size, sort);
+        Page<Company> result = status == null
+                ? companyRepository.search(pattern, pageable)
+                : companyRepository.searchByStatus(pattern, status, pageable);
 
         Map<UUID, Long> hrCounts = new HashMap<>();
         if (!result.isEmpty()) {
@@ -67,8 +79,11 @@ public class StaffCompanyServiceImpl implements StaffCompanyService {
         Company c = companyRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy công ty"));
         List<UUID> hrIds = companyHrRepository.findByCompanyId(id).stream().map(CompanyHr::getUserId).toList();
-        // Không có HR thì khỏi gọi identity (lookup yêu cầu 1–100 id).
-        List<IdentityUserStatus> found = hrIds.isEmpty() ? List.of() : identity.lookupUsers(hrIds);
+        // Không có HR thì khỏi gọi identity (lookup yêu cầu 1–100 id); nhiều hơn 100 thì chia lô.
+        List<IdentityUserStatus> found = new ArrayList<>();
+        for (int from = 0; from < hrIds.size(); from += LOOKUP_BATCH_SIZE) {
+            found.addAll(identity.lookupUsers(hrIds.subList(from, Math.min(from + LOOKUP_BATCH_SIZE, hrIds.size()))));
+        }
         Set<UUID> foundIds = found.stream().map(IdentityUserStatus::userId).collect(Collectors.toSet());
         List<UUID> missing = hrIds.stream().filter(h -> !foundIds.contains(h)).toList();
         if (!missing.isEmpty()) {

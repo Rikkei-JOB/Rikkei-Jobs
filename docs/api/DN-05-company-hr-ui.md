@@ -13,7 +13,7 @@
 ## 1. Mục tiêu
 
 - **Cán bộ (`STAFF`)** xem danh sách công ty (tìm theo tên hoặc mã số thuế, lọc trạng thái, phân trang), mở chi tiết một công ty, **khoá / mở khoá** từng tài khoản HR (khoá bắt buộc có lý do) và thêm HR mới.
-- **HR** sửa hồ sơ công ty, đổi logo (có xem trước ngay và báo trạng thái lưu) và **xem trước** trang công ty như ứng viên thấy.
+- **HR** sửa hồ sơ công ty, đổi logo (có xem trước ngay và báo trạng thái lưu) và nút **"Xem như ứng viên"** để xem trang công ty như ứng viên thấy.
 - HR bị cán bộ khoá thì mất quyền ngay, kể cả khi token còn hạn: gọi API bị 401 `ACCOUNT_DISABLED`, giao diện đưa về `/login`; đăng nhập báo "Tài khoản đã bị khoá".
 
 ## 2. Cơ sở dữ liệu
@@ -81,9 +81,9 @@ Quên mật khẩu với tài khoản bị khoá vẫn trả 200 nhưng **không
 
 | Trang | Vai trò | Nội dung |
 | --- | --- | --- |
-| `/staff/companies` | STAFF | Bảng công ty (tên, MST, trạng thái, số HR, số JD, ngày tạo); ô tìm debounce 300 ms, lọc trạng thái, phân trang 20 dòng; `q`, `status`, `page` nằm trên URL |
+| `/staff/companies` | STAFF | Bảng công ty (tên, MST, trạng thái, số HR, số JD); ô tìm debounce 300 ms, lọc trạng thái, phân trang 20 dòng; `q`, `status`, `page` nằm trên URL |
 | `/staff/companies/[id]` | STAFF | Thông tin công ty, bảng HR với trạng thái; nút Khoá (hộp thoại bắt buộc lý do), Mở khoá, Thêm HR |
-| `/hr/company` | HR | Hai cột: form sửa hồ sơ + thẻ tóm tắt; logo xem trước ngay khi chọn, báo trạng thái lưu; nút "Xem trước" |
+| `/hr/company` | HR | Hai cột: form sửa hồ sơ + thẻ tóm tắt; logo xem trước ngay khi chọn, báo trạng thái lưu; nút "Xem như ứng viên" |
 | `/hr/company/preview` | HR | Trang công ty như ứng viên thấy, luôn tải lại bản đã lưu |
 
 Khi token của HR đã bị khoá, request kế tiếp trả 401 và axios đưa về `/login`. Các endpoint đăng nhập công khai không gắn bearer cũ, để token của tài khoản bị khoá không làm hỏng việc đăng nhập bằng tài khoản khác.
@@ -122,7 +122,7 @@ Lưu ý (giống DN-01):
 | 2 | HR bị khoá không đăng nhập được | hr2 đăng nhập | 403 `ACCOUNT_DISABLED`, giao diện "Tài khoản đã bị khoá" | `AdminLockAuthTest` |
 | 3 | Mở khoá thì đăng nhập lại được | staff1 mở khoá hr2, hr2 đăng nhập | 200 | `StaffHrAccountLockApiTest`, `InternalUserLockApiTest` |
 | 4 | Khoá không lý do bị chặn | `DN-05.http` 3b, hộp thoại khoá để trống | 400 `VALIDATION_ERROR`; giao diện không gửi | `StaffHrAccountLockApiTest` |
-| 5 | HR sửa, lưu, xem trước đúng | `/hr/company` sửa tên, đổi logo, lưu, "Xem trước" | thẻ tóm tắt và trang xem trước khớp bản đã lưu | — (kiểm tay, xem mục 7) |
+| 5 | HR sửa, lưu, xem trước đúng | `/hr/company` sửa tên, đổi logo, lưu, "Xem như ứng viên" | thẻ tóm tắt và trang xem trước khớp bản đã lưu | — (kiểm tay, xem mục 7) |
 | 6 | Tìm công ty theo tên hoặc MST | `DN-05.http` 2b-2c (tên `Công ty`, MST `0101234567`), ô tìm ở `/staff/companies` | trả đúng công ty; tìm theo tên **phân biệt dấu** (`cong ty` không khớp `Công ty`); `q=%` không khớp mọi dòng | `StaffCompanyListApiTest` |
 
 Các lớp test nằm ở `server/services/company-service/src/test` và `server/services/identity-service/src/test` (thêm `HttpIdentityClientLockTest`, `CompanyRouteIntegrationTest` ở gateway).
@@ -153,7 +153,7 @@ Lưu vào `docs/api/screenshots/DN-05/` (chưa có ảnh; chụp được khi ch
 **Chưa chạy: kiểm tra toàn luồng trên hệ thống thật** (Postgres + MailHog + mock + identity + company + gateway + web), vì máy xác minh có PostgreSQL native chiếm cổng 5432 nên container `postgres` của Compose không bind được. Sáu tiêu chí ở mục 6 vì vậy mới được kiểm bằng test tự động (H2), chưa bằng giao diện; không có ảnh màn hình. Các bước tay cần làm:
 
 1. Dựng hệ thống theo mục 5, chạy `DN-05.http` từ trên xuống: token staff1, tìm theo tên và MST, chi tiết công ty A, khoá thiếu lý do → 400, khoá hr2, `GET /companies/me` bằng token hr2 cũ → 401, hr2 đăng nhập → 403, mở khoá, hr2 đăng nhập → 200.
-2. Giao diện: hr2 mở `/hr/company` ở tab 1; staff1 khoá hr2 ở tab 2; thao tác tiếp ở tab 1 → về `/login`; đăng nhập báo "Tài khoản đã bị khoá"; mở khoá rồi đăng nhập được. Sửa hồ sơ, đổi logo, lưu, "Xem trước".
+2. Giao diện: hr2 mở `/hr/company` ở tab 1; staff1 khoá hr2 ở tab 2; thao tác tiếp ở tab 1 → về `/login`; đăng nhập báo "Tài khoản đã bị khoá"; mở khoá rồi đăng nhập được. Sửa hồ sơ, đổi logo, lưu, "Xem như ứng viên".
 3. Trên PostgreSQL thật: `GET /staff/companies?q=%` và `q=_` không được trả mọi công ty (kiểm tra thoát ký tự LIKE; test tự động chỉ chạy trên H2).
 4. Chụp các ảnh ở danh sách trên.
 

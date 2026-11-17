@@ -7,6 +7,7 @@ import com.rikkei.jobs.company.dto.response.StaffHrAccount;
 import com.rikkei.jobs.company.entity.CompanyHr;
 import com.rikkei.jobs.company.repository.CompanyHrRepository;
 import com.rikkei.jobs.company.service.HrAccountLockService;
+import java.time.Clock;
 import java.time.Instant;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
@@ -22,12 +23,13 @@ public class HrAccountLockServiceImpl implements HrAccountLockService {
 
     private final CompanyHrRepository companyHrRepository;
     private final IdentityClient identity;
+    private final Clock clock;
 
     @Override
     public StaffHrAccount lock(UUID userId, String reason) {
         CompanyHr hr = findHr(userId);
         IdentityUserStatus result = identity.lockUser(userId, reason.strip());
-        hr.setLockedAt(result.lockedAt() != null ? result.lockedAt() : Instant.now());
+        hr.setLockedAt(result.lockedAt() != null ? result.lockedAt() : Instant.now(clock));
         companyHrRepository.save(hr);
         return StaffHrAccountMapping.from(result);
     }

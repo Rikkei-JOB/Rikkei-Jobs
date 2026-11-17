@@ -21,6 +21,7 @@ import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
+import org.mockito.ArgumentCaptor;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.boot.test.system.CapturedOutput;
@@ -154,6 +155,32 @@ class StaffCompanyListApiTest extends CompanyApiTestSupport {
                 .andExpect(jsonPath("$.hrAccounts[1].lockedReason").value("Nghỉ việc"))
                 .andExpect(jsonPath("$.hrAccounts[1].lockedAt").isNotEmpty());
         verify(identity, times(1)).lookupUsers(anyList());
+    }
+
+    @Test
+    void qLongerThan100Is400() throws Exception {
+        list("?q=" + "a".repeat(101)).andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("BAD_REQUEST"));
+        list("?q=" + "a".repeat(100)).andExpect(status().isOk());
+    }
+
+    @Test
+    void detailSplitsHrLookupInto100PerCall() throws Exception {
+        Company big = named("Công ty lớn", "0400000001", CompanyStatus.ACTIVE);
+        for (int i = 0; i < 101; i++) {
+            linkHr(UUID.randomUUID(), big.getId());
+        }
+        when(identity.lookupUsers(anyList())).thenAnswer(inv -> {
+            List<UUID> ids = inv.getArgument(0);
+            assertThat(ids.size()).isLessThanOrEqualTo(100);
+            return ids.stream().map(id -> idUser(id, id + "@x.vn", "ACTIVE")).toList();
+        });
+
+        detail(big.getId()).andExpect(status().isOk())
+                .andExpect(jsonPath("$.hrAccounts.length()").value(101));
+        ArgumentCaptor<List<UUID>> captor = ArgumentCaptor.forClass(List.class);
+        verify(identity, times(2)).lookupUsers(captor.capture());
+        assertThat(captor.getAllValues()).extracting(List::size).containsExactlyInAnyOrder(100, 1);
     }
 
     @Test
