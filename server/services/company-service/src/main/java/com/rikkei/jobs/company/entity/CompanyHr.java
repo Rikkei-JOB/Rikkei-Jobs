@@ -41,6 +41,10 @@ public class CompanyHr implements Persistable<UUID> {
     @Column(name = "updated_at", nullable = false)
     private Instant updatedAt;
 
+    /** Bản sao thời điểm cán bộ khoá tài khoản; khác null nghĩa là bị khoá. */
+    @Column(name = "locked_at")
+    private Instant lockedAt;
+
     @Transient
     private boolean isNew = true;
 
