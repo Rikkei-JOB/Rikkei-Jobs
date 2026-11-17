@@ -106,6 +106,33 @@ class InternalJobContextApiTest extends CompanyApiTestSupport {
     }
 
     @Test
+    @SuppressWarnings("unchecked")
+    void moreThan100HrsAreLookedUpInBatches() throws Exception {
+        Company company = saveCompany("0100000008", CompanyStatus.ACTIVE);
+        Job job = approvedJob(company.getId());
+        java.util.List<UUID> all = new java.util.ArrayList<>();
+        for (int i = 0; i < 230; i++) {
+            UUID id = UUID.randomUUID();
+            all.add(id);
+            linkHr(id, company.getId());
+        }
+        when(identity.lookupUsers(anyList())).thenAnswer(inv -> {
+            List<UUID> ids = inv.getArgument(0);
+            return ids.stream().map(id -> user(id, id + "@rikkeijobs.test", "ACTIVE")).toList();
+        });
+
+        mvc.perform(get("/internal/jobs/{id}/application-context", job.getId()).header(KEY, KEY_VALUE))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.hrEmails.length()").value(230));
+
+        ArgumentCaptor<List<UUID>> calls = ArgumentCaptor.forClass(List.class);
+        verify(identity, org.mockito.Mockito.times(3)).lookupUsers(calls.capture());
+        assertThat(calls.getAllValues()).allSatisfy(c -> assertThat(c.size()).isBetween(1, 100));
+        assertThat(calls.getAllValues().stream().flatMap(List::stream).toList())
+                .containsExactlyInAnyOrderElementsOf(all);
+    }
+
+    @Test
     void lockedCompanyFlag() throws Exception {
         Company company = saveCompany("0100000003", CompanyStatus.LOCKED);
         Job job = approvedJob(company.getId());

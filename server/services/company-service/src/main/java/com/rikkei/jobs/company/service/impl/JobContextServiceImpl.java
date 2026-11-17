@@ -14,6 +14,7 @@ import com.rikkei.jobs.company.repository.JobRepository;
 import com.rikkei.jobs.company.service.JobContextService;
 import com.rikkei.jobs.company.util.JobRules;
 import java.time.OffsetDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.UUID;
@@ -26,6 +27,8 @@ import org.springframework.transaction.annotation.Transactional;
 public class JobContextServiceImpl implements JobContextService {
 
     private static final String NOT_FOUND = "Không tìm thấy JD";
+    /** identity chỉ nhận tối đa 100 id mỗi lần lookup (cùng quy ước StaffCompanyServiceImpl). */
+    private static final int LOOKUP_BATCH_SIZE = 100;
 
     private final JobRepository jobs;
     private final CompanyRepository companies;
@@ -55,7 +58,11 @@ public class JobContextServiceImpl implements JobContextService {
         if (hrIds.isEmpty()) {
             return List.of();
         }
-        return identity.lookupUsers(hrIds).stream()
+        List<IdentityUserStatus> found = new ArrayList<>();
+        for (int from = 0; from < hrIds.size(); from += LOOKUP_BATCH_SIZE) {
+            found.addAll(identity.lookupUsers(hrIds.subList(from, Math.min(from + LOOKUP_BATCH_SIZE, hrIds.size()))));
+        }
+        return found.stream()
                 .filter(u -> "ACTIVE".equals(u.status()))
                 .map(IdentityUserStatus::email)
                 .filter(e -> e != null && !e.isBlank())
