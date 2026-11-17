@@ -2,7 +2,6 @@
 
 import * as React from "react";
 import { useForm } from "react-hook-form";
-import { Alert } from "@/app/components/ui/alert";
 import { Button } from "@/app/components/ui/button";
 import { Card, CardContent } from "@/app/components/ui/card";
 import { Input } from "@/app/components/ui/input";
@@ -17,6 +16,8 @@ interface CompanyProfileFormProps {
   company: Company;
   disabled: boolean;
   onSaved: (company: Company) => void;
+  /** Báo lên trang cha khi form có/không còn thay đổi chưa lưu. */
+  onDirtyChange?: (dirty: boolean) => void;
 }
 
 const CONTROL_CLASS =
@@ -36,7 +37,7 @@ function toFormValues(company: Company): CompanyProfileValues {
 
 const FIELDS = ["name", "industry", "size", "address", "city", "website", "description"] as const;
 
-export function CompanyProfileForm({ company, disabled, onSaved }: CompanyProfileFormProps) {
+export function CompanyProfileForm({ company, disabled, onSaved, onDirtyChange }: CompanyProfileFormProps) {
   const {
     register,
     handleSubmit,
@@ -48,8 +49,12 @@ export function CompanyProfileForm({ company, disabled, onSaved }: CompanyProfil
     defaultValues: toFormValues(company),
   });
   const update = useUpdateMyCompany();
-  const [saved, setSaved] = React.useState(false);
+  const [savedAt, setSavedAt] = React.useState<Date | null>(null);
   const [formError, setFormError] = React.useState<string | null>(null);
+
+  React.useEffect(() => {
+    onDirtyChange?.(isDirty);
+  }, [isDirty, onDirtyChange]);
 
   // Đồng bộ form khi dữ liệu từ server (hoặc sau khi đổi logo) thay đổi, nhưng giữ các ô HR đang sửa dở.
   React.useEffect(() => {
@@ -57,13 +62,13 @@ export function CompanyProfileForm({ company, disabled, onSaved }: CompanyProfil
   }, [company, reset]);
 
   function onSubmit(values: CompanyProfileValues) {
-    setSaved(false);
+    setSavedAt(null);
     setFormError(null);
     update.mutate(toUpdatePayload(values), {
       onSuccess: (updated) => {
         // Form về trạng thái sạch với giá trị server vừa lưu (không còn "dirty" cũ).
         reset(toFormValues(updated));
-        setSaved(true);
+        setSavedAt(new Date());
         onSaved(updated);
       },
       onError: (error) => {
@@ -125,7 +130,7 @@ export function CompanyProfileForm({ company, disabled, onSaved }: CompanyProfil
           <FormField label="Giới thiệu" htmlFor="description" error={errors.description?.message}>
             <textarea
               id="description"
-              rows={5}
+              rows={6}
               disabled={disabled}
               aria-invalid={Boolean(errors.description)}
               className={CONTROL_CLASS}
@@ -133,12 +138,33 @@ export function CompanyProfileForm({ company, disabled, onSaved }: CompanyProfil
             />
           </FormField>
 
-          {formError ? <Alert variant="destructive">{formError}</Alert> : null}
-          {saved && !isDirty ? <Alert variant="success">Đã lưu</Alert> : null}
-
-          <Button type="submit" disabled={disabled || update.isPending}>
-            {update.isPending ? "Đang lưu..." : "Lưu thay đổi"}
-          </Button>
+          <div className="space-y-1.5">
+            <div className="flex items-center gap-3">
+              <Button type="submit" disabled={disabled || update.isPending}>
+                {update.isPending ? (
+                  <>
+                    <span
+                      aria-hidden="true"
+                      className="size-3 animate-spin rounded-full border-2 border-current border-t-transparent"
+                    />
+                    Đang lưu...
+                  </>
+                ) : (
+                  "Lưu thay đổi"
+                )}
+              </Button>
+              {savedAt && !isDirty && !update.isPending ? (
+                <span role="status" className="text-xs text-emerald-700 dark:text-emerald-400">
+                  ✓ Đã lưu lúc {savedAt.toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" })}
+                </span>
+              ) : null}
+            </div>
+            {formError ? (
+              <p role="alert" className="text-xs/relaxed text-destructive">
+                {formError}
+              </p>
+            ) : null}
+          </div>
         </form>
       </CardContent>
     </Card>

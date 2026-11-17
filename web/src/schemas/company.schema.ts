@@ -47,3 +47,13 @@ export function validateLogoFile(file: File): string | null {
   }
   return null;
 }
+
+/** Lý do khoá tài khoản HR (cán bộ nhập); backend kiểm tra lại. */
+export const lockReasonSchema = z.string().trim().min(1, "Vui lòng nhập lý do khoá").max(500, "Lý do tối đa 500 ký tự");
+
+/** Thêm tài khoản HR vào công ty. */
+export const addHrSchema = z.object({
+  email: z.string().trim().min(1, "Vui lòng nhập email").email("Email không hợp lệ").max(255, "Email tối đa 255 ký tự"),
+  fullName: z.string().trim().min(1, "Vui lòng nhập họ tên").max(255, "Họ tên tối đa 255 ký tự"),
+});
+export type AddHrValues = z.infer<typeof addHrSchema>;

@@ -8,7 +8,6 @@ import { CompanyProfileForm } from "@/app/components/company/company-profile-for
 import { CompanySummaryCard } from "@/app/components/company/company-summary-card"
 import { useAuthGuard } from "@/hooks/use-auth-guard"
 import { useMyCompany, useUploadMyLogo } from "@/hooks/use-my-company"
-import { validateLogoFile } from "@/schemas/company.schema"
 import { getErrorMessage } from "@/services/api"
 
 /** Hồ sơ công ty của HR: thẻ tóm tắt cố định bên trái, form chỉnh sửa bên phải (một cột trên màn hẹp). */
@@ -17,14 +16,14 @@ export default function HrCompanyPage() {
   const { data: company, error, isPending, refetch } = useMyCompany(allowed)
   const uploadLogo = useUploadMyLogo()
   const [logoError, setLogoError] = React.useState<string | null>(null)
+  const [dirty, setDirty] = React.useState(false)
 
   if (!allowed) return null
 
-  function handleLogoChange(file: File) {
-    const invalid = validateLogoFile(file)
-    setLogoError(invalid)
-    if (invalid) return
-    uploadLogo.mutate(file, { onError: (e) => setLogoError(getErrorMessage(e)) })
+  // File đã được thẻ tóm tắt kiểm tra (định dạng, dung lượng) trước khi hiện xem trước.
+  function handleLogoUpload(file: File, onSuccess: () => void) {
+    setLogoError(null)
+    uploadLogo.mutate(file, { onSuccess, onError: (e) => setLogoError(getErrorMessage(e)) })
   }
 
   const locked = company?.status === "LOCKED"
@@ -32,11 +31,21 @@ export default function HrCompanyPage() {
   return (
     // Nằm trong <main> của layout (app) (NT-02), nên dùng <div> và không thêm padding.
     <div className="mx-auto max-w-5xl space-y-4">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-start justify-between gap-2">
         <h1 className="font-heading text-lg font-semibold">Hồ sơ công ty</h1>
-        <Button variant="outline" size="sm" render={<Link href="/hr" />} nativeButton={false}>
-          Quay lại
-        </Button>
+        <div className="flex flex-col items-end gap-1">
+          <div className="flex gap-2">
+            {company ? (
+              <Button size="sm" render={<Link href="/hr/company/preview" />} nativeButton={false}>
+                Xem như ứng viên
+              </Button>
+            ) : null}
+            <Button variant="outline" size="sm" render={<Link href="/hr" />} nativeButton={false}>
+              Quay lại
+            </Button>
+          </div>
+          {dirty ? <p className="text-xs text-muted-foreground">Xem trước chỉ hiện bản đã lưu</p> : null}
+        </div>
       </div>
 
       {isPending ? <p className="text-xs text-muted-foreground">Đang tải...</p> : null}
@@ -56,12 +65,17 @@ export default function HrCompanyPage() {
           <div className="grid gap-4 md:grid-cols-[280px_1fr] md:items-start">
             <CompanySummaryCard
               company={company}
-              onLogoChange={handleLogoChange}
+              onLogoUpload={handleLogoUpload}
               uploading={uploadLogo.isPending}
               error={logoError}
               disabled={locked}
             />
-            <CompanyProfileForm company={company} disabled={locked} onSaved={() => undefined} />
+            <CompanyProfileForm
+              company={company}
+              disabled={locked}
+              onSaved={() => undefined}
+              onDirtyChange={setDirty}
+            />
           </div>
         </>
       ) : null}

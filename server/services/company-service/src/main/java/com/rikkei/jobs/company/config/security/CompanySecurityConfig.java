@@ -5,7 +5,9 @@ import com.rikkei.jobs.common.config.security.config.AuthenticationEntryPointHan
 import com.rikkei.jobs.common.config.security.config.SecurityConfig;
 import com.rikkei.jobs.common.config.security.jwt.JwtAuthenticationFilter;
 import com.rikkei.jobs.common.config.security.jwt.JwtUtils;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.rikkei.jobs.company.config.AppProperties;
+import com.rikkei.jobs.company.repository.CompanyHrRepository;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -28,6 +30,8 @@ public class CompanySecurityConfig {
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http,
                                            JwtUtils jwtUtils,
+                                           CompanyHrRepository companyHrRepository,
+                                           ObjectMapper objectMapper,
                                            AuthenticationEntryPointHandler authenticationEntryPointHandler,
                                            AccessDeniedExceptionHandler accessDeniedExceptionHandler) throws Exception {
         http.csrf(AbstractHttpConfigurer::disable)
@@ -45,6 +49,8 @@ public class CompanySecurityConfig {
                 );
 
         http.addFilterBefore(new JwtAuthenticationFilter(jwtUtils), UsernamePasswordAuthenticationFilter.class);
+        // HR bị cán bộ khoá bị chặn ngay cả khi JWT còn hạn.
+        http.addFilterAfter(new HrLockedFilter(companyHrRepository, objectMapper), JwtAuthenticationFilter.class);
 
         return http.build();
     }

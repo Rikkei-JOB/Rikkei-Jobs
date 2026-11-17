@@ -27,7 +27,10 @@ export const api = axios.create({
 
 api.interceptors.request.use((config) => {
   const token = useAuthStore.getState().token;
-  if (token) {
+  // Không gắn bearer cho các endpoint đăng nhập công khai: token cũ của tài khoản đã bị khoá (401 ACCOUNT_DISABLED)
+  // sẽ làm hỏng cả việc đăng nhập bằng tài khoản khác.
+  const isPublicAuthCall = PUBLIC_AUTH_PATHS.some((path) => (config.url ?? "").startsWith(path));
+  if (token && !isPublicAuthCall) {
     config.headers.Authorization = `Bearer ${token}`;
   }
   return config;

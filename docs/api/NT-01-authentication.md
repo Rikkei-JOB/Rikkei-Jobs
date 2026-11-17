@@ -7,7 +7,7 @@
 | Service | `identity-service` (cổng 8081) qua `api-gateway` |
 | Frontend | `web/src/features/auth` |
 | Phụ thuộc | Mock LMS của task khung (`/lms/sso/verify`) |
-| Task phụ thuộc vào NT-01 | DN-01 (tạo tài khoản HR trên bảng `users`) |
+| Task phụ thuộc vào NT-01 | DN-01 (tạo tài khoản HR trên bảng `users`), DN-05 (khoá/mở khoá HR) |
 
 ## 1. Mục tiêu
 
@@ -120,6 +120,7 @@ Qua gateway mọi API nằm dưới **`/api/v1`** (quy ước nhóm, [convention
 | `INVALID_CREDENTIALS` | 401 | Sai email/mật khẩu |
 | `INVALID_TICKET` / `TICKET_EXPIRED` / `TICKET_ALREADY_USED` | 401 | Vé SSO không hợp lệ / quá 60 giây / đã dùng |
 | `MUST_CHANGE_PASSWORD` | 403 | Chưa đổi mật khẩu bắt buộc |
+| `ACCOUNT_DISABLED` | 403 (đăng nhập/SSO), 401 (token đã cấp) | HR bị cán bộ khoá (DN-05) |
 | `ACCOUNT_LOCKED` | 429 | Đang bị khoá 15 phút do sai mật khẩu 5 lần (`errors.minutesRemaining`) |
 | `LMS_UNAVAILABLE` | 502 | Không gọi được LMS/mock, hoặc sai `X-Service-Key` |
 
@@ -174,6 +175,7 @@ Trả thông tin user hiện tại (`id`, `email`, `fullName`, `role`, `companyI
 | --- | --- |
 | Khoá tài khoản | Sai mật khẩu **5 lần liên tiếp** → khoá 15 phút, báo số phút còn lại. Khi đang khoá, nhập **đúng** mật khẩu vẫn bị từ chối |
 | Đếm lại | Đăng nhập đúng → `failed_login_count = 0` |
+| Hai kiểu khoá | **Khoá tạm** (`locked_until`, `status`): sai mật khẩu 5 lần, tự hết sau 15 phút, trả 429 `ACCOUNT_LOCKED`. **Khoá bởi cán bộ** (DN-05, `locked_at` khác null, kèm `locked_reason`): chỉ cán bộ mở được qua company-service; đăng nhập/SSO trả 403 `ACCOUNT_DISABLED` ("Tài khoản đã bị khoá") kể cả khi sai mật khẩu và không tăng bộ đếm; token đã cấp bị bộ lọc JWT từ chối 401 `ACCOUNT_DISABLED`; quên mật khẩu trả 200 nhưng không phát token, đặt lại mật khẩu không mở khoá. Chi tiết: [DN-05](DN-05-company-hr-ui.md) |
 | Đổi mật khẩu bắt buộc | `must_change_password = true` → mọi API ngoài `/auth/**` ở **mọi service** trả **403 `MUST_CHANGE_PASSWORD`** cho đến khi đổi. Token cấp cho tài khoản này mang claim `mustChangePassword: true`; `JwtAuthenticationFilter` của common-core chặn theo claim. Đổi mật khẩu xong, `/auth/change-password` trả **token mới** không có claim, FE thay token cũ. identity-service đọc thêm cờ từ DB mỗi request |
 | Độ mạnh mật khẩu | ≥ 8 ký tự, có chữ và số |
 | Lưu mật khẩu | bcrypt hoặc argon2; không lưu thô |

@@ -8,9 +8,14 @@ import type { Company } from "@/interface/company";
 // Khoá cache gắn với id người dùng để HR khác trong cùng tab không đọc nhầm công ty của người trước.
 export const companyKeys = { mine: (userId: string | undefined) => ["company", "me", userId ?? null] as const };
 
-export function useMyCompany(enabled: boolean) {
+export function useMyCompany(enabled: boolean, options?: { refetchOnMount?: boolean | "always" }) {
   const userId = useAuthStore((state) => state.user?.id);
-  return useQuery({ queryKey: companyKeys.mine(userId), queryFn: companyService.getMine, enabled });
+  return useQuery({
+    queryKey: companyKeys.mine(userId),
+    queryFn: companyService.getMine,
+    enabled,
+    refetchOnMount: options?.refetchOnMount,
+  });
 }
 
 export function useUpdateMyCompany() {

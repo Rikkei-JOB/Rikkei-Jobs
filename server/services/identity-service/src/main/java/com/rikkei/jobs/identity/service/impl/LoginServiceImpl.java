@@ -49,6 +49,10 @@ public class LoginServiceImpl implements LoginService {
             throw new ApiException(ErrorCode.INVALID_CREDENTIALS);
         }
 
+        // Khoá bởi cán bộ: từ chối cả khi sai mật khẩu, không đụng tới bộ đếm.
+        if (user.isAdminLocked()) {
+            throw new ApiException(ErrorCode.ACCOUNT_DISABLED);
+        }
         // Đang bị khoá: từ chối cả khi nhập đúng mật khẩu.
         if (user.isLockedAt(now)) {
             throw locked(user, now);

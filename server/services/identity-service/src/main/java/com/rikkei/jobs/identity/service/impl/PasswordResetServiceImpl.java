@@ -47,6 +47,10 @@ public class PasswordResetServiceImpl implements PasswordResetService {
         if (user == null || user.getPasswordHash() == null) {
             return;
         }
+        // Tài khoản bị cán bộ khoá: không phát token, không gửi mail (vẫn trả 200 như thường).
+        if (user.isAdminLocked()) {
+            return;
+        }
         long ttl = properties.getAuth().getResetTokenTtlMinutes();
         String rawToken = newToken();
 
@@ -75,7 +79,10 @@ public class PasswordResetServiceImpl implements PasswordResetService {
         user.setMustChangePassword(false);
         user.setFailedLoginCount(0);
         user.setLockedUntil(null);
-        user.setStatus(UserStatus.ACTIVE);
+        // Đặt lại mật khẩu không mở khoá tài khoản đang bị cán bộ khoá.
+        if (!user.isAdminLocked()) {
+            user.setStatus(UserStatus.ACTIVE);
+        }
     }
 
     private String newToken() {

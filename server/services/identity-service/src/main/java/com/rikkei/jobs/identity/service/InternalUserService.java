@@ -2,8 +2,10 @@ package com.rikkei.jobs.identity.service;
 
 import com.rikkei.jobs.identity.dto.request.InternalCreateUserRequest;
 import com.rikkei.jobs.identity.dto.response.InternalUserResponse;
+import com.rikkei.jobs.identity.dto.response.InternalUserStatusResponse;
 import com.rikkei.jobs.identity.dto.response.InternalLmsIdentityResponse;
 
+import java.util.List;
 import java.util.UUID;
 
 /** Nghiệp vụ cho API nội bộ mà company-service gọi để tạo/xoá tài khoản HR. */
@@ -16,4 +18,13 @@ public interface InternalUserService {
 
     /** Xoá user HR (dùng để bù trừ khi company-service tạo hồ sơ thất bại). */
     void deleteHrUser(UUID id);
+
+    /** Khoá tài khoản HR bởi cán bộ; đã khoá sẵn thì ghi đè lý do và thời điểm. */
+    InternalUserStatusResponse lockHr(UUID id, String reason);
+
+    /** Mở khoá cán bộ và xoá luôn khoá tạm; tài khoản không bị cán bộ khoá thì giữ nguyên. */
+    InternalUserStatusResponse unlockHr(UUID id);
+
+    /** Tra cứu trạng thái nhiều tài khoản theo thứ tự id đầu vào, bỏ id trùng và id không tồn tại. */
+    List<InternalUserStatusResponse> lookup(List<UUID> ids);
 }
