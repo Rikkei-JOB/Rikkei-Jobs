@@ -28,3 +28,45 @@ export interface UpdateCompanyPayload {
   website: string | null;
   description: string | null;
 }
+
+/** Danh sách phân trang của backend: { items, total, page, size }, page bắt đầu từ 1. */
+export interface PageResult<T> {
+  items: T[];
+  total: number;
+  page: number;
+  size: number;
+}
+
+/** Một dòng trong GET /staff/companies. */
+export interface StaffCompanyItem {
+  id: string;
+  name: string;
+  taxCode: string;
+  status: CompanyStatus;
+  hrCount: number;
+  jdCount: number;
+  createdAt: string;
+}
+
+/** Tài khoản HR dưới góc nhìn cán bộ. LOCKED = cán bộ khoá; tempLockedUntil = khoá tạm do nhập sai mật khẩu. */
+export interface StaffHrAccount {
+  userId: string;
+  email: string;
+  fullName: string;
+  status: "ACTIVE" | "LOCKED";
+  lockedReason: string | null;
+  lockedAt: string | null;
+  tempLockedUntil: string | null;
+}
+
+/** GET /staff/companies/{id}. */
+export interface StaffCompanyDetail extends Company {
+  hrAccounts: StaffHrAccount[];
+}
+
+export interface StaffCompanyListParams {
+  q?: string;
+  status?: CompanyStatus;
+  page: number;
+  size: number;
+}
