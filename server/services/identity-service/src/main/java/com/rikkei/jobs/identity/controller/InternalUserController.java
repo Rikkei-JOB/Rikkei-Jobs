@@ -17,6 +17,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.UUID;
+import java.util.List;
 
 /** API nội bộ cho company-service; được InternalKeyFilter bảo vệ bằng X-Internal-Key và gateway không định tuyến tới. */
 @RestController
@@ -29,6 +30,11 @@ public class InternalUserController {
     @GetMapping("/{id}")
     public InternalUserResponse candidate(@PathVariable("id") UUID id) {
         return internalUserService.getCandidate(id);
+    }
+
+    @PostMapping("/lookup")
+    public List<InternalUserResponse> lookup(@RequestBody List<UUID> ids) {
+        return internalUserService.getCandidates(ids);
     }
 
     @GetMapping("/{id}/lms-identity")

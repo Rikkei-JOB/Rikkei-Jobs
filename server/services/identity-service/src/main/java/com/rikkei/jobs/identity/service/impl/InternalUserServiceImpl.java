@@ -27,6 +27,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.List;
 
 @Slf4j
 @Service
@@ -46,6 +47,21 @@ public class InternalUserServiceImpl implements InternalUserService {
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy ứng viên"));
         return new InternalUserResponse(user.getId(), user.getEmail(), user.getFullName(), user.getRole(),
                 user.getCompanyId());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<InternalUserResponse> getCandidates(List<UUID> ids) {
+        if (ids == null || ids.isEmpty() || ids.size() > 100 || ids.stream().anyMatch(java.util.Objects::isNull))
+            throw new com.rikkei.jobs.common.config.exception.BadRequestException("Danh sách ứng viên phải có 1-100 ID.");
+        var found = userRepository.findAllById(ids).stream()
+            .filter(u -> u.getRole() == Role.CANDIDATE)
+            .collect(java.util.stream.Collectors.toMap(User::getId, u -> u));
+        return ids.stream().distinct().map(id -> {
+            var user = found.get(id);
+            if (user == null) throw new ResourceNotFoundException("Không tìm thấy ứng viên");
+            return new InternalUserResponse(user.getId(), user.getEmail(), user.getFullName(), user.getRole(), user.getCompanyId());
+        }).toList();
     }
 
     @Override

@@ -55,4 +55,37 @@ class ApplicationDependencyClientsTest {
         assertThatThrownBy(() -> client.getContext(UUID.randomUUID())).isInstanceOf(RecruitmentDependencyException.class)
             .extracting("status").isEqualTo(503);
     }
+
+    @Test void identityBatchUsesServiceKeyAndRejectsNonCandidate() {
+        var builder = RestClient.builder().baseUrl("http://identity");
+        var mock = MockRestServiceServer.bindTo(builder).build();
+        var client = new HttpIdentityCandidateClient(builder.build(), "test-key");
+        var id = UUID.randomUUID();
+        mock.expect(requestTo("http://identity/internal/users/lookup"))
+            .andExpect(header("X-Internal-Key", "test-key"))
+            .andRespond(withSuccess("[{\"userId\":\"" + id + "\",\"email\":\"a@example.test\",\"fullName\":\"Ứng viên A\",\"role\":\"CANDIDATE\"}]", MediaType.APPLICATION_JSON));
+        assertThat(client.getBatch(java.util.List.of(id)).get(id).fullName()).isEqualTo("Ứng viên A");
+        mock.verify(); mock.reset();
+        mock.expect(anything()).andRespond(withSuccess("[{\"userId\":\"" + id + "\",\"email\":\"h@example.test\",\"fullName\":\"HR\",\"role\":\"HR\"}]", MediaType.APPLICATION_JSON));
+        assertThatThrownBy(() -> client.getBatch(java.util.List.of(id)))
+            .isInstanceOf(RecruitmentDependencyException.class).extracting("status").isEqualTo(502);
+    }
+
+    @Test void matchClientKeepsAuthFailuresVisibleAndAllowsUnavailableScore() {
+        var builder = RestClient.builder().baseUrl("http://match");
+        var mock = MockRestServiceServer.bindTo(builder).build();
+        var client = new HttpJobMatchClient(builder.build());
+        var jobId = UUID.randomUUID(); var userId = UUID.randomUUID();
+        mock.expect(requestTo("http://match/jobs/" + jobId + "/match/" + userId))
+            .andExpect(header("Authorization", "Bearer hr"))
+            .andRespond(withSuccess("{\"score\":80,\"belowMinimum\":false,\"met\":[],\"missing\":[]}", MediaType.APPLICATION_JSON));
+        assertThat(client.get(jobId, userId, "Bearer hr")).get().extracting("score").isEqualTo(new java.math.BigDecimal("80"));
+        mock.verify(); mock.reset();
+        mock.expect(anything()).andRespond(withStatus(HttpStatus.SERVICE_UNAVAILABLE));
+        assertThat(client.get(jobId, userId, "Bearer hr")).isEmpty();
+        mock.reset();
+        mock.expect(anything()).andRespond(withStatus(HttpStatus.FORBIDDEN));
+        assertThatThrownBy(() -> client.get(jobId, userId, "Bearer hr"))
+            .isInstanceOf(RecruitmentDependencyException.class).extracting("status").isEqualTo(502);
+    }
 }

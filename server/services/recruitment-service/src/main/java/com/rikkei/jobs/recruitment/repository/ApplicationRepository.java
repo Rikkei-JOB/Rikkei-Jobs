@@ -14,4 +14,9 @@ public interface ApplicationRepository extends JpaRepository<Application, UUID> 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select a from Application a where a.id = :id")
     Optional<Application> findForUpdate(@Param("id") UUID id);
+
+    @Query("select a from Application a where (:companyId is null or a.companyId = :companyId) "
+        + "and (:jobId is null or a.jobId = :jobId) and (:status is null or a.status = :status)")
+    Page<Application> findVisible(@Param("companyId") UUID companyId, @Param("jobId") UUID jobId,
+        @Param("status") ApplicationStatus status, Pageable page);
 }

@@ -5,6 +5,7 @@ import com.rikkei.jobs.identity.dto.response.InternalUserResponse;
 import com.rikkei.jobs.identity.dto.response.InternalLmsIdentityResponse;
 
 import java.util.UUID;
+import java.util.List;
 
 /** Nghiệp vụ cho API nội bộ mà company-service gọi để tạo/xoá tài khoản HR. */
 public interface InternalUserService {
@@ -12,6 +13,7 @@ public interface InternalUserService {
     InternalLmsIdentityResponse getLmsIdentity(UUID id);
 
     InternalUserResponse getCandidate(UUID id);
+    List<InternalUserResponse> getCandidates(List<UUID> ids);
 
     /** Tạo user HR với mật khẩu tạm gửi qua email; gửi mail lỗi thì không lưu user (MAIL_UNAVAILABLE). */
     InternalUserResponse createUser(InternalCreateUserRequest request);
