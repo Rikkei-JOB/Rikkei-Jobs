@@ -113,11 +113,11 @@ paths:
     get:
       operationId: getApplicationWithOffer
       summary: Chi tiết đơn UT-02, mở rộng trường offer cho HR
-      description: Response đầy đủ theo ut02-openapi.yaml. Chỉ HR cùng công ty nhìn thấy offer; STAFF và ADMIN nhận offer null.
+      description: Response đầy đủ theo ut02-openapi.yaml. Chỉ HR cùng công ty nhìn thấy offer và onboardConfirmedAt; STAFF và ADMIN nhận cả hai là null.
       parameters:
         - $ref: '#/components/parameters/ApplicationId'
       responses:
-        '200': { description: Chi tiết đơn gồm offer tùy quyền, content: { application/json: { schema: { type: object, properties: { offer: { nullable: true, allOf: [ { $ref: '#/components/schemas/Offer' } ] } } } } } }
+        '200': { description: Chi tiết đơn gồm offer tùy quyền, content: { application/json: { schema: { type: object, properties: { offer: { nullable: true, allOf: [ { $ref: '#/components/schemas/Offer' } ] }, onboardConfirmedAt: { type: string, format: date-time, nullable: true } } } } } }
         '401': { $ref: '#/components/responses/Error' }
         '403': { $ref: '#/components/responses/Error' }
         '404': { $ref: '#/components/responses/Error' }

@@ -65,6 +65,22 @@ class OfferReadApiTest extends ApplicationIntegrationSupport {
             .andExpect(jsonPath("$.offer.declineReason").value("Đã nhận việc khác"));
     }
 
+    @Test void hrSeesPersistedOnboardConfirmationAfterReload() throws Exception {
+        OfferResponse offer = readyOffer();
+        offers.accept(new AuthPrincipal(user, Role.CANDIDATE, null), offer.id());
+        offers.confirmOnboard(new AuthPrincipal(UUID.randomUUID(), Role.HR, company), offer.applicationId());
+        when(identities.get(user)).thenReturn(new CandidateIdentity(user, "Ứng viên A", "a@example.test"));
+        when(matches.get(eq(job), eq(user), anyString())).thenReturn(Optional.empty());
+        mvc.perform(get("/recruitment/applications/{id}", offer.applicationId())
+            .header("Authorization", token(UUID.randomUUID(), Role.HR, company)))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.onboardConfirmedAt").value("2030-01-01T00:00:00Z"));
+        mvc.perform(get("/recruitment/applications/{id}", offer.applicationId())
+            .header("Authorization", token(UUID.randomUUID(), Role.STAFF, null)))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.onboardConfirmedAt").doesNotExist());
+    }
+
     OfferResponse readyOffer() throws Exception {
         UUID id = apply(), hrId = UUID.randomUUID();
         var actor = new AuthPrincipal(hrId, Role.HR, company);

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Button } from "@/app/components/ui/button";
 import { useAuthGuard } from "@/hooks/use-auth-guard";
 import type { Offer } from "@/interface/offer";
@@ -27,6 +27,7 @@ export function CandidateOfferDetail({ id }: { id: string }) {
   const [busy, setBusy] = useState(false);
   const [now, setNow] = useState(() => Date.now());
   const [version, setVersion] = useState(0);
+  const expiredReloaded = useRef<string | null>(null);
   const reload = useCallback(() => setVersion(value => value + 1), []);
 
   useEffect(() => {
@@ -37,6 +38,12 @@ export function CandidateOfferDetail({ id }: { id: string }) {
     return () => { active = false; };
   }, [allowed, id, version]);
   useEffect(() => { const timer = window.setInterval(() => setNow(Date.now()), 1000); return () => window.clearInterval(timer); }, []);
+  useEffect(() => {
+    if (offer?.status === "SENT" && new Date(offer.responseDeadline).getTime() <= now && expiredReloaded.current !== offer.id) {
+      expiredReloaded.current = offer.id;
+      reload();
+    }
+  }, [offer, now, reload]);
 
   async function respond(action: "accept" | "decline") {
     if (action === "decline" && !reason.trim()) { setMutationError("Vui lòng nhập lý do từ chối."); return; }

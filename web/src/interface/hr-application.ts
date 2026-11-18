@@ -29,6 +29,7 @@ export interface HrApplicationDetail {
   match: MatchScore | null; rounds: InterviewRound[]; roundRevisions: RoundRevision[];
   history: ApplicationHistoryItem[]; allowedTransitions: ApplicationStatus[];
   offer: Offer | null;
+  onboardConfirmedAt: string | null;
 }
 export interface MentorRoundItem {
   jobTitle: string; companyName: string; applicationStatus: ApplicationStatus; round: InterviewRound;

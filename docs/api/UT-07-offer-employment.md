@@ -15,6 +15,8 @@ npm --prefix web run dev
 
 Lương là **số nguyên dương VND/tháng gross**. API nhận `salary: 12000000`, giao diện hiển thị `12.000.000 VND/tháng (gross)`. `responseDeadline` là thời điểm ISO có múi giờ; server dùng đồng hồ của mình để kiểm tra hạn, nên đồng hồ đếm ngược trên giao diện chỉ có tác dụng hiển thị. Job mỗi giờ chuyển offer `SENT` quá hạn sang `EXPIRED` và đơn sang `REJECTED`; ngay cả trước lượt job tiếp theo, API nhận/từ chối đã trả `409` khi đến hạn.
 
+Form HR nhận lương có hoặc không có dấu phân cách nghìn (`12.000.000` hoặc `12000000`) và gửi cùng số nguyên `12000000`. Chi tiết HR đọc lại `onboardConfirmedAt` từ DB để ẩn nút xác nhận sau khi tải lại trang.
+
 ## Quy tắc và quyền
 
 | Thao tác | Điều kiện | Kết quả |
@@ -57,4 +59,4 @@ npm --prefix web run build
 npm --prefix web run test:e2e -- ut07-offer-flow.spec.ts
 ```
 
-Backend tests kiểm tra `409` khi chưa PASS, không nhận khi đến hạn, lý do bắt buộc, ownership `404`, phản hồi đồng thời, job hết hạn, quyền xem HR, xác nhận đi làm và email. Playwright kiểm tra gửi, nhận, từ chối, hạn trả lời và kinh nghiệm trên hồ sơ; ba ảnh trên được chụp lại từ fixture đó.
+Backend tests kiểm tra `409` khi chưa PASS, không nhận khi đến hạn, lý do bắt buộc, ownership `404`, phản hồi đồng thời, job hết hạn, quyền xem HR, xác nhận đi làm và email. Playwright kiểm tra gửi, nhận, từ chối, hạn trả lời, xác nhận sau tải lại và kinh nghiệm trên hồ sơ; ba ảnh trên được chụp lại từ fixture đó.

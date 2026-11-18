@@ -46,7 +46,7 @@ test("HR gửi offer lương gross theo tháng từ đơn có vòng cuối PASS"
   });
   await page.goto(`/hr/recruitment/${applicationId}`);
   await page.getByLabel("Vị trí offer").fill("Java Developer");
-  await page.getByLabel("Lương gross/tháng (VND)").fill("12000000");
+  await page.getByLabel("Lương gross/tháng (VND)").fill("12.000.000");
   await page.getByLabel("Ngày bắt đầu").fill("2030-02-01");
   await page.getByLabel("Địa điểm làm việc").fill("Hà Nội");
   await page.getByLabel("Hạn trả lời").fill("2030-01-03T07:00");
@@ -54,6 +54,35 @@ test("HR gửi offer lương gross theo tháng từ đơn có vòng cuối PASS"
   await expect(page.getByText(/Trạng thái: Đã gửi/)).toBeVisible();
   await page.screenshot({ path: "../docs/api/screenshots/ut07-hr-offer.png", fullPage: true });
   expect(sent).toMatchObject({ position: "Java Developer", salary: 12000000, startDate: "2030-02-01", workLocation: "Hà Nội" });
+});
+
+test("HR tải lại vẫn thấy xác nhận đi làm và không xác nhận lần nữa", async ({ page }) => {
+  await signIn(page, "HR");
+  let confirmedAt: string | null = null;
+  await page.route("**/api/v1/**", route => {
+    if (route.request().method() === "OPTIONS") return route.fulfill({ status: 204, headers: cors });
+    const path = new URL(route.request().url()).pathname;
+    if (path.endsWith("/auth/me")) return route.fulfill({ headers: cors, json: { id: "hr-user", role: "HR", companyId } });
+    if (path.endsWith(`/applications/${applicationId}/offer/confirm-onboard`)) {
+      confirmedAt = "2030-02-01T01:00:00Z";
+      return route.fulfill({ headers: cors, json: { id: "record-1", applicationId, userId, companyId, jobId,
+        companyName: "Công ty A", position: "Java Developer", startDate: "2030-02-01", confirmedAt } });
+    }
+    if (path.endsWith(`/applications/${applicationId}`)) return route.fulfill({ headers: cors, json: {
+      id: applicationId, jobId, jobTitle: "Java Developer", companyId, companyName: "Công ty A", status: "HIRED",
+      createdAt: "2026-11-18T00:00:00Z", updatedAt: "2026-11-18T00:00:00Z",
+      candidate: { userId, fullName: "Ứng viên A", email: "a@example.test" },
+      cvId: "cv-1", cvSnapshotUrl: "cv", coverLetter: null, match: null, rounds: [], roundRevisions: [], history: [],
+      allowedTransitions: [], offer: { ...offer("ACCEPTED"), respondedAt: "2030-01-02T00:00:00Z" }, onboardConfirmedAt: confirmedAt,
+    } });
+    return route.fulfill({ headers: cors, json: {} });
+  });
+  await page.goto(`/hr/recruitment/${applicationId}`);
+  await expect(page.getByText(/Đã phản hồi:/)).toBeVisible();
+  await page.getByRole("button", { name: "Xác nhận đã đi làm" }).click();
+  await page.reload();
+  await expect(page.getByText(/Đã xác nhận đi làm:/)).toBeVisible();
+  await expect(page.getByRole("button", { name: "Xác nhận đã đi làm" })).toHaveCount(0);
 });
 
 test("ứng viên nhận offer và thấy kinh nghiệm trên hồ sơ", async ({ page }) => {
@@ -87,6 +116,7 @@ test("từ chối cần lý do và offer quá hạn không thể nhận", async 
   await signIn(page, "CANDIDATE");
   let status = "SENT";
   let pastDeadline = false;
+  let detailReads = 0;
   let declinedReason = "";
   await page.route("**/api/v1/**", route => {
     if (route.request().method() === "OPTIONS") return route.fulfill({ status: 204, headers: cors });
@@ -97,7 +127,10 @@ test("từ chối cần lý do và offer quá hạn không thể nhận", async 
       status = "DECLINED";
       return route.fulfill({ headers: cors, json: { ...offer(status), declineReason: declinedReason } });
     }
-    if (path.endsWith(`/me/offers/${offerId}`)) return route.fulfill({ headers: cors, json: { ...offer(status), responseDeadline: pastDeadline ? "2020-01-01T00:00:00Z" : "2030-01-03T00:00:00Z" } });
+    if (path.endsWith(`/me/offers/${offerId}`)) {
+      detailReads += 1;
+      return route.fulfill({ headers: cors, json: { ...offer(status), responseDeadline: pastDeadline ? "2020-01-01T00:00:00Z" : "2030-01-03T00:00:00Z" } });
+    }
     return route.fulfill({ headers: cors, json: [] });
   });
   await page.goto(`/candidate/offers/${offerId}`);
@@ -108,8 +141,10 @@ test("từ chối cần lý do và offer quá hạn không thể nhận", async 
   expect(declinedReason).toBe("Đã chọn công việc khác");
   status = "SENT";
   pastDeadline = true;
+  const readsBeforeExpiry = detailReads;
   await page.reload();
   await expect(page.getByText("Đã hết hạn trả lời")).toBeVisible();
+  await expect.poll(() => detailReads).toBeGreaterThanOrEqual(readsBeforeExpiry + 2);
   await expect(page.getByRole("button", { name: "Nhận offer" })).toHaveCount(0);
 });
 
