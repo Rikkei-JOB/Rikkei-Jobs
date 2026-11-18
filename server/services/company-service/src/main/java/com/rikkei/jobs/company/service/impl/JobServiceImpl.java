@@ -21,6 +21,7 @@ import com.rikkei.jobs.company.entity.JobStatus;
 import com.rikkei.jobs.company.mapper.JobMapper;
 import com.rikkei.jobs.company.repository.JobRepository;
 import com.rikkei.jobs.company.repository.JobSkillRepository;
+import com.rikkei.jobs.company.repository.MatchScoreRepository;
 import com.rikkei.jobs.company.service.CompanyService;
 import com.rikkei.jobs.company.service.JobService;
 import com.rikkei.jobs.company.util.JobRules;
@@ -54,6 +55,7 @@ public class JobServiceImpl implements JobService {
     private final CompanyService companyService;
     private final JobRepository jobRepository;
     private final JobSkillRepository jobSkillRepository;
+    private final MatchScoreRepository matchScoreRepository;
     private final SkillCatalogClient skillCatalog;
     private final JobMapper jobMapper;
     private final Clock clock;
@@ -276,6 +278,7 @@ public class JobServiceImpl implements JobService {
             // nên các bản ghi chèn sau không đụng khoá cũ.
             jobSkillRepository.deleteByJobId(job.getId());
             skills = jobSkillRepository.saveAll(skills);
+            matchScoreRepository.markStaleByJobId(job.getId());
         }
         Job saved = jobRepository.saveAndFlush(job);
         return jobMapper.toResponse(saved, skills);
