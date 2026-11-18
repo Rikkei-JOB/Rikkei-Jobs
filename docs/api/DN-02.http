@@ -1,0 +1,314 @@
+# DN-02 - request mau (IntelliJ HTTP Client hoac VS Code REST Client).
+# Chay truoc: Postgres, mock (9000), identity, profile, company-service (profile dev), gateway (8080).
+# Xem docs/api/DN-02-jobs.md muc "Cach chay". Moi request doi chieu voi ca kiem thu o muc 7 cua DN-02-jobs.md.
+# JD mau (DevDataSeeder, Cong ty A): ...0003-000000000001 REJECTED, ...002 PENDING, ...003 APPROVED, ...004 DRAFT, ...005 CLOSED.
+# Muon dat lai 5 JD mau: xoa cac dong cua company.job_skills va company.jobs roi khoi dong lai company-service voi profile dev.
+
+@gw = http://localhost:8080/api/v1
+@company = http://localhost:8085
+@internalKey = dev-internal-key
+@jdRejected = 00000000-0000-0000-0003-000000000001
+@jdPending = 00000000-0000-0000-0003-000000000002
+@jdApproved = 00000000-0000-0000-0003-000000000003
+@jdDraft = 00000000-0000-0000-0003-000000000004
+@jdClosed = 00000000-0000-0000-0003-000000000005
+# UUID ky nang co dinh cua profile-service (V2__skill_catalog.sql)
+@JAVA = 00000000-0000-0000-0001-000000000001
+@SPRING_BOOT = 00000000-0000-0000-0001-000000000002
+@SQL = 00000000-0000-0000-0001-000000000003
+@GIT = 00000000-0000-0000-0001-000000000004
+@DOCKER = 00000000-0000-0000-0001-000000000011
+
+############################## 1. Dang nhap ##############################
+
+### 1a. hr1 (Cong ty A) -> 200 {accessToken, ...}
+# @name hr1Login
+POST {{gw}}/auth/login
+Content-Type: application/json
+
+{ "email": "hr1@rikkeijobs.test", "password": "Test@123" }
+
+### 1b. hr2 (Cong ty B)
+# @name hr2Login
+POST {{gw}}/auth/login
+Content-Type: application/json
+
+{ "email": "hr2@rikkeijobs.test", "password": "Test@123" }
+
+### 1c. Danh muc ky nang (profile-service) -> 200, 20 ky nang {id, code, name, ...}
+GET {{gw}}/skills
+Authorization: Bearer {{hr1Login.response.body.accessToken}}
+
+############################## 2. Danh sach JD ##############################
+
+### 2a. Tat ca JD cua Cong ty A -> 200 {items, total = 5, page = 1, size = 20}, moi cap nhat truoc
+GET {{gw}}/companies/me/jobs
+Authorization: Bearer {{hr1Login.response.body.accessToken}}
+
+### 2b. Loc Bi tra lai -> 200, 1 dong "Junior Backend Developer (Java/Spring Boot)"
+GET {{gw}}/companies/me/jobs?status=REJECTED&page=1&size=20
+Authorization: Bearer {{hr1Login.response.body.accessToken}}
+
+### 2c. status sai -> 400 BAD_REQUEST
+GET {{gw}}/companies/me/jobs?status=PAUSED
+Authorization: Bearer {{hr1Login.response.body.accessToken}}
+
+### 2d. hr2 khong thay JD cua A -> 200, items rong
+GET {{gw}}/companies/me/jobs
+Authorization: Bearer {{hr2Login.response.body.accessToken}}
+
+############################## 3. Tao va luu nhap ##############################
+
+### 3a. Chi co title; body gui kem companyId/status la -> 201 DRAFT, companyId = Cong ty A (truong la bi bo qua)
+# @name createDraft
+POST {{gw}}/jobs
+Authorization: Bearer {{hr1Login.response.body.accessToken}}
+Content-Type: application/json
+
+{ "title": "JD thu DN-02", "companyId": "00000000-0000-0000-0000-0000000000b2", "status": "APPROVED" }
+
+### 3b. Thuc tap (type INTERNSHIP) kem ky nang -> 201 DRAFT, skills sap bat buoc truoc roi minScore giam dan
+# @name createIntern
+POST {{gw}}/jobs
+Authorization: Bearer {{hr1Login.response.body.accessToken}}
+Content-Type: application/json
+
+{
+  "title": "Thuc tap sinh Java",
+  "position": "Java Intern",
+  "level": "INTERN",
+  "type": "INTERNSHIP",
+  "quantity": 3,
+  "city": "Ha Noi",
+  "workMode": "ONSITE",
+  "deadline": "2027-06-30",
+  "description": "Hoc va lam du an Java noi bo.",
+  "skills": [
+    { "skillId": "{{GIT}}", "required": false, "minScore": 40 },
+    { "skillId": "{{JAVA}}", "required": true, "minScore": 40 }
+  ]
+}
+
+### 3c. Han nop trong qua khu -> 400 VALIDATION_ERROR, errors.deadline
+POST {{gw}}/jobs
+Authorization: Bearer {{hr1Login.response.body.accessToken}}
+Content-Type: application/json
+
+{ "title": "Han nop cu", "deadline": "2020-01-01" }
+
+### 3d. Luong min > max -> 400 VALIDATION_ERROR, errors.salaryMax
+POST {{gw}}/jobs
+Authorization: Bearer {{hr1Login.response.body.accessToken}}
+Content-Type: application/json
+
+{ "title": "Luong nguoc", "salaryMin": 20000000, "salaryMax": 10000000 }
+
+### 3e. Ky nang ngoai danh muc -> 400 VALIDATION_ERROR, errors.skills = "Kỹ năng không có trong danh mục"
+POST {{gw}}/jobs
+Authorization: Bearer {{hr1Login.response.body.accessToken}}
+Content-Type: application/json
+
+{ "title": "Ky nang la", "skills": [ { "skillId": "11111111-1111-1111-1111-111111111111", "required": true, "minScore": 40 } ] }
+
+### 3f. minScore 0 -> 400 VALIDATION_ERROR, errors["skills[0].minScore"]
+POST {{gw}}/jobs
+Authorization: Bearer {{hr1Login.response.body.accessToken}}
+Content-Type: application/json
+
+{ "title": "Diem 0", "skills": [ { "skillId": "{{JAVA}}", "required": true, "minScore": 0 } ] }
+
+############################## 4. Gui duyet ##############################
+
+### 4a. Gui duyet JD chi co title -> 400 VALIDATION_ERROR, errors liet ke moi truong thieu va skills
+POST {{gw}}/jobs/{{createDraft.response.body.id}}/submit
+Authorization: Bearer {{hr1Login.response.body.accessToken}}
+
+### 4b. Them ky nang uu tien (khong co bat buoc) bang PUT /jobs/{id}/skills -> 200, van DRAFT
+PUT {{gw}}/jobs/{{createDraft.response.body.id}}/skills
+Authorization: Bearer {{hr1Login.response.body.accessToken}}
+Content-Type: application/json
+
+[ { "skillId": "{{DOCKER}}", "required": false, "minScore": 40 } ]
+
+### 4c. Bo sung du thong tin chung, giu nguyen ky nang (khong gui skills) -> 200 DRAFT
+PUT {{gw}}/jobs/{{createDraft.response.body.id}}
+Authorization: Bearer {{hr1Login.response.body.accessToken}}
+Content-Type: application/json
+
+{
+  "title": "JD thu DN-02",
+  "position": "Backend Developer",
+  "level": "JUNIOR",
+  "type": "FULLTIME",
+  "quantity": 1,
+  "city": "Ha Noi",
+  "workMode": "HYBRID",
+  "salaryMin": 12000000,
+  "salaryMax": 20000000,
+  "deadline": "2027-06-30",
+  "description": "Phat trien API Spring Boot."
+}
+
+### 4d. Gui duyet khi chi co ky nang uu tien -> 400, errors = { "skills": "Cần ít nhất một kỹ năng bắt buộc" }
+POST {{gw}}/jobs/{{createDraft.response.body.id}}/submit
+Authorization: Bearer {{hr1Login.response.body.accessToken}}
+
+### 4e. Them ky nang bat buoc -> 200
+PUT {{gw}}/jobs/{{createDraft.response.body.id}}/skills
+Authorization: Bearer {{hr1Login.response.body.accessToken}}
+Content-Type: application/json
+
+[
+  { "skillId": "{{JAVA}}", "required": true, "minScore": 70 },
+  { "skillId": "{{SQL}}", "required": true, "minScore": 40 },
+  { "skillId": "{{DOCKER}}", "required": false, "minScore": 40 }
+]
+
+### 4f. Gui duyet -> 200 PENDING
+POST {{gw}}/jobs/{{createDraft.response.body.id}}/submit
+Authorization: Bearer {{hr1Login.response.body.accessToken}}
+
+### 4g. Bam gui duyet lan hai -> 409 INVALID_JOB_STATUS, van PENDING
+POST {{gw}}/jobs/{{createDraft.response.body.id}}/submit
+Authorization: Bearer {{hr1Login.response.body.accessToken}}
+
+### 4h. Sua JD dang PENDING -> 409 JOB_NOT_EDITABLE
+PUT {{gw}}/jobs/{{jdPending}}
+Authorization: Bearer {{hr1Login.response.body.accessToken}}
+Content-Type: application/json
+
+{ "title": "Fresher ReactJS (sua)" }
+
+############################## 5. JD bi tra lai ##############################
+
+### 5a. Xem JD bi tra lai -> 200 REJECTED, rejectReason = "Mức lương chưa rõ đơn vị, phần quyền lợi còn sơ sài.", 9 ky nang
+GET {{gw}}/jobs/{{jdRejected}}
+Authorization: Bearer {{hr1Login.response.body.accessToken}}
+
+### 5b. Sua luong va ky nang trong mot loi goi -> 200, van REJECTED (rejectReason con)
+PUT {{gw}}/jobs/{{jdRejected}}
+Authorization: Bearer {{hr1Login.response.body.accessToken}}
+Content-Type: application/json
+
+{
+  "title": "Junior Backend Developer (Java/Spring Boot)",
+  "position": "Backend Developer",
+  "level": "JUNIOR",
+  "type": "FULLTIME",
+  "quantity": 2,
+  "city": "Hà Nội",
+  "address": "Số 1 Duy Tân, Cầu Giấy, Hà Nội",
+  "workMode": "HYBRID",
+  "salaryMin": 12000000,
+  "salaryMax": 20000000,
+  "description": "Phát triển API Spring Boot cho hệ thống nội bộ.",
+  "requirements": "Tiếng Nhật N3 là lợi thế.",
+  "benefits": "Lương tháng 13, bảo hiểm đầy đủ, 12 ngày phép.",
+  "deadline": "2027-06-30",
+  "skills": [
+    { "skillId": "{{JAVA}}", "required": true, "minScore": 70 },
+    { "skillId": "{{SPRING_BOOT}}", "required": true, "minScore": 40 },
+    { "skillId": "{{GIT}}", "required": true, "minScore": 70 },
+    { "skillId": "{{DOCKER}}", "required": false, "minScore": 40 }
+  ]
+}
+
+### 5c. Gui duyet lai -> 200 PENDING, rejectReason = null
+POST {{gw}}/jobs/{{jdRejected}}/submit
+Authorization: Bearer {{hr1Login.response.body.accessToken}}
+
+############################## 6. Cong ty khac va vai tro ##############################
+
+### 6a. hr2 xem JD cua Cong ty A -> 404 NOT_FOUND (giong id khong ton tai)
+GET {{gw}}/jobs/{{jdApproved}}
+Authorization: Bearer {{hr2Login.response.body.accessToken}}
+
+### 6b. hr2 sua JD cua Cong ty A -> 404 NOT_FOUND
+PUT {{gw}}/jobs/{{jdDraft}}
+Authorization: Bearer {{hr2Login.response.body.accessToken}}
+Content-Type: application/json
+
+{ "title": "Dap pha JD cua A" }
+
+### 6c. id khong ton tai -> 404 NOT_FOUND
+GET {{gw}}/jobs/00000000-0000-0000-0003-000000000999
+Authorization: Bearer {{hr1Login.response.body.accessToken}}
+
+### 6d. Khong co token -> 401 UNAUTHORIZED
+GET {{gw}}/jobs/{{jdApproved}}
+
+############################## 7. API noi bo cho UT-01 (KHONG qua gateway) ##############################
+
+### 7a. Ngu canh JD Dang tuyen -> 200 {jobId, companyId, jobTitle "Thực tập sinh Tester", companyName "Công ty A",
+#       status APPROVED, deadline = 00:00 ngay ke tiep han nop (+07:00), companyLocked false, hrEmails [...]}
+GET {{company}}/internal/jobs/{{jdApproved}}/application-context
+X-Internal-Key: {{internalKey}}
+
+### 7b. Thieu khoa -> 401 INVALID_SERVICE_KEY
+GET {{company}}/internal/jobs/{{jdApproved}}/application-context
+
+### 7c. JWT hop le khong thay duoc khoa noi bo -> 401 INVALID_SERVICE_KEY
+GET {{company}}/internal/jobs/{{jdApproved}}/application-context
+Authorization: Bearer {{hr1Login.response.body.accessToken}}
+
+### 7d. JD khong ton tai -> 404; jobId sai dinh dang -> 400 (doi duong dan de thu)
+GET {{company}}/internal/jobs/00000000-0000-0000-0003-000000000999/application-context
+X-Internal-Key: {{internalKey}}
+
+### 7e. Qua gateway thi khong co route -> 404 (than loi mac dinh cua gateway, khong toi company-service)
+GET {{gw}}/internal/jobs/{{jdApproved}}/application-context
+X-Internal-Key: {{internalKey}}
+
+############################## 8. Ung tuyen roi sua JD Dang tuyen ##############################
+# Can them recruitment-service (8083). profile-service chua co CV (HS-04) nen recruitment lay PDF CV tu mock:
+# chay mock voi JWT_SECRET giong identity va MOCK_CV_OWNER_ID = id cua candidate1, recruitment voi PROFILE_SERVICE_URL=http://localhost:9000
+# (COMPANY_SERVICE_URL giu http://localhost:8085). Xem DN-02-jobs.md muc 5.
+
+### 8a. Xin ve SSO cho candidate1 (chi dev)
+# @name candTicket
+POST {{gw}}/auth/dev/sso-ticket
+Content-Type: application/json
+
+{ "lmsUserId": "lms-sv-001" }
+
+### 8b. Doi ve lay token
+# @name candSso
+POST {{gw}}/auth/sso
+Content-Type: application/json
+
+{ "ticket": "{{candTicket.response.body.ticket}}" }
+
+### 8c. candidate1 ung tuyen JD Dang tuyen bang CV mau cua mock -> 201
+POST {{gw}}/recruitment/jobs/{{jdApproved}}/apply
+Authorization: Bearer {{candSso.response.body.accessToken}}
+Content-Type: application/json
+
+{ "cvId": "40000000-0000-0000-0000-000000000001", "coverLetter": "Em xin ung tuyen vi tri thuc tap Tester." }
+
+### 8d. Sau do HR sua JD Dang tuyen -> 200 PENDING (frontend hoi xac nhan truoc khi gui)
+PUT {{gw}}/jobs/{{jdApproved}}
+Authorization: Bearer {{hr1Login.response.body.accessToken}}
+Content-Type: application/json
+
+{
+  "title": "Thực tập sinh Tester",
+  "position": "Thực tập sinh Tester",
+  "level": "INTERN",
+  "type": "INTERNSHIP",
+  "quantity": 3,
+  "city": "Hà Nội",
+  "address": "Số 1 Duy Tân, Cầu Giấy, Hà Nội",
+  "workMode": "HYBRID",
+  "salaryMin": 10000000,
+  "salaryMax": 20000000,
+  "description": "Mô tả công việc mẫu cho vị trí Thực tập sinh Tester.",
+  "deadline": "2027-06-30"
+}
+
+### 8e. application-context gio tra status PENDING (UT-01 tu chan don moi)
+GET {{company}}/internal/jobs/{{jdApproved}}/application-context
+X-Internal-Key: {{internalKey}}
+
+### 8f. Dong JD: chi tu APPROVED; JD vua chuyen PENDING -> 409 INVALID_JOB_STATUS
+POST {{gw}}/jobs/{{jdApproved}}/close
+Authorization: Bearer {{hr1Login.response.body.accessToken}}

@@ -47,7 +47,7 @@ Các endpoint DN-01 (`POST /staff/companies`, `POST /staff/companies/{id}/hr-acc
 
 Quy tắc dữ liệu:
 
-- **Danh sách**: `q` tìm theo tên hoặc mã số thuế, không phân biệt hoa thường nhưng **phân biệt dấu tiếng Việt**; `%` và `_` trong `q` được thoát nên tìm đúng nghĩa đen. `status` là `ACTIVE` hoặc `LOCKED` (trạng thái **công ty**). `page` từ 1 (mặc định 1), `size` mặc định 20, tối đa 100. Sắp xếp `createdAt` giảm dần. `hrCount` là số HR của công ty; `jdCount` **luôn 0** cho tới khi có module tin tuyển dụng.
+- **Danh sách**: `q` tìm theo tên hoặc mã số thuế, không phân biệt hoa thường nhưng **phân biệt dấu tiếng Việt**; `%` và `_` trong `q` được thoát nên tìm đúng nghĩa đen. `status` là `ACTIVE` hoặc `LOCKED` (trạng thái **công ty**). `page` từ 1 (mặc định 1), `size` mặc định 20, tối đa 100. Sắp xếp `createdAt` giảm dần. `hrCount` là số HR của công ty; `jdCount` là số JD của công ty ở **mọi trạng thái trừ `DRAFT`** (từ DN-02, đếm bằng một truy vấn gom nhóm cho cả trang, xem [DN-02](DN-02-jobs.md)); trước DN-02 trường này luôn 0.
 - **Chi tiết**: gồm mọi field của `CompanyResponse` và `hrAccounts[]` (`userId`, `email`, `fullName`, `status`, `lockedReason`, `lockedAt`, `tempLockedUntil`), sắp xếp theo email. company-service lấy trạng thái từ identity qua API nội bộ; HR có trong `company_hr` nhưng không còn ở identity bị bỏ khỏi danh sách (ghi log WARN).
 - **Khoá**: `reason` bắt buộc, cắt khoảng trắng rồi không được rỗng, tối đa 500 ký tự. Khoá lại tài khoản đã khoá vẫn trả 200 (cập nhật lý do). `userId` không phải HR của một công ty nào → 404.
 - **Mở khoá**: xoá `locked_reason`, `locked_at`, `locked_until`, đưa bộ đếm sai mật khẩu về 0. Tài khoản không bị cán bộ khoá thì không đổi gì và trả 200.
