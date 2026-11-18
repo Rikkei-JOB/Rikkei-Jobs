@@ -227,6 +227,12 @@ Chỉ có khi chạy company-service với profile `dev` (`DEV_DATA_ENABLED=true
 
 Tài khoản (seed của identity/company DN-01): `hr1@rikkeijobs.test` (Công ty A) và `hr2@rikkeijobs.test` (Công ty B), mật khẩu `Test@123`; `candidate1` đăng nhập SSO với `lmsUserId` `lms-sv-001`. `GET /staff/companies` cho Công ty A trả `jdCount = 4` (bỏ JD nháp).
 
+Duyệt / trả lại JD thuộc DN-07, chưa có: JD HR gửi duyệt sẽ dừng ở `PENDING`. Seed chỉ có một JD `APPROVED` ("Thực tập sinh Tester"); dùng nó cho ca ứng tuyển, sửa JD đang tuyển hoặc đóng JD, và đặt lại 5 JD mẫu (mục 6) khi cần dùng lại. Cần thêm JD đang tuyển trên DB dev thì tạm thay bước duyệt bằng SQL, chỉ cho JD đã gửi duyệt qua giao diện (đã đủ điều kiện):
+
+```sql
+UPDATE company.jobs SET status = 'APPROVED', reviewed_at = now() WHERE status = 'PENDING';
+```
+
 ## 8. Ca kiểm thử
 
 | # | Ca | Cách thử | Kết quả mong đợi | Test tự động |
@@ -251,7 +257,7 @@ Tên lớp test là các lớp trong `server/services/company-service/src/test` 
 
 Đã chạy trên nhánh `feature/DN-02-jobs`, ngày 18/11/2026:
 
-- `mvn -f server/pom.xml -B clean test`: lần chạy thường dừng ở recruitment-service (46 lỗi, cả 46 do Testcontainers không tìm được Docker: Docker Desktop trả 400 cho client Testcontainers 1.19.8); 10 module trước đó SUCCESS, ai-service bị bỏ qua. Chạy lại với `UT01_TEST_DB_URL` trỏ tới một database kiểm thử riêng, trống (`rikkei_jobs_ut01_test`, không phải DB dev): **BUILD SUCCESS, 12 module, 700 test, 0 lỗi, 1 test có sẵn bị skip** (company-service 165 test, recruitment-service 77 test).
+- `mvn -f server/pom.xml -B clean test`: lần chạy thường dừng ở recruitment-service (46 lỗi, cả 46 do Testcontainers không tìm được Docker: Docker Desktop trả 400 cho client Testcontainers 1.19.8); 10 module trước đó SUCCESS, ai-service bị bỏ qua. Chạy lại với `UT01_TEST_DB_URL` trỏ tới một database kiểm thử riêng, trống (`rikkei_jobs_ut01_test`, không phải DB dev): **BUILD SUCCESS, 12 module, 700 test, 0 lỗi, 1 test có sẵn bị skip** (company-service 165 test, recruitment-service 77 test). Sau lượt sửa cuối (thêm `JobOptimisticLockApiTest`, company-service còn 166 test), chạy lại `clean test` toàn backend trừ recruitment-service (không sửa gì ở module này): BUILD SUCCESS.
 - `web/`: `npm run type-check` và `npm run build` thành công (có route `/hr/jobs`, `/hr/jobs/new`, `/hr/jobs/[id]`); `npm run lint`: 0 lỗi, 1 cảnh báo có sẵn ở `commitlint.config.mjs`.
 - `company-openapi.yaml`: `postman spec lint docs/api/company-openapi.yaml --issueType=syntax` báo "No issues found"; parse bằng `js-yaml` (trong `web/node_modules`) được 15 path.
 - Chạy toàn luồng theo mục 6 (Postgres và MailHog trong Docker; mock; identity, company-service profile `dev`; profile-service; recruitment-service với PDF CV từ mock; gateway; web dev). Trước khi chạy đã xoá các dòng của `company.job_skills`, `company.jobs` rồi khởi động company-service để seed lại 5 JD:
@@ -264,4 +270,6 @@ Tên lớp test là các lớp trong `server/services/company-service/src/test` 
   - **Sau đó** mở JD "Đang tuyển" đó, sửa Số lượng 2 → 3, "Lưu và gửi duyệt lại" → hộp xác nhận đúng nội dung → xác nhận → về danh sách, báo "Đã lưu và gửi duyệt lại", JD thành "Chờ duyệt". `application-context` giờ trả `PENDING`; một ứng viên khác ứng tuyển JD này → 409 "Vị trí hiện không nhận hồ sơ ứng tuyển."; đơn của candidate1 vẫn `SUBMITTED`.
   - Request trong `DN-02.http` (mục 2, 3, 4, 6, 7, 8f) cho đúng kết quả ghi trong file: 3a `companyId` vẫn là A và `DRAFT` dù body gửi B/`APPROVED`; 3b `INTERNSHIP` lưu được, kỹ năng bắt buộc đứng trước; 3c/3d/3e/3f 400 đúng khoá `errors`; 4a liệt kê mọi trường thiếu; 4d 400 `errors.skills`; 4f `PENDING`, 4g 409 `INVALID_JOB_STATUS`; sửa JD `PENDING`/`CLOSED` → 409 `JOB_NOT_EDITABLE`; đóng JD `DRAFT`/`PENDING` → 409; hr2 xem, sửa, thay kỹ năng JD của A → 404 giống id không tồn tại; token CANDIDATE `POST /jobs` và token STAFF `GET /jobs/{id}` → 403; JWT thay cho khoá nội bộ → 401; JD nháp chưa có hạn nộp → `deadline` = `createdAt`. `GET /staff/companies` (staff1): Công ty A `jdCount` 5 (1 `CLOSED` + 4 `PENDING`, bỏ 4 `DRAFT`).
   - Tắt profile-service rồi `PUT /jobs/{id}/skills` → 503 `EXTERNAL_UNAVAILABLE` "Không kiểm tra được danh mục kỹ năng, vui lòng thử lại.", kỹ năng và `updatedAt` của JD không đổi; `PUT /jobs/{id}` không kèm `skills` vẫn 200.
-- Chưa thử tay: đóng JD `APPROVED` (JD đang tuyển duy nhất đã được dùng cho ca sửa → `PENDING`), công ty `LOCKED` và HR bị khoá; các ca này có test tự động ở mục 8.
+- Sau lượt sửa form (đặt lại cả danh sách kỹ năng sau khi lưu): thêm kỹ năng bắt buộc vào JD có sẵn rồi "Gửi duyệt" → console không còn cảnh báo trùng `key`, kỹ năng lưu đúng; JD bị gửi duyệt từ nơi khác trong lúc form còn thay đổi chưa lưu → "Lưu nháp" báo "JD vừa được cập nhật ở nơi khác, đã tải lại", danh sách kỹ năng khớp server.
+- Người làm task kiểm tra lại trên giao diện với dữ liệu seed (hr1, hr2, candidate1, staff1), đạt: danh sách và lọc theo trạng thái; sửa JD bị trả lại (banner lý do, thanh trượt đổi bậc đúng mốc 40/70/85, chuyển khối, thêm kỹ năng) rồi gửi duyệt; JD chờ duyệt chỉ xem; tạo JD mới loại Thực tập với lỗi hạn nộp quá khứ, lương min > max, số lượng quá lớn; gửi duyệt thiếu kỹ năng bắt buộc bị chặn ở bước 2, bấm gửi hai lần chỉ gửi một lần; candidate1 ứng tuyển JD đang tuyển qua `/candidate/applications/new?jobId=…`, MailHog nhận email cho HR, nộp lại → 409; sửa JD đang tuyển → hộp xác nhận → Chờ duyệt, ứng tuyển lại bị chặn; hr2 mở JD của Công ty A → "Không tìm thấy JD"; cột Số JD ở `/staff/companies` đúng.
+- Chưa thử tay: đóng JD `APPROVED`, công ty `LOCKED` và HR bị khoá; các ca này có test tự động ở mục 8.
