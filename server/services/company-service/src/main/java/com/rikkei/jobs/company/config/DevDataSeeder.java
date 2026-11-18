@@ -108,7 +108,7 @@ public class DevDataSeeder implements ApplicationRunner {
         return UUID.fromString(String.format("00000000-0000-0000-0003-%012d", n));
     }
 
-    /** 5 JD của Công ty A, mỗi trạng thái một JD; deadline tính theo đồng hồ để seed không hết hạn theo thời gian. */
+    /** 7 JD của Công ty A: 5 JD mỗi trạng thái một JD, thêm 2 JD APPROVED mẫu DN-06; deadline tính theo đồng hồ để seed không hết hạn theo thời gian. */
     private void seedJobs() {
         LocalDate today = JobRules.today(clock);
         Job junior = job(1, "Junior Backend Developer (Java/Spring Boot)", JobLevel.JUNIOR, JobType.FULLTIME,
@@ -134,6 +134,18 @@ public class DevDataSeeder implements ApplicationRunner {
 
         saveJob(job(5, "Senior DevOps", JobLevel.SENIOR, JobType.FULLTIME, JobStatus.CLOSED,
                 today.minusDays(10)), List.of());
+
+        // JD6/JD7: hai JD APPROVED để tái hiện ba ví dụ tính tay điểm phù hợp của DN-06.
+        saveJob(job(6, "Backend Developer Java (mẫu DN-06)", JobLevel.JUNIOR, JobType.FULLTIME, JobStatus.APPROVED,
+                today.plusDays(45)), List.of(
+                new JobSkill(null, JAVA, true, 80), new JobSkill(null, SPRING_BOOT, true, 70),
+                new JobSkill(null, SQL, true, 90), new JobSkill(null, DOCKER, false, 50),
+                new JobSkill(null, ENGLISH, false, 60), new JobSkill(null, GIT, false, 60)));
+
+        saveJob(job(7, "Fresher Java (mẫu DN-06)", JobLevel.FRESHER, JobType.FULLTIME, JobStatus.APPROVED,
+                today.plusDays(45)), List.of(
+                new JobSkill(null, JAVA, true, 60), new JobSkill(null, SQL, true, 60),
+                new JobSkill(null, GIT, true, 60)));
     }
 
     private Job job(int n, String title, JobLevel level, JobType type, JobStatus status, LocalDate deadline) {
