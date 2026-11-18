@@ -12,4 +12,5 @@ public record HrApplicationDetailResponse(UUID id, UUID jobId, String jobTitle, 
     CandidateIdentity candidate, UUID cvId, String cvSnapshotUrl, String coverLetter,
     MatchResponse match, List<InterviewRoundResponse> rounds,
     List<InterviewRoundRevisionResponse> roundRevisions,
-    List<ApplicationHistoryResponse> history, Set<ApplicationStatus> allowedTransitions) {}
+    List<ApplicationHistoryResponse> history, Set<ApplicationStatus> allowedTransitions,
+    OfferResponse offer) {}
