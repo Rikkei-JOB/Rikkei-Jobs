@@ -8,6 +8,7 @@ import com.rikkei.jobs.common.config.security.principle.AuthPrincipal;
 import com.rikkei.jobs.common.config.security.principle.Role;
 import com.rikkei.jobs.recruitment.dto.request.CreateOfferRequest;
 import com.rikkei.jobs.recruitment.dto.response.OfferResponse;
+import com.rikkei.jobs.recruitment.dto.response.EmploymentRecordResponse;
 import com.rikkei.jobs.recruitment.entity.ApplicationStatus;
 import com.rikkei.jobs.recruitment.entity.EmploymentRecord;
 import com.rikkei.jobs.recruitment.entity.Offer;
@@ -89,6 +90,26 @@ public class OfferCommandService {
         offers.saveAndFlush(locked.offer());
         transitions.transition(locked.application().getId(), ApplicationStatus.REJECTED, actor.getUserId(), null);
         return OfferResponse.from(locked.offer());
+    }
+
+    @Transactional
+    public EmploymentRecordResponse confirmOnboard(AuthPrincipal actor, UUID applicationId) {
+        if (actor == null || actor.getRole() != Role.HR) throw new ForbiddenException("Chỉ HR được xác nhận đi làm.");
+        var application = applications.findForUpdate(applicationId)
+            .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy đơn ứng tuyển."));
+        if (!application.getCompanyId().equals(actor.getCompanyId()))
+            throw new ResourceNotFoundException("Không tìm thấy đơn ứng tuyển.");
+        var offer = offers.findByApplicationIdForUpdate(applicationId)
+            .orElseThrow(() -> new ConflictException("Đơn chưa có offer được chấp nhận."));
+        if (offer.getStatus() != OfferStatus.ACCEPTED || application.getStatus() != ApplicationStatus.HIRED)
+            throw new ConflictException("Chưa thể xác nhận ứng viên đi làm.");
+        var record = employmentRecords.findByApplicationId(applicationId)
+            .orElseThrow(() -> new ConflictException("Chưa có bản ghi việc làm."));
+        if (record.getConfirmedAt() == null) {
+            record.setConfirmedAt(clock.instant());
+            employmentRecords.saveAndFlush(record);
+        }
+        return EmploymentRecordResponse.from(record, application.getCompanyName());
     }
 
     private record Locked(com.rikkei.jobs.recruitment.entity.Application application, Offer offer) {}
