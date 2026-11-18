@@ -124,12 +124,18 @@ export function JobForm({ job, companyLocked }: JobFormProps) {
     }
   }, [handoff, setError])
 
-  // JD trên server đổi (lưu xong, đóng JD, tải lại sau lỗi 409): cập nhật form, giữ các ô đang sửa dở.
+  // JD trên server đổi ở nơi khác (tải lại sau lỗi 409/COMPANY_LOCKED, tab khác): nạp lại cả form.
+  // Không dùng keepDirtyValues: RHF gộp mảng skills theo từng chỉ số, mà server trả kỹ năng đã sắp xếp
+  // lại (bắt buộc trước, minScore giảm dần) nên sẽ lệch chỉ số, mất hoặc nhân đôi kỹ năng.
+  // Đang lưu/gửi thì bỏ qua: nơi gọi tự reset theo kết quả server.
   const lastJob = React.useRef(job)
   React.useEffect(() => {
     if (!job || job === lastJob.current) return
     lastJob.current = job
-    reset(fromJob(job), { keepDirtyValues: true })
+    if (workingRef.current) return
+    reset(fromJob(job))
+    setSavedAt(null)
+    setNotice("JD vừa được cập nhật ở nơi khác, đã tải lại")
   }, [job, reset])
 
   const status = job?.status
@@ -224,6 +230,8 @@ export function JobForm({ job, companyLocked }: JobFormProps) {
       if (!values) return "stay"
       if (applyFieldErrors(submitIssues(values, todayInVietnam()))) return "stay"
       const saved = await save.mutateAsync({ id: job?.id, payload: toJobPayload(values) })
+      // Nạp ngay bản server trả về (thứ tự kỹ năng đã đổi) để lỗi gửi duyệt sau đó không lưu lại dữ liệu cũ.
+      reset(fromJob(saved))
       try {
         await submit.mutateAsync(saved.id)
       } catch (error) {
@@ -231,7 +239,6 @@ export function JobForm({ job, companyLocked }: JobFormProps) {
           moveToCreated(saved, error)
           return "leave"
         }
-        reset(fromJob(saved))
         setSavedAt(new Date())
         showError(error)
         return "stay"
