@@ -1,6 +1,7 @@
 import { api } from "@/services/api";
 import type { ApplicationStatus } from "@/interface/application";
 import type { HrApplicationDetail, HrApplicationPage, InterviewRound, MentorRoundPage, RoundResult } from "@/interface/hr-application";
+import type { CreateOfferPayload, EmploymentRecord, Offer } from "@/interface/offer";
 
 const root = "/recruitment";
 const idPath = (id: string) => `${root}/applications/${encodeURIComponent(id)}`;
@@ -12,6 +13,12 @@ export const hrApplicationService = {
     return (await api.get<HrApplicationPage>(`${root}/staff/applications`, { params })).data;
   },
   async detail(id: string) { return (await api.get<HrApplicationDetail>(idPath(id))).data; },
+  async sendOffer(id: string, payload: CreateOfferPayload) {
+    return (await api.post<Offer>(`${idPath(id)}/offer`, payload)).data;
+  },
+  async confirmOnboard(id: string) {
+    return (await api.post<EmploymentRecord>(`${idPath(id)}/offer/confirm-onboard`)).data;
+  },
   async transition(id: string, toStatus: ApplicationStatus, note?: string) {
     return (await api.post(`${idPath(id)}/transition`, { toStatus, note: note || null })).data;
   },
