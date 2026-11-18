@@ -43,6 +43,7 @@ app:
     cv-pdf-path: ${RECRUITMENT_CV_PDF_PATH:/profile/cvs/{cvId}/pdf}
     outbox-enabled: ${RECRUITMENT_OUTBOX_ENABLED:true}
     mail-from: ${MAIL_FROM:no-reply@rikkei-jobs.local}
+    web-base-url: ${WEB_BASE_URL:http://localhost:3000}
   jwt:
     # Must equal identity-service's JWT_SECRET: tokens are issued there and only verified here.
     secret: ${JWT_SECRET:your_super_secret_jwt_key_at_least_256_bits_long_rikkei_jobs}

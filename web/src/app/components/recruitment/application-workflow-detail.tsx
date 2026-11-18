@@ -12,6 +12,7 @@ import { ApiError, getErrorMessage } from "@/services/api";
 import { hrApplicationService } from "@/services/hr-application.service";
 import { InterviewRounds } from "./interview-rounds";
 import { MatchCard } from "./match-card";
+import { OfferPanel } from "./offer-panel";
 
 export function ApplicationWorkflowDetail({ id, role }: { id: string; role: "HR" | "STAFF" | "ADMIN" }) {
   const allowed = useAuthGuard({ roles: [role] });
@@ -73,6 +74,7 @@ export function ApplicationWorkflowDetail({ id, role }: { id: string; role: "HR"
           disabled={busy} onClick={() => transition(target)}>Chuyển sang {APPLICATION_STATUS[target].label}</Button>)}</div>
       </section>}
       <InterviewRounds application={application} readOnly={role !== "HR"} onChanged={reload} />
+      {role === "HR" && <OfferPanel key={application.id + application.status} application={application} onChanged={reload} />}
       <section className="rounded-xl border bg-background p-5"><h2 className="text-lg font-semibold">Lịch sử trạng thái</h2>
         <ol className="mt-4 space-y-4 border-l pl-5">{application.history.map(item => <li key={item.id} className="relative text-sm before:absolute before:-left-[25px] before:top-1 before:h-2 before:w-2 before:rounded-full before:bg-primary">
           <strong>{APPLICATION_STATUS[item.toStatus].label}</strong><span className="ml-2 text-muted-foreground">{formatApplicationDate(item.createdAt)}</span>

@@ -279,3 +279,15 @@ test('recruitment internal-key override takes priority and private PDF has no pu
     await expectError(await configured.request('/fixtures/cvs/sample.pdf', { headers: { 'X-Service-Key': 'legacy-key' } }), 404, 'ROUTE_NOT_FOUND');
   } finally { await configured.close(); }
 });
+
+test('internal profiles endpoint returns phone with valid internal key', async () => {
+  const response = await mock.request(`/internal/profiles/${OWNER}/phone`, { headers: internalHeaders });
+  assert.equal(response.status, 200);
+  const data = await response.json();
+  assert.equal(data.userId, OWNER);
+  assert.equal(typeof data.phone, 'string');
+
+  await expectError(await mock.request(`/internal/profiles/${OWNER}/phone`), 401, 'INVALID_INTERNAL_KEY');
+  await expectError(await mock.request('/internal/profiles/invalid-uuid/phone', { headers: internalHeaders }), 400, 'VALIDATION_ERROR');
+});
+

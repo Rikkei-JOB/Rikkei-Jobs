@@ -1,4 +1,5 @@
 import type { ApplicationHistoryItem, ApplicationStatus } from "@/interface/application";
+import type { Offer } from "@/interface/offer";
 
 export type RoundResult = "PENDING" | "PASS" | "FAIL";
 export interface InterviewRound {
@@ -27,6 +28,8 @@ export interface HrApplicationDetail {
   cvId: string; cvSnapshotUrl: string; coverLetter: string | null;
   match: MatchScore | null; rounds: InterviewRound[]; roundRevisions: RoundRevision[];
   history: ApplicationHistoryItem[]; allowedTransitions: ApplicationStatus[];
+  offer: Offer | null;
+  onboardConfirmedAt: string | null;
 }
 export interface MentorRoundItem {
   jobTitle: string; companyName: string; applicationStatus: ApplicationStatus; round: InterviewRound;
