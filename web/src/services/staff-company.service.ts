@@ -1,5 +1,13 @@
 import { api } from "@/services/api";
-import type { PageResult, StaffCompanyDetail, StaffCompanyItem, StaffCompanyListParams, StaffHrAccount } from "@/interface/company";
+import type {
+  Company,
+  CreateCompanyPayload,
+  PageResult,
+  StaffCompanyDetail,
+  StaffCompanyItem,
+  StaffCompanyListParams,
+  StaffHrAccount,
+} from "@/interface/company";
 
 /** Các endpoint /api/v1/staff/... dành cho cán bộ (STAFF). */
 export const staffCompanyService = {
@@ -9,6 +17,9 @@ export const staffCompanyService = {
   },
 
   detail: async (id: string) => (await api.get<StaffCompanyDetail>(`/staff/companies/${id}`)).data,
+
+  /** DN-01: cán bộ tạo công ty (ACTIVE). Trùng mã số thuế → 409. */
+  createCompany: async (body: CreateCompanyPayload) => (await api.post<Company>("/staff/companies", body)).data,
 
   lockHr: async (userId: string, reason: string) =>
     (await api.post<StaffHrAccount>(`/staff/hr-accounts/${userId}/lock`, { reason })).data,

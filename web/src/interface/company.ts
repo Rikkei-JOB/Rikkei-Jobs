@@ -29,6 +29,11 @@ export interface UpdateCompanyPayload {
   description: string | null;
 }
 
+/** Body của POST /staff/companies (cán bộ tạo công ty): như hồ sơ công ty, thêm mã số thuế. */
+export interface CreateCompanyPayload extends UpdateCompanyPayload {
+  taxCode: string;
+}
+
 /** Danh sách phân trang của backend: { items, total, page, size }, page bắt đầu từ 1. */
 export interface PageResult<T> {
   items: T[];
