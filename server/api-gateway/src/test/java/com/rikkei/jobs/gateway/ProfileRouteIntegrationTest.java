@@ -40,18 +40,20 @@ class ProfileRouteIntegrationTest {
     }
 
     @ParameterizedTest
-    @ValueSource(strings = {"profile", "profiles"})
-    void profileRoutesForwardPathQueryAndAuthorization(String area) throws Exception {
+    @ValueSource(strings = {"profile/me/skills", "profiles/me/skills", "staff/profile-reviews",
+            "staff/profiles/11111111-1111-1111-1111-111111111111/approve",
+            "staff/profiles/11111111-1111-1111-1111-111111111111/reject"})
+    void profileRoutesForwardPathQueryAndAuthorization(String path) throws Exception {
         RECEIVED.set(null);
         HttpRequest request = HttpRequest.newBuilder(URI.create("http://localhost:" + port
-                        + "/api/v1/" + area + "/me/skills?group=Backend&level=GOOD"))
+                        + "/api/v1/" + path + "?group=Backend&level=GOOD"))
                 .header("Authorization", "Bearer profile-test-token")
                 .timeout(Duration.ofSeconds(10)).GET().build();
         HttpResponse<String> response = HttpClient.newHttpClient().send(request, HttpResponse.BodyHandlers.ofString());
 
         assertThat(response.statusCode()).isEqualTo(200);
         assertThat(response.body()).isEqualTo(RESPONSE);
-        assertThat(RECEIVED.get()).isEqualTo(new ForwardedRequest("/" + area + "/me/skills",
+        assertThat(RECEIVED.get()).isEqualTo(new ForwardedRequest("/" + path,
                 "group=Backend&level=GOOD", "Bearer profile-test-token"));
     }
 

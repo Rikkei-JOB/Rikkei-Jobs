@@ -9,6 +9,11 @@ public class CompanyException extends RuntimeException {
         this.code = code;
     }
 
+    public CompanyException(CompanyErrorCode code, String message) {
+        super(message);
+        this.code = code;
+    }
+
     public CompanyErrorCode getCode() {
         return code;
     }

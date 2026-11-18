@@ -54,7 +54,9 @@ class CompanyRouteIntegrationTest {
             "/api/v1/companies/me, /companies/me",
             "/api/v1/staff/companies, /staff/companies",
             "/api/v1/staff/hr-accounts/x/lock, /staff/hr-accounts/x/lock",
-            "/api/v1/company/ping, /company/ping"
+            "/api/v1/company/ping, /company/ping",
+            "/api/v1/jobs/x/submit, /jobs/x/submit",
+            "/api/v1/companies/me/jobs, /companies/me/jobs"
     })
     void companyRoutesForwardPathAndAuthorization(String gatewayPath, String servicePath) throws Exception {
         HttpResponse<String> response = get(gatewayPath);

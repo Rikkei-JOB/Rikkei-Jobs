@@ -151,13 +151,72 @@ class CandidateProfileApiTest {
         String auth = "Bearer " + token;
         String hr = "Bearer " + jwt.generateJwtToken(UUID.randomUUID(), Role.HR, UUID.randomUUID());
         mvc.perform(get("/profiles/me").header("Authorization", auth)).andExpect(status().isOk());
-        jdbc.update("update profile.candidate_profiles set visibility='PUBLIC' where user_id=?", owner);
+        jdbc.update("update profile.candidate_profiles set visibility='PUBLIC',consent_at=CURRENT_TIMESTAMP where user_id=?", owner);
         jdbc.update("update profile.skill_profile_states set consented=true, approved=true where user_id=?", owner);
         mvc.perform(post("/profiles/me/withdraw").header("Authorization", hr)).andExpect(status().isForbidden());
         mvc.perform(get("/profiles/{id}/skills", owner).header("Authorization", hr)).andExpect(status().isOk());
         mvc.perform(post("/profiles/me/withdraw").header("Authorization", auth)).andExpect(status().isOk());
         mvc.perform(get("/profiles/{id}/skills", owner).header("Authorization", hr)).andExpect(status().isNotFound());
         mvc.perform(get("/profiles/me/review-history").header("Authorization", hr)).andExpect(status().isForbidden());
+    }
+
+    @Test void staffReviewCycle() throws Exception {
+        UUID reviewer = UUID.randomUUID();
+        String staff = "Bearer " + jwt.generateJwtToken(reviewer, Role.STAFF, null);
+        String candidate = "Bearer " + token;
+        var submit = post("/profiles/me/publish").header("Authorization", candidate)
+            .contentType(MediaType.APPLICATION_JSON).content("{\"consent\":true}");
+        var approve = post("/staff/profiles/{id}/approve", owner).header("Authorization", staff);
+        var reject = post("/staff/profiles/{id}/reject", owner).header("Authorization", staff)
+            .contentType(MediaType.APPLICATION_JSON);
+        mvc.perform(get("/profiles/me").header("Authorization", candidate)).andExpect(status().isOk());
+        mvc.perform(approve).andExpect(status().isConflict());
+        mvc.perform(submit).andExpect(status().isOk());
+        mvc.perform(get("/staff/profile-reviews").header("Authorization", candidate)).andExpect(status().isForbidden());
+        mvc.perform(get("/staff/profile-reviews").param("status","PENDING").header("Authorization", staff))
+            .andExpect(status().isOk()).andExpect(jsonPath("$.items[*].userId", org.hamcrest.Matchers.hasItem(owner.toString())));
+        mvc.perform(reject.content("{\"reason\":\"  \"}")).andExpect(status().isBadRequest());
+        mvc.perform(reject.content("{\"reason\":\"  Missing certificate  \"}")).andExpect(status().isOk())
+            .andExpect(jsonPath("$.visibility").value("REJECTED"));
+        mvc.perform(get("/profiles/me/review-history").header("Authorization", candidate))
+            .andExpect(jsonPath("$[0].reason").value("Missing certificate"))
+            .andExpect(jsonPath("$[0].actorId").value(reviewer.toString()));
+        mvc.perform(submit).andExpect(status().isOk());
+        mvc.perform(approve).andExpect(status().isOk()).andExpect(jsonPath("$.visibility").value("PUBLIC"));
+        mvc.perform(approve).andExpect(status().isConflict());
+        String hr = "Bearer " + jwt.generateJwtToken(UUID.randomUUID(), Role.HR, UUID.randomUUID());
+        mvc.perform(get("/profiles/{id}/skills", owner).header("Authorization", hr)).andExpect(status().isOk());
+        mvc.perform(post("/profiles/me/withdraw").header("Authorization", candidate)).andExpect(status().isOk());
+        mvc.perform(get("/profiles/{id}/skills", owner).header("Authorization", hr)).andExpect(status().isNotFound());
+    }
+
+    @Test void concurrentApproveAndWithdrawAlwaysEndPrivate() throws Exception {
+        String staff = "Bearer " + jwt.generateJwtToken(UUID.randomUUID(), Role.STAFF, null);
+        String candidate = "Bearer " + token;
+        mvc.perform(post("/profiles/me/publish").header("Authorization", candidate)
+            .contentType(MediaType.APPLICATION_JSON).content("{\"consent\":true}")).andExpect(status().isOk());
+        var start = new java.util.concurrent.CountDownLatch(1);
+        try (var pool = java.util.concurrent.Executors.newFixedThreadPool(2)) {
+            var approve = pool.submit(() -> {
+                start.await();
+                return mvc.perform(post("/staff/profiles/{id}/approve", owner).header("Authorization", staff))
+                    .andReturn().getResponse().getStatus();
+            });
+            var withdraw = pool.submit(() -> {
+                start.await();
+                return mvc.perform(post("/profiles/me/withdraw").header("Authorization", candidate))
+                    .andReturn().getResponse().getStatus();
+            });
+            start.countDown();
+            int approval = approve.get();
+            assertThat(approval).isIn(200, 409);
+            assertThat(withdraw.get()).isEqualTo(200);
+            mvc.perform(get("/profiles/me/review-history").header("Authorization", candidate))
+                .andExpect(jsonPath("$.length()").value(approval == 200 ? 3 : 2))
+                .andExpect(jsonPath("$[0].action").value("WITHDRAW"));
+        }
+        mvc.perform(get("/profiles/me").header("Authorization", candidate))
+            .andExpect(jsonPath("$.visibility").value("PRIVATE"));
     }
 
     @Test void createsPrivateProfileFromLmsOnceAndReadsItOffline() throws Exception {

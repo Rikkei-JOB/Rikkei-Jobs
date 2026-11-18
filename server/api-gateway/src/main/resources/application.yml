@@ -23,7 +23,7 @@ spring:
           filters: [StripPrefix=2]
         - id: profile
           uri: ${PROFILE_SERVICE_URL:http://localhost:8082}
-          predicates: ["Path=/api/v1/profile/**,/api/v1/profiles/**,/api/v1/files,/api/v1/files/**,/api/v1/skills,/api/v1/skills/**,/api/v1/staff/sync/**,/api/v1/staff/sync-runs/**,/api/v1/staff/external-records/**"]
+          predicates: ["Path=/api/v1/profile/**,/api/v1/profiles/**,/api/v1/files,/api/v1/files/**,/api/v1/skills,/api/v1/skills/**,/api/v1/staff/profile-reviews,/api/v1/staff/profiles/**,/api/v1/staff/sync/**,/api/v1/staff/sync-runs/**,/api/v1/staff/external-records/**"]
           filters: [StripPrefix=2]
         - id: recruitment
           uri: ${RECRUITMENT_SERVICE_URL:http://localhost:8083}
@@ -35,7 +35,7 @@ spring:
           filters: [StripPrefix=2]
         - id: company
           uri: ${COMPANY_SERVICE_URL:http://localhost:8085}
-          predicates: ["Path=/api/v1/company/**,/api/v1/companies/**,/api/v1/staff/companies/**,/api/v1/staff/hr-accounts/**"]
+          predicates: ["Path=/api/v1/company/**,/api/v1/companies/**,/api/v1/staff/companies/**,/api/v1/staff/hr-accounts/**,/api/v1/jobs/**"]
           filters: [StripPrefix=2]
         - id: internship
           uri: ${INTERNSHIP_SERVICE_URL:http://localhost:8086}

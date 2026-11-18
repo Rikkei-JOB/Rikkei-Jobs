@@ -1,7 +1,14 @@
 openapi: 3.0.3
 info:
   title: HS-05 Candidate profile publication
-  version: 1.0.0
+  version: 2.0.0
+  description: |
+    DN-03, DN-06 and UT-03 must resolve public access in profile-service for each request.
+    For a single profile use CandidateProfileRepository.isPublic(userId). For set-based reads
+    in profile-service join profile.public_candidate_ids before filtering, counting and paging.
+    Other services can read skills via GET /api/v1/profiles/{userId}/skills with the viewer's JWT.
+    For a non-owner a hidden or missing profile returns 404. Never forward the owner's identity
+    for an HR lookup. Legacy rows without a recorded consent time are excluded from public reads.
 servers:
   - url: /api/v1
 security:
@@ -51,6 +58,61 @@ paths:
                 items: {$ref: '#/components/schemas/Review'}
         '401': {description: Missing or invalid JWT}
         '403': {description: CANDIDATE role required}
+  /staff/profile-reviews:
+    get:
+      summary: List candidate profiles by review status (STAFF)
+      parameters:
+        - {in: query, name: status, schema: {type: string, enum: [PENDING, PUBLIC, REJECTED], default: PENDING}}
+        - {in: query, name: page, schema: {type: integer, minimum: 1, default: 1}}
+        - {in: query, name: size, schema: {type: integer, minimum: 1, maximum: 100, default: 20}}
+      responses:
+        '200':
+          description: Ordered by consent time then user ID
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items: {type: array, items: {$ref: './hs02-openapi.yaml#/components/schemas/Profile'}}
+                  total: {type: integer, format: int64}
+                  page: {type: integer}
+                  size: {type: integer}
+        '400': {description: Invalid status or pagination}
+        '401': {description: Missing or invalid JWT}
+        '403': {description: STAFF role required}
+  /staff/profiles/{userId}/approve:
+    post:
+      summary: Approve a PENDING profile (STAFF)
+      parameters:
+        - {in: path, name: userId, required: true, schema: {type: string, format: uuid}}
+      responses:
+        '200': {$ref: '#/components/responses/Profile'}
+        '400': {description: Invalid input}
+        '401': {description: Missing or invalid JWT}
+        '403': {description: STAFF role required}
+        '404': {description: Candidate profile missing}
+        '409': {description: Profile is no longer pending}
+  /staff/profiles/{userId}/reject:
+    post:
+      summary: Reject a PENDING profile (STAFF)
+      parameters:
+        - {in: path, name: userId, required: true, schema: {type: string, format: uuid}}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [reason]
+              properties:
+                reason: {type: string, minLength: 1, description: Nonblank reason shown to the candidate}
+      responses:
+        '200': {$ref: '#/components/responses/Profile'}
+        '400': {description: Invalid input}
+        '401': {description: Missing or invalid JWT}
+        '403': {description: STAFF role required}
+        '404': {description: Candidate profile missing}
+        '409': {description: Profile is no longer pending}
 components:
   responses:
     Profile:

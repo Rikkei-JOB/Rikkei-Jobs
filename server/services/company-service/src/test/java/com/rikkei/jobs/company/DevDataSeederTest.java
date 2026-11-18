@@ -6,6 +6,12 @@ import com.rikkei.jobs.company.config.DevDataSeeder;
 import com.rikkei.jobs.company.entity.Company;
 import com.rikkei.jobs.company.entity.CompanyStatus;
 import com.rikkei.jobs.company.support.CompanyApiTestSupport;
+import com.rikkei.jobs.company.entity.Job;
+import com.rikkei.jobs.company.entity.JobSkill;
+import com.rikkei.jobs.company.entity.JobStatus;
+import com.rikkei.jobs.company.entity.JobType;
+import java.time.LocalDate;
+import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -39,7 +45,38 @@ class DevDataSeederTest extends CompanyApiTestSupport {
         assertSeeded();
     }
 
+    private void assertSeededJobs() {
+        assertThat(jobs.count()).isEqualTo(5);
+        List<Job> aJobs = jobs.findAll();
+        assertThat(aJobs).allMatch(j -> A.equals(j.getCompanyId()) && HR1.equals(j.getCreatedBy()));
+        assertThat(aJobs).extracting(Job::getStatus).containsExactlyInAnyOrder(
+                JobStatus.REJECTED, JobStatus.PENDING, JobStatus.APPROVED, JobStatus.DRAFT, JobStatus.CLOSED);
+
+        Job junior = jobs.findById(jobId(1)).orElseThrow();
+        assertThat(junior.getTitle()).isEqualTo("Junior Backend Developer (Java/Spring Boot)");
+        assertThat(junior.getStatus()).isEqualTo(JobStatus.REJECTED);
+        assertThat(junior.getRejectReason()).isEqualTo("Mức lương chưa rõ đơn vị, phần quyền lợi còn sơ sài.");
+        List<JobSkill> skills = jobSkills.findByJobId(junior.getId());
+        assertThat(skills).hasSize(9);
+        assertThat(skills.stream().filter(JobSkill::isRequired).count()).isEqualTo(6);
+
+        Job tester = jobs.findById(jobId(3)).orElseThrow();
+        assertThat(tester.getStatus()).isEqualTo(JobStatus.APPROVED);
+        assertThat(tester.getType()).isEqualTo(JobType.INTERNSHIP);
+        assertThat(tester.getDeadline()).isAfter(LocalDate.now().plusDays(30));
+
+        Job draft = jobs.findById(jobId(4)).orElseThrow();
+        assertThat(draft.getDeadline()).isNull();
+        assertThat(jobSkills.findByJobId(draft.getId())).isEmpty();
+        assertThat(jobs.findById(jobId(5)).orElseThrow().getDeadline()).isBefore(LocalDate.now());
+    }
+
+    private static UUID jobId(int n) {
+        return UUID.fromString("00000000-0000-0000-0003-00000000000" + n);
+    }
+
     private void assertSeeded() {
+        assertSeededJobs();
         assertThat(companies.count()).isEqualTo(2);
         assertThat(companyHrs.count()).isEqualTo(3);
 

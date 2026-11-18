@@ -32,6 +32,7 @@ public class CompanySecurityConfig {
                                            JwtUtils jwtUtils,
                                            CompanyHrRepository companyHrRepository,
                                            ObjectMapper objectMapper,
+                                           AppProperties appProperties,
                                            AuthenticationEntryPointHandler authenticationEntryPointHandler,
                                            AccessDeniedExceptionHandler accessDeniedExceptionHandler) throws Exception {
         http.csrf(AbstractHttpConfigurer::disable)
@@ -45,10 +46,15 @@ public class CompanySecurityConfig {
                         .requestMatchers("/actuator/health/**", "/actuator/info", "/actuator/prometheus").permitAll()
                         .requestMatchers(HttpMethod.GET, "/companies/logos/**").permitAll()
                         .requestMatchers(SecurityConfig.API_DOCS_PATHS).permitAll()
+                        // /internal/** do InternalKeyFilter bảo vệ, JWT không áp dụng.
+                        .requestMatchers(InternalKeyFilter.INTERNAL_PATTERN).permitAll()
                         .anyRequest().authenticated()
                 );
 
         http.addFilterBefore(new JwtAuthenticationFilter(jwtUtils), UsernamePasswordAuthenticationFilter.class);
+        // Không khai báo @Component để tránh đăng ký hai lần; đặt trước JWT để /internal/** không cần token.
+        http.addFilterBefore(new InternalKeyFilter(appProperties.getInternal().getServiceKey(), objectMapper),
+                JwtAuthenticationFilter.class);
         // HR bị cán bộ khoá bị chặn ngay cả khi JWT còn hạn.
         http.addFilterAfter(new HrLockedFilter(companyHrRepository, objectMapper), JwtAuthenticationFilter.class);
 

@@ -10,6 +10,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 @ConfigurationProperties(prefix = "app")
 public class AppProperties {
     private Identity identity = new Identity();
+    private Profile profile = new Profile();
     private Internal internal = new Internal();
     private Upload upload = new Upload();
     private DevData devData = new DevData();
@@ -18,6 +19,12 @@ public class AppProperties {
     @Setter
     public static class Identity {
         private String baseUrl = "http://localhost:8081";
+    }
+
+    @Getter
+    @Setter
+    public static class Profile {
+        private String baseUrl = "http://localhost:8082";
     }
 
     @Getter
