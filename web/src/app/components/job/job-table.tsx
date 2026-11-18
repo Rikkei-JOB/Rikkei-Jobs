@@ -1,0 +1,53 @@
+"use client"
+
+import { useRouter } from "next/navigation"
+import type { JobSummary } from "@/interface/job"
+import { JobStatusBadge } from "@/app/components/job/job-status-badge"
+import { LEVEL_LABEL, formatDate } from "@/app/components/job/job-labels"
+
+/** Bảng JD của HR; bấm một dòng mở /hr/jobs/{id}. */
+export function JobTable({ items }: { items: JobSummary[] }) {
+  const router = useRouter()
+  if (items.length === 0) {
+    return <p className="rounded-md border border-dashed py-10 text-center text-xs text-muted-foreground">Chưa có JD nào</p>
+  }
+  return (
+    <div className="overflow-x-auto rounded-md border">
+      <table className="w-full text-left text-xs">
+        <thead className="bg-muted/50 text-muted-foreground">
+          <tr>
+            <th className="px-3 py-2 font-medium">Tiêu đề</th>
+            <th className="px-3 py-2 font-medium">Cấp độ</th>
+            <th className="px-3 py-2 font-medium">Hạn nộp</th>
+            <th className="px-3 py-2 font-medium">Trạng thái</th>
+            <th className="px-3 py-2 font-medium">Cập nhật</th>
+          </tr>
+        </thead>
+        <tbody>
+          {items.map((job) => {
+            const open = () => router.push(`/hr/jobs/${job.id}`)
+            return (
+              <tr
+                key={job.id}
+                tabIndex={0}
+                onClick={open}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") open()
+                }}
+                className="cursor-pointer border-t hover:bg-muted/40 focus-visible:bg-muted/40 focus-visible:outline-none"
+              >
+                <td className="px-3 py-2 font-medium text-primary">{job.title}</td>
+                <td className="px-3 py-2">{job.level ? LEVEL_LABEL[job.level] : "—"}</td>
+                <td className="px-3 py-2">{formatDate(job.deadline)}</td>
+                <td className="px-3 py-2">
+                  <JobStatusBadge status={job.status} />
+                </td>
+                <td className="px-3 py-2">{formatDate(job.updatedAt)}</td>
+              </tr>
+            )
+          })}
+        </tbody>
+      </table>
+    </div>
+  )
+}
