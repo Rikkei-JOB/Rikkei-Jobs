@@ -16,6 +16,7 @@ import com.rikkei.jobs.company.config.exception.CompanyErrorCode;
 import com.rikkei.jobs.company.config.exception.CompanyException;
 import com.rikkei.jobs.company.entity.Company;
 import com.rikkei.jobs.company.entity.CompanyStatus;
+import com.rikkei.jobs.company.entity.JobStatus;
 import com.rikkei.jobs.company.support.CompanyApiTestSupport;
 import java.time.Instant;
 import java.util.List;
@@ -124,6 +125,17 @@ class StaffCompanyListApiTest extends CompanyApiTestSupport {
                 .andExpect(jsonPath("$.items[2].name").value("Công ty A"))
                 .andExpect(jsonPath("$.items[1].hrCount").value(0))
                 .andExpect(jsonPath("$.items[?(@.jdCount != 0)]").isEmpty());
+    }
+
+    @Test
+    void jdCountCountsNonDraftJobs() throws Exception {
+        saveJob(a.getId(), JobStatus.DRAFT);
+        saveJob(a.getId(), JobStatus.PENDING);
+        saveJob(a.getId(), JobStatus.APPROVED);
+
+        list("").andExpect(status().isOk())
+                .andExpect(jsonPath("$.items[?(@.id == '" + a.getId() + "')].jdCount").value(2))
+                .andExpect(jsonPath("$.items[?(@.id == '" + b.getId() + "')].jdCount").value(0));
     }
 
     @ParameterizedTest
