@@ -89,9 +89,12 @@ export function JobGeneralStep({ form }: { form: UseFormReturn<JobFormValues> })
         </FormField>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-3">
+      <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-[1fr_1.6fr_0.7fr_1fr]">
         <FormField label="Thành phố *" htmlFor="job-city" error={error("city")}>
           <Input placeholder="Ví dụ: Hà Nội" {...field("city")} />
+        </FormField>
+        <FormField label="Địa chỉ" htmlFor="job-address" error={error("address")}>
+          <Input placeholder="Ví dụ: Tầng 21, 1 Phạm Văn Bạch" {...field("address")} />
         </FormField>
         <FormField label="Số lượng *" htmlFor="job-quantity" error={error("quantity")}>
           <Input inputMode="numeric" placeholder="1" {...field("quantity")} />

@@ -42,8 +42,7 @@ const STEPS: { step: Step; label: string }[] = [
   { step: 2, label: "Kỹ năng yêu cầu" },
 ]
 
-// "address" có trong JobRequest nhưng §5.2 không đặt ô trên form: lỗi của nó hiện ở thông báo chung.
-const RENDERED_FIELDS = new Set<string>(Object.keys(EMPTY_JOB_FORM).filter((f) => f !== "address"))
+const FORM_FIELDS = new Set<string>(Object.keys(EMPTY_JOB_FORM))
 
 const stepOf = (field: string): Step => (field.startsWith("skills") ? 2 : 1)
 const firstStep = (fields: string[]): Step | null => (fields.length === 0 ? null : (Math.min(...fields.map(stepOf)) as Step))
@@ -56,7 +55,7 @@ function describeError(error: unknown): { fieldErrors?: FieldErrorMap; message?:
     for (const [key, value] of Object.entries(error.errors as Record<string, unknown>)) {
       if (typeof value !== "string") continue
       const field = key.startsWith("skills") ? "skills" : key
-      if (RENDERED_FIELDS.has(field)) fieldErrors[field as JobFormField] ??= value
+      if (FORM_FIELDS.has(field)) fieldErrors[field as JobFormField] ??= value
       else others.push(value)
     }
     if (Object.keys(fieldErrors).length > 0) {
@@ -109,6 +108,14 @@ export function JobForm({ job, companyLocked }: JobFormProps) {
   const close = useCloseJob()
   const busy = action !== null || save.isPending || submit.isPending || close.isPending
 
+  const pendingFocus = React.useRef<JobFormField | null>(null)
+  React.useEffect(() => {
+    if (busy || !pendingFocus.current) return
+    const field = pendingFocus.current
+    pendingFocus.current = null
+    setFocus(field)
+  }, [busy, step, setFocus])
+
   React.useEffect(() => {
     if (!handoff) return
     clearJobFormHandoff()
@@ -136,7 +143,8 @@ export function JobForm({ job, companyLocked }: JobFormProps) {
     if (!target) return
     setStep(target)
     const first = fields.find((f) => stepOf(f) === target && f !== "skills")
-    if (first) requestAnimationFrame(() => setFocus(first as JobFormField))
+    // Ô đang bị khoá (fieldset disabled khi busy) thì chưa focus được: để effect bên dưới làm khi mở khoá.
+    if (first) pendingFocus.current = first as JobFormField
   }
 
   function applyFieldErrors(fieldErrors: FieldErrorMap): boolean {
@@ -325,13 +333,14 @@ export function JobForm({ job, companyLocked }: JobFormProps) {
       <Card>
         <CardContent>
           <form noValidate onSubmit={(e) => e.preventDefault()} className="space-y-4">
-            <fieldset disabled={readOnly} className="min-w-0">
+            {/* Khoá mọi ô khi đang lưu/gửi: thay đổi lúc đó sẽ không được gửi và bị reset() ghi đè. */}
+            <fieldset disabled={readOnly || busy} className="min-w-0">
               {/* Giữ cả hai bước trong DOM để chuyển bước không mất trạng thái ô nhập. */}
               <div hidden={step !== 1}>
                 <JobGeneralStep form={form} />
               </div>
               <div hidden={step !== 2}>
-                <JobSkillsStep form={form} catalog={catalog} readOnly={readOnly} />
+                <JobSkillsStep form={form} catalog={catalog} readOnly={readOnly} disabled={busy} />
               </div>
             </fieldset>
 

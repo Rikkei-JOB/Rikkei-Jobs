@@ -18,10 +18,12 @@ interface JobSkillsStepProps {
   form: UseFormReturn<JobFormValues>
   catalog: Skill[]
   readOnly: boolean
+  /** Đang lưu/gửi: hiện như bình thường nhưng không cho sửa. */
+  disabled?: boolean
 }
 
 /** Bước 2 — Kỹ năng yêu cầu: ô tìm trong danh mục, khối Bắt buộc và khối Ưu tiên. */
-export function JobSkillsStep({ form, catalog, readOnly }: JobSkillsStepProps) {
+export function JobSkillsStep({ form, catalog, readOnly, disabled = false }: JobSkillsStepProps) {
   const {
     control,
     setValue,
@@ -44,6 +46,7 @@ export function JobSkillsStep({ form, catalog, readOnly }: JobSkillsStepProps) {
   const preferred = skills.filter((s) => !s.required)
 
   function update(next: JobSkill[]) {
+    if (readOnly || disabled) return
     setValue("skills", next, { shouldDirty: true })
     clearErrors("skills")
   }
@@ -80,7 +83,7 @@ export function JobSkillsStep({ form, catalog, readOnly }: JobSkillsStepProps) {
             aria-controls={listId}
             aria-expanded={open}
             placeholder={full ? `Đã đủ ${MAX_JOB_SKILLS} kỹ năng` : `Thêm kỹ năng… (gõ để tìm trong ${catalog.length} kỹ năng)`}
-            disabled={full}
+            disabled={full || disabled}
             value={query}
             onChange={(e) => {
               setQuery(e.target.value)
@@ -97,7 +100,7 @@ export function JobSkillsStep({ form, catalog, readOnly }: JobSkillsStepProps) {
               }
             }}
           />
-          {open && !full ? (
+          {open && !full && !disabled ? (
             <ul
               id={listId}
               className="absolute inset-x-0 top-full z-10 mt-1 max-h-60 overflow-y-auto rounded-md border bg-background p-1 shadow-md"
@@ -129,6 +132,7 @@ export function JobSkillsStep({ form, catalog, readOnly }: JobSkillsStepProps) {
         items={required}
         byId={byId}
         readOnly={readOnly}
+        disabled={disabled}
         onRemove={remove}
         onToggle={toggle}
         onScore={setScore}
@@ -138,6 +142,7 @@ export function JobSkillsStep({ form, catalog, readOnly }: JobSkillsStepProps) {
         items={preferred}
         byId={byId}
         readOnly={readOnly}
+        disabled={disabled}
         onRemove={remove}
         onToggle={toggle}
         onScore={setScore}
@@ -168,12 +173,13 @@ interface SkillBlockProps {
   items: JobSkill[]
   byId: Map<string, Skill>
   readOnly: boolean
+  disabled: boolean
   onRemove: (skillId: string) => void
   onToggle: (skillId: string) => void
   onScore: (skillId: string, minScore: number) => void
 }
 
-function SkillBlock({ tone, items, byId, readOnly, onRemove, onToggle, onScore }: SkillBlockProps) {
+function SkillBlock({ tone, items, byId, readOnly, disabled, onRemove, onToggle, onScore }: SkillBlockProps) {
   const t = TONE[tone]
   return (
     <section className={`rounded-lg border p-3 ${t.box}`} aria-label={`Kỹ năng ${t.title.toLowerCase()}`}>
@@ -199,7 +205,7 @@ function SkillBlock({ tone, items, byId, readOnly, onRemove, onToggle, onScore }
                   <SkillScoreSlider
                     value={item.minScore}
                     onChange={(v) => onScore(item.skillId, v)}
-                    disabled={readOnly}
+                    disabled={readOnly || disabled}
                     label={name}
                   />
                 </div>
@@ -209,12 +215,13 @@ function SkillBlock({ tone, items, byId, readOnly, onRemove, onToggle, onScore }
                       type="button"
                       variant="outline"
                       size="xs"
+                      disabled={disabled}
                       aria-label={`Chuyển ${name} sang ${t.moveTo}`}
                       onClick={() => onToggle(item.skillId)}
                     >
                       → {t.moveTo}
                     </Button>
-                    <Button type="button" variant="ghost" size="icon-xs" aria-label={`Xoá ${name}`} onClick={() => onRemove(item.skillId)}>
+                    <Button type="button" variant="ghost" size="icon-xs" disabled={disabled} aria-label={`Xoá ${name}`} onClick={() => onRemove(item.skillId)}>
                       ✕
                     </Button>
                   </div>

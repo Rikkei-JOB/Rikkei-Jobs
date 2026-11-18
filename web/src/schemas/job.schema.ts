@@ -28,14 +28,17 @@ export function todayInVietnam(now: Date = new Date()): string {
 
 const optionalText = (max: number, label: string) => z.string().trim().max(max, `${label} tối đa ${max} ký tự`);
 
+/** Integer của Java (cột quantity). */
+const MAX_JAVA_INT = 2_147_483_647;
+
 /** Ô số nguyên dạng chuỗi: "" = chưa nhập. */
-const optionalInteger = (min: number, message: string) =>
+const optionalInteger = (min: number, message: string, max = MAX_INTEGER) =>
   z
     .string()
     .trim()
     .refine((v) => v === "" || /^-?\d+$/.test(v), "Vui lòng nhập số nguyên")
     .refine((v) => v === "" || Number(v) >= min, message)
-    .refine((v) => v === "" || Number(v) <= MAX_INTEGER, "Giá trị quá lớn");
+    .refine((v) => v === "" || Number(v) <= max, "Giá trị quá lớn");
 
 const jobSkillSchema = z.object({
   skillId: z.string().min(1),
@@ -62,7 +65,7 @@ export const jobFormSchema = z
     workMode: z.union([z.literal(""), z.enum(WORK_MODES)]),
     city: optionalText(100, "Thành phố"),
     address: optionalText(255, "Địa chỉ"),
-    quantity: optionalInteger(1, "Số lượng tuyển tối thiểu là 1"),
+    quantity: optionalInteger(1, "Số lượng tuyển tối thiểu là 1", MAX_JAVA_INT),
     deadline: z
       .string()
       .refine((v) => v === "" || /^\d{4}-\d{2}-\d{2}$/.test(v), "Ngày không hợp lệ")
