@@ -192,7 +192,11 @@ $env:JWT_SECRET = 'your_super_secret_jwt_key_at_least_256_bits_long_rikkei_jobs'
 $env:MOCK_CV_OWNER_ID = '<id của candidate1>'
 cd mock; npm.cmd start
 # Terminal recruitment: ngữ cảnh JD lấy từ company-service thật, PDF CV từ mock
+# Java không đọc .env. INTERNAL_SERVICE_KEY phải bằng khoá company-service nhận (mặc định 'dev-internal-key');
+# để trống thì mọi lần ứng tuyển lỗi 503 DEPENDENCY_NOT_CONFIGURED.
+# Nếu identity dùng JWT_SECRET khác mặc định thì đặt $env:JWT_SECRET giống hệt ở terminal này.
 mvn -f server/pom.xml -pl services/recruitment-service -am install -DskipTests
+$env:INTERNAL_SERVICE_KEY = 'dev-internal-key'
 $env:COMPANY_SERVICE_URL = 'http://localhost:8085'
 $env:PROFILE_SERVICE_URL = 'http://localhost:9000'
 java -jar server/services/recruitment-service/target/recruitment-service-1.0.0-SNAPSHOT.jar   # :8083

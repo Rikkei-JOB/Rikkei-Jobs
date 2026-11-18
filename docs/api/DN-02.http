@@ -1,6 +1,6 @@
 # DN-02 - request mau (IntelliJ HTTP Client hoac VS Code REST Client).
 # Chay truoc: Postgres, mock (9000), identity, profile, company-service (profile dev), gateway (8080).
-# Xem docs/api/DN-02-jobs.md muc "Cach chay". Moi request doi chieu voi ca kiem thu o muc 7 cua DN-02-jobs.md.
+# Xem docs/api/DN-02-jobs.md muc 6 "Cach chay". Moi request doi chieu voi muc 8 "Ca kiem thu" cua DN-02-jobs.md.
 # JD mau (DevDataSeeder, Cong ty A): ...0003-000000000001 REJECTED, ...002 PENDING, ...003 APPROVED, ...004 DRAFT, ...005 CLOSED.
 # Muon dat lai 5 JD mau: xoa cac dong cua company.job_skills va company.jobs roi khoi dong lai company-service voi profile dev.
 
@@ -81,7 +81,7 @@ Content-Type: application/json
   "quantity": 3,
   "city": "Ha Noi",
   "workMode": "ONSITE",
-  "deadline": "2027-06-30",
+  "deadline": "2099-12-31",
   "description": "Hoc va lam du an Java noi bo.",
   "skills": [
     { "skillId": "{{GIT}}", "required": false, "minScore": 40 },
@@ -145,7 +145,7 @@ Content-Type: application/json
   "workMode": "HYBRID",
   "salaryMin": 12000000,
   "salaryMax": 20000000,
-  "deadline": "2027-06-30",
+  "deadline": "2099-12-31",
   "description": "Phat trien API Spring Boot."
 }
 
@@ -204,7 +204,7 @@ Content-Type: application/json
   "description": "Phát triển API Spring Boot cho hệ thống nội bộ.",
   "requirements": "Tiếng Nhật N3 là lợi thế.",
   "benefits": "Lương tháng 13, bảo hiểm đầy đủ, 12 ngày phép.",
-  "deadline": "2027-06-30",
+  "deadline": "2099-12-31",
   "skills": [
     { "skillId": "{{JAVA}}", "required": true, "minScore": 70 },
     { "skillId": "{{SPRING_BOOT}}", "required": true, "minScore": 40 },
@@ -262,7 +262,7 @@ X-Internal-Key: {{internalKey}}
 ############################## 8. Ung tuyen roi sua JD Dang tuyen ##############################
 # Can them recruitment-service (8083). profile-service chua co CV (HS-04) nen recruitment lay PDF CV tu mock:
 # chay mock voi JWT_SECRET giong identity va MOCK_CV_OWNER_ID = id cua candidate1, recruitment voi PROFILE_SERVICE_URL=http://localhost:9000
-# (COMPANY_SERVICE_URL giu http://localhost:8085). Xem DN-02-jobs.md muc 5.
+# (COMPANY_SERVICE_URL giu http://localhost:8085). Xem DN-02-jobs.md muc 6 "Cach chay".
 
 ### 8a. Xin ve SSO cho candidate1 (chi dev)
 # @name candTicket
@@ -302,7 +302,7 @@ Content-Type: application/json
   "salaryMin": 10000000,
   "salaryMax": 20000000,
   "description": "Mô tả công việc mẫu cho vị trí Thực tập sinh Tester.",
-  "deadline": "2027-06-30"
+  "deadline": "2099-12-31"
 }
 
 ### 8e. application-context gio tra status PENDING (UT-01 tu chan don moi)
