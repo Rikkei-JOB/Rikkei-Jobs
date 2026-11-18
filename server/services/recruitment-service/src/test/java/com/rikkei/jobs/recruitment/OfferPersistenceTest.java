@@ -24,6 +24,17 @@ class OfferPersistenceTest extends ApplicationIntegrationSupport {
         assertThrows(DataIntegrityViolationException.class, () -> insertRecord(applicationId));
     }
 
+    @Test void declinedOfferRequiresReasonAtDatabaseLevel() throws Exception {
+        UUID applicationId = apply();
+        assertThrows(DataIntegrityViolationException.class, () -> jdbc.update("""
+            insert into recruitment.offers
+            (id,application_id,position,salary,start_date,work_location,response_deadline,status,responded_at,created_at)
+            values (?,?,?,?,?,?,?,?,?,?)
+            """, UUID.randomUUID(), applicationId, "Java Developer", 12000000L,
+            Date.valueOf("2030-02-01"), "Hà Nội", Timestamp.from(NOW.plusSeconds(86400)),
+            "DECLINED", Timestamp.from(NOW), Timestamp.from(NOW)));
+    }
+
     private void insertOffer(UUID applicationId, long salary) {
         jdbc.update("""
             insert into recruitment.offers
