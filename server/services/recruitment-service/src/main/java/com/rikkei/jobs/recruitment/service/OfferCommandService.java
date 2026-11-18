@@ -9,9 +9,11 @@ import com.rikkei.jobs.common.config.security.principle.Role;
 import com.rikkei.jobs.recruitment.dto.request.CreateOfferRequest;
 import com.rikkei.jobs.recruitment.dto.response.OfferResponse;
 import com.rikkei.jobs.recruitment.entity.ApplicationStatus;
+import com.rikkei.jobs.recruitment.entity.EmploymentRecord;
 import com.rikkei.jobs.recruitment.entity.Offer;
 import com.rikkei.jobs.recruitment.entity.OfferStatus;
 import com.rikkei.jobs.recruitment.repository.ApplicationRepository;
+import com.rikkei.jobs.recruitment.repository.EmploymentRecordRepository;
 import com.rikkei.jobs.recruitment.repository.InterviewRoundRepository;
 import com.rikkei.jobs.recruitment.repository.OfferRepository;
 import java.time.Clock;
@@ -24,6 +26,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class OfferCommandService {
     private final ApplicationRepository applications;
     private final OfferRepository offers;
+    private final EmploymentRecordRepository employmentRecords;
     private final InterviewRoundRepository rounds;
     private final OfferEligibilityPolicy eligibility;
     private final ApplicationTransitionService transitions;
@@ -54,5 +57,59 @@ public class OfferCommandService {
         offers.saveAndFlush(offer);
         transitions.transition(applicationId, ApplicationStatus.OFFER, actor.getUserId(), null);
         return OfferResponse.from(offer);
+    }
+
+    @Transactional
+    public OfferResponse accept(AuthPrincipal actor, UUID offerId) {
+        var locked = lockOwned(actor, offerId);
+        requireOpen(locked.offer());
+        locked.offer().setStatus(OfferStatus.ACCEPTED);
+        locked.offer().setRespondedAt(clock.instant());
+        offers.saveAndFlush(locked.offer());
+        transitions.transition(locked.application().getId(), ApplicationStatus.HIRED, actor.getUserId(), null);
+        var record = new EmploymentRecord();
+        record.setId(UUID.randomUUID()); record.setApplicationId(locked.application().getId());
+        record.setUserId(locked.application().getUserId()); record.setCompanyId(locked.application().getCompanyId());
+        record.setJobId(locked.application().getJobId()); record.setPosition(locked.offer().getPosition());
+        record.setStartDate(locked.offer().getStartDate());
+        employmentRecords.saveAndFlush(record);
+        return OfferResponse.from(locked.offer());
+    }
+
+    @Transactional
+    public OfferResponse decline(AuthPrincipal actor, UUID offerId, String reason) {
+        var locked = lockOwned(actor, offerId);
+        requireOpen(locked.offer());
+        String cleaned = reason == null ? null : reason.strip();
+        if (cleaned == null || cleaned.isBlank() || cleaned.length() > 1000)
+            throw new BadRequestException("Lý do từ chối phải từ 1 đến 1.000 ký tự.");
+        locked.offer().setStatus(OfferStatus.DECLINED);
+        locked.offer().setRespondedAt(clock.instant());
+        locked.offer().setDeclineReason(cleaned);
+        offers.saveAndFlush(locked.offer());
+        transitions.transition(locked.application().getId(), ApplicationStatus.REJECTED, actor.getUserId(), null);
+        return OfferResponse.from(locked.offer());
+    }
+
+    private record Locked(com.rikkei.jobs.recruitment.entity.Application application, Offer offer) {}
+
+    private Locked lockOwned(AuthPrincipal actor, UUID offerId) {
+        if (actor == null || actor.getRole() != Role.CANDIDATE)
+            throw new ForbiddenException("Chỉ ứng viên được phản hồi offer.");
+        var visible = offers.findById(offerId)
+            .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy offer."));
+        var application = applications.findForUpdate(visible.getApplicationId())
+            .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy offer."));
+        if (!application.getUserId().equals(actor.getUserId()))
+            throw new ResourceNotFoundException("Không tìm thấy offer.");
+        var offer = offers.findByApplicationIdForUpdate(application.getId())
+            .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy offer."));
+        if (!offer.getId().equals(offerId)) throw new ResourceNotFoundException("Không tìm thấy offer.");
+        return new Locked(application, offer);
+    }
+
+    private void requireOpen(Offer offer) {
+        if (offer.getStatus() != OfferStatus.SENT || !clock.instant().isBefore(offer.getResponseDeadline()))
+            throw new ConflictException("Offer không còn hiệu lực để phản hồi.");
     }
 }
