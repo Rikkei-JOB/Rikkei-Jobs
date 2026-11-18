@@ -3,6 +3,7 @@ package com.rikkei.jobs.company;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.rikkei.jobs.company.client.CatalogSkill;
 import com.rikkei.jobs.company.client.HttpSkillCatalogClient;
 import com.rikkei.jobs.company.config.AppProperties;
 import com.rikkei.jobs.company.config.exception.CompanyErrorCode;
@@ -10,6 +11,7 @@ import com.rikkei.jobs.company.config.exception.CompanyException;
 import com.sun.net.httpserver.HttpServer;
 import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
+import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicReference;
@@ -106,5 +108,18 @@ class HttpSkillCatalogClientTest {
         server.stop(0);
 
         assertThatThrownBy(() -> client.skillIds("Bearer x")).satisfies(HttpSkillCatalogClientTest::assertUnavailable);
+    }
+
+    @Test
+    void skillsReturnsCodeAndName() throws Exception {
+        UUID a = UUID.randomUUID();
+        UUID b = UUID.randomUUID();
+        String body = "[{\"id\":\"" + a + "\",\"code\":\"JAVA\",\"name\":\"Java\",\"group\":\"BACKEND\"},"
+                + "{\"id\":\"" + b + "\",\"code\":\"SQL\",\"name\":\"\",\"group\":\"DATA\"}]";
+        HttpSkillCatalogClient client = start(200, body, null, null);
+
+        List<CatalogSkill> skills = client.skills("Bearer x");
+
+        assertThat(skills).containsExactly(new CatalogSkill(a, "JAVA", "Java"), new CatalogSkill(b, "SQL", "SQL"));
     }
 }
