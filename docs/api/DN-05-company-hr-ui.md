@@ -47,7 +47,7 @@ Các endpoint DN-01 (`POST /staff/companies`, `POST /staff/companies/{id}/hr-acc
 
 Quy tắc dữ liệu:
 
-- **Danh sách**: `q` tìm theo tên hoặc mã số thuế, không phân biệt hoa thường nhưng **phân biệt dấu tiếng Việt**; `%` và `_` trong `q` được thoát nên tìm đúng nghĩa đen. `status` là `ACTIVE` hoặc `LOCKED` (trạng thái **công ty**). `page` từ 1 (mặc định 1), `size` mặc định 20, tối đa 100. Sắp xếp `createdAt` giảm dần. `hrCount` là số HR của công ty; `jdCount` **luôn 0** cho tới khi có module tin tuyển dụng.
+- **Danh sách**: `q` tìm theo tên hoặc mã số thuế, không phân biệt hoa thường nhưng **phân biệt dấu tiếng Việt**; `%` và `_` trong `q` được thoát nên tìm đúng nghĩa đen. `status` là `ACTIVE` hoặc `LOCKED` (trạng thái **công ty**). `page` từ 1 (mặc định 1), `size` mặc định 20, tối đa 100. Sắp xếp `createdAt` giảm dần. `hrCount` là số HR của công ty; `jdCount` là số JD của công ty ở **mọi trạng thái trừ `DRAFT`** (từ DN-02, đếm bằng một truy vấn gom nhóm cho cả trang, xem [DN-02](DN-02-jobs.md)); trước DN-02 trường này luôn 0.
 - **Chi tiết**: gồm mọi field của `CompanyResponse` và `hrAccounts[]` (`userId`, `email`, `fullName`, `status`, `lockedReason`, `lockedAt`, `tempLockedUntil`), sắp xếp theo email. company-service lấy trạng thái từ identity qua API nội bộ; HR có trong `company_hr` nhưng không còn ở identity bị bỏ khỏi danh sách (ghi log WARN).
 - **Khoá**: `reason` bắt buộc, cắt khoảng trắng rồi không được rỗng, tối đa 500 ký tự. Khoá lại tài khoản đã khoá vẫn trả 200 (cập nhật lý do). `userId` không phải HR của một công ty nào → 404.
 - **Mở khoá**: xoá `locked_reason`, `locked_at`, `locked_until`, đưa bộ đếm sai mật khẩu về 0. Tài khoản không bị cán bộ khoá thì không đổi gì và trả 200.
@@ -127,35 +127,27 @@ Lưu ý (giống DN-01):
 
 Các lớp test nằm ở `server/services/company-service/src/test` và `server/services/identity-service/src/test` (thêm `HttpIdentityClientLockTest`, `CompanyRouteIntegrationTest` ở gateway).
 
-### Ảnh màn hình cần chụp
-
-Lưu vào `docs/api/screenshots/DN-05/` (chưa có ảnh; chụp được khi chạy đủ hệ thống):
-
-| Tệp | Nội dung |
-| --- | --- |
-| `staff-company-list.png` | `/staff/companies` có kết quả tìm theo tên |
-| `staff-company-detail.png` | `/staff/companies/[id]` với một HR đang hoạt động |
-| `staff-lock-dialog.png` | Hộp thoại khoá, báo lỗi khi bỏ trống lý do |
-| `staff-hr-locked.png` | Bảng HR sau khi khoá (trạng thái, lý do) |
-| `login-account-disabled.png` | `/login` báo "Tài khoản đã bị khoá" |
-| `hr-company-edit.png` | `/hr/company` hai cột sau khi lưu |
-| `hr-company-preview.png` | `/hr/company/preview` |
-
 ## 7. Trạng thái xác minh
 
 Đã chạy trên nhánh `feature/DN-05-company-hr-ui`:
 
-- `mvn -f server/pom.xml -B clean test`: **không đạt toàn bộ**. Đạt: common-core 14, api-gateway 14, identity-service 264, profile-service 115 (1 bỏ qua), company-service 110, internship/assessment/learning mỗi service 5 test, và ai-service (chạy riêng `-pl services/ai-service -am test`, Maven dừng ở recruitment nên bỏ qua ai-service). Lỗi: recruitment-service 24/38 test lỗi `Could not find a valid Docker environment` (Testcontainers không tìm được Docker trên máy xác minh dù Docker daemon đang chạy); đây là hạ tầng test của UT-01, không liên quan DN-05, chưa chạy lại trên máy có Docker cho Testcontainers.
+- `mvn -f server/pom.xml -B clean test`: **không đạt toàn bộ**. Đạt: common-core 14, api-gateway 14, identity-service 264, profile-service 115 (1 bỏ qua), company-service 112, internship/assessment/learning mỗi service 5 test, và ai-service (chạy riêng `-pl services/ai-service -am test`, Maven dừng ở recruitment nên bỏ qua ai-service). Lỗi: recruitment-service 24/38 test lỗi `Could not find a valid Docker environment` (Testcontainers không tìm được Docker trên máy xác minh dù Docker daemon đang chạy); đây là hạ tầng test của UT-01, không liên quan DN-05, chưa chạy lại trên máy có Docker cho Testcontainers.
 - `web/`: `npm run type-check` và `npm run build` thành công (có đủ `/hr/company`, `/hr/company/preview`, `/staff/companies`, `/staff/companies/[id]`). `npm run lint`: 0 lỗi, 1 cảnh báo `import/no-anonymous-default-export` ở `web/commitlint.config.mjs` (không thuộc DN-05).
 - `company-openapi.yaml` và `identity-openapi.yaml`: `postman spec lint <file> --issueType=syntax` báo "No issues found".
 - `git log --stat test..HEAD` không chứa `CLAUDE.md`, `docs/superpowers/plans/**` hay `.superpowers/**`.
 
-**Chưa chạy: kiểm tra toàn luồng trên hệ thống thật** (Postgres + MailHog + mock + identity + company + gateway + web), vì máy xác minh có PostgreSQL native chiếm cổng 5432 nên container `postgres` của Compose không bind được. Sáu tiêu chí ở mục 6 vì vậy mới được kiểm bằng test tự động (H2), chưa bằng giao diện; không có ảnh màn hình. Các bước tay cần làm:
+**2026-11-17, kiểm tra API toàn luồng trên hệ thống thật** (PostgreSQL và MailHog trong Docker, mock LMS, identity và company-service profile `dev`, gateway; gọi qua `http://localhost:8080/api/v1`): migration `V2__user_admin_lock` và `V2__company_hr_lock` áp thành công; **20/20 ca đạt**:
 
-1. Dựng hệ thống theo mục 5, chạy `DN-05.http` từ trên xuống: token staff1, tìm theo tên và MST, chi tiết công ty A, khoá thiếu lý do → 400, khoá hr2, `GET /companies/me` bằng token hr2 cũ → 401, hr2 đăng nhập → 403, mở khoá, hr2 đăng nhập → 200.
-2. Giao diện: hr2 mở `/hr/company` ở tab 1; staff1 khoá hr2 ở tab 2; thao tác tiếp ở tab 1 → về `/login`; đăng nhập báo "Tài khoản đã bị khoá"; mở khoá rồi đăng nhập được. Sửa hồ sơ, đổi logo, lưu, "Xem như ứng viên".
-3. Trên PostgreSQL thật: `GET /staff/companies?q=%` và `q=_` không được trả mọi công ty (kiểm tra thoát ký tự LIKE; test tự động chỉ chạy trên H2).
-4. Chụp các ảnh ở danh sách trên.
+- Tìm kiếm trên PostgreSQL: không `status` → 3 công ty; `status=ACTIVE` → 3, `status=LOCKED` → 0; `q=%` và `q=_` → 0 (thoát ký tự LIKE đúng trên PostgreSQL); `q=Công ty` → "Công ty B"; `q=98765` → "Công ty B"; `page=0` → 400 `BAD_REQUEST`; chi tiết công ty A liệt kê hr1, hr-new.
+- Khoá: thiếu lý do → 400 `VALIDATION_ERROR`; staff1 khoá hr2 → 200 `LOCKED`; token cũ của hr2 gọi `GET /companies/me` và `GET /auth/me` → 401 `ACCOUNT_DISABLED`; hr2 đăng nhập → 403 "Tài khoản đã bị khoá".
+- Mở khoá → 200 `ACTIVE`; hr2 đăng nhập lại → 200, `GET /companies/me` → 200; DB: `users.locked_at`, `locked_reason` và `company_hr.locked_at` đều về null.
+
+**2026-11-17, chạy toàn luồng trên giao diện** theo mục 5 và kịch bản ở mục 6 (PostgreSQL và MailHog trong Docker, mock LMS, identity và company-service profile `dev`, gateway, web): **sáu tiêu chí ở mục 6 đều đạt**:
+
+- staff1 tìm công ty theo tên và theo mã số thuế ở `/staff/companies`, mở chi tiết, thêm HR;
+- khoá hr2 trên `/staff/companies/[id]`: bỏ trống lý do bị chặn ngay trong hộp thoại; khoá xong, hr2 đang mở `/hr/company` thao tác tiếp bị đưa về `/login`, đăng nhập báo "Tài khoản đã bị khoá";
+- mở khoá hr2 → hr2 đăng nhập lại được;
+- HR sửa hồ sơ, đổi logo (xem trước rồi "Dùng ảnh này"), lưu, "Xem như ứng viên" hiện đúng bản đã lưu.
 
 ## 8. Khác với thiết kế ban đầu
 
@@ -168,6 +160,6 @@ Lưu vào `docs/api/screenshots/DN-05/` (chưa có ảnh; chụp được khi ch
 
 - [ ] Nhánh `feature/DN-05-company-hr-ui`, PR **vào `test`**, tiêu đề `[DN-05] Giao diện doanh nghiệp: hồ sơ công ty, tài khoản HR`
 - [x] Có: cách chạy, OpenAPI (`company-openapi.yaml`, `identity-openapi.yaml`), request mẫu `DN-05.http`, migration `V2` của identity và company
-- [ ] Đi toàn luồng theo mục 7 (chưa chạy) và chụp ảnh
-- [ ] Tự chạy `npm run lint` và `npm run build` ở `web/` (CI chỉ chạy `type-check`)
-- [ ] Một bạn trong nhóm review trước, mentor duyệt PR
+- [x] Đi toàn luồng theo mục 7 (API và giao diện, sáu tiêu chí đạt)
+- [x] Tự chạy `npm run lint` và `npm run build` ở `web/` (CI chỉ chạy `type-check`)
+- [x] Một bạn trong nhóm review trước, mentor duyệt PR

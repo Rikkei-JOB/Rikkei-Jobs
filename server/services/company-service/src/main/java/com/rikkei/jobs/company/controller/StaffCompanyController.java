@@ -43,7 +43,7 @@ public class StaffCompanyController {
     @Operation(
             summary = "Danh sách công ty (cán bộ)",
             description = "Vai trò: STAFF. Tìm theo tên hoặc mã số thuế (q), lọc theo trạng thái; page từ 1, size tối đa 100; mới nhất trước.")
-    @ApiResponse(responseCode = "200", description = "Trang công ty kèm số HR (jdCount luôn 0)")
+    @ApiResponse(responseCode = "200", description = "Trang công ty kèm số HR (jdCount là số JD không phải bản nháp)")
     @ApiResponse(responseCode = "400", description = "BAD_REQUEST: page/size hoặc status không hợp lệ")
     @ApiResponse(responseCode = "401", description = "UNAUTHORIZED: thiếu hoặc sai token")
     @ApiResponse(responseCode = "403", description = "FORBIDDEN: không phải STAFF")

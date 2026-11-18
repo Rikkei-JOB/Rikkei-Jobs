@@ -10,6 +10,9 @@ erDiagram
     companies ||..o{ users : "company_id (HR)"
     users ||--o{ password_reset_tokens : "user_id"
     companies ||--o{ company_hr : "company_id"
+    companies ||--o{ jobs : "company_id"
+    jobs ||--o{ job_skills : "job_id (ON DELETE CASCADE)"
+    skills ||..o{ job_skills : "skill_id (profile-service)"
     users ||..o| company_hr : "user_id (HR)"
     users ||..o{ skill_evidences : "user_id"
     users ||..o{ skill_scores : "user_id"
@@ -46,8 +49,43 @@ erDiagram
     company_hr {
         UUID user_id PK "HR (identity users.id)"
         UUID company_id FK
+        TIMESTAMPTZ locked_at "DN-05, bản sao từ identity"
         TIMESTAMPTZ created_at
         TIMESTAMPTZ updated_at
+    }
+
+    jobs {
+        UUID id PK
+        UUID company_id FK
+        VARCHAR title "NOT NULL"
+        VARCHAR position
+        VARCHAR level "INTERN | FRESHER | JUNIOR | MIDDLE | SENIOR"
+        VARCHAR type "FULLTIME | PARTTIME | INTERNSHIP"
+        INT quantity ">= 1"
+        VARCHAR city
+        VARCHAR address
+        VARCHAR work_mode "ONSITE | REMOTE | HYBRID"
+        BIGINT salary_min "VND, >= 0, <= salary_max"
+        BIGINT salary_max "VND, >= 0"
+        TEXT description
+        TEXT requirements "Yêu cầu khác"
+        TEXT benefits
+        DATE deadline "giờ Asia/Ho_Chi_Minh"
+        VARCHAR status "DRAFT | PENDING | APPROVED | REJECTED | CLOSED"
+        UUID reviewed_by "DN-07"
+        TIMESTAMPTZ reviewed_at "DN-07"
+        VARCHAR reject_reason "DN-07"
+        UUID created_by "HR tạo"
+        TIMESTAMPTZ created_at
+        TIMESTAMPTZ updated_at
+        BIGINT version "khoá lạc quan"
+    }
+
+    job_skills {
+        UUID job_id PK "FK jobs.id"
+        UUID skill_id PK "skills.id của profile-service, không FK"
+        BOOLEAN required "bắt buộc | ưu tiên"
+        INT min_score "1..100"
     }
 
     uploaded_files {
@@ -215,6 +253,8 @@ erDiagram
 | --- | --- | --- | --- | --- |
 | identity-service | `public` | `users`, `used_sso_tickets`, `password_reset_tokens` | `V1__identity_init.sql` | NT-01 |
 | company-service | `company` | `companies`, `company_hr` | `V1__company_init.sql` | DN-01 |
+| company-service | `company` | thêm `locked_at` vào `company_hr` | `V2__company_hr_lock.sql` | DN-05 |
+| company-service | `company` | `jobs`, `job_skills` | `V3__jobs.sql` | DN-02 |
 | profile-service | `profile` | `skills`, `skill_mappings`, `skill_evidences`, `skill_scores`, `external_records`, `skill_profile_states` | `V1__skill_profile.sql` → `V3__external_records_and_profile_state.sql` | HS-01 |
 | profile-service | `profile` | `manual_overrides`, `sync_runs`; thêm `source_key`, `payload`, `synced_at` vào `external_records` | `V8__nt05_external_sync.sql` | NT-05 |
 | recruitment-service | `recruitment` | `applications`, `application_status_history`, `application_notification_outbox`, `interview_rounds`, `interview_round_revisions`, `application_status_notification_outbox` | `V1__applications.sql` → `V3__status_notification_outbox.sql` | UT-01, UT-02 |
@@ -291,6 +331,7 @@ erDiagram
   | --- | --- |
   | Công ty A (hr1, hr-new) | `00000000-0000-0000-0000-0000000000a1` |
   | Công ty B (hr2) | `00000000-0000-0000-0000-0000000000b2` |
+  | 5 JD mẫu của Công ty A (DN-02) | `00000000-0000-0000-0003-000000000001` … `…000000000005` |
 
 ## Kiểm tra từ DB trống
 
@@ -299,7 +340,7 @@ docker compose --env-file .env -f infra/compose.yaml up -d postgres
 cd server
 mvn install -DskipTests
 mvn -f services/identity-service/pom.xml spring-boot:run "-Dspring-boot.run.profiles=dev"   # tạo users..., seed 9 tài khoản
-mvn -f services/company-service/pom.xml spring-boot:run "-Dspring-boot.run.profiles=dev"    # tạo company.*, seed A/B + liên kết HR
+mvn -f services/company-service/pom.xml spring-boot:run "-Dspring-boot.run.profiles=dev"    # tạo company.*, seed A/B + liên kết HR + 5 JD mẫu
 ```
 
 Test tự động chạy cùng các migration trên H2 (`mvn test`), nên migration lỗi sẽ làm test đỏ.

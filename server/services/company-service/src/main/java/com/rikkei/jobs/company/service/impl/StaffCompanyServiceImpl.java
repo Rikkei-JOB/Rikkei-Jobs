@@ -13,6 +13,8 @@ import com.rikkei.jobs.company.entity.CompanyHr;
 import com.rikkei.jobs.company.entity.CompanyStatus;
 import com.rikkei.jobs.company.repository.CompanyHrRepository;
 import com.rikkei.jobs.company.repository.CompanyRepository;
+import com.rikkei.jobs.company.repository.JobRepository;
+import com.rikkei.jobs.company.entity.JobStatus;
 import com.rikkei.jobs.company.service.StaffCompanyService;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -38,6 +40,7 @@ public class StaffCompanyServiceImpl implements StaffCompanyService {
 
     private final CompanyRepository companyRepository;
     private final CompanyHrRepository companyHrRepository;
+    private final JobRepository jobRepository;
     private final IdentityClient identity;
 
     private static final int MAX_QUERY_LENGTH = 100;
@@ -61,15 +64,19 @@ public class StaffCompanyServiceImpl implements StaffCompanyService {
                 : companyRepository.searchByStatus(pattern, status, pageable);
 
         Map<UUID, Long> hrCounts = new HashMap<>();
+        Map<UUID, Long> jdCounts = new HashMap<>();
         if (!result.isEmpty()) {
             List<UUID> ids = result.getContent().stream().map(Company::getId).toList();
+            for (Object[] row : jobRepository.countByCompanyIdsExcludingStatus(ids, JobStatus.DRAFT)) {
+                jdCounts.put((UUID) row[0], ((Number) row[1]).longValue());
+            }
             for (Object[] row : companyHrRepository.countByCompanyIds(ids)) {
                 hrCounts.put((UUID) row[0], ((Number) row[1]).longValue());
             }
         }
         List<StaffCompanyItem> items = result.getContent().stream()
                 .map(c -> new StaffCompanyItem(c.getId(), c.getName(), c.getTaxCode(), c.getStatus(),
-                        hrCounts.getOrDefault(c.getId(), 0L), 0L, c.getCreatedAt()))
+                        hrCounts.getOrDefault(c.getId(), 0L), jdCounts.getOrDefault(c.getId(), 0L), c.getCreatedAt()))
                 .toList();
         return PageResponse.of(result, items);
     }
