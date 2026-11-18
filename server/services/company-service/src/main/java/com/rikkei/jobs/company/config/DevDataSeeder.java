@@ -24,6 +24,7 @@ import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.support.TransactionTemplate;
 
 /**
  * Dữ liệu mẫu: Công ty A, Công ty B và liên kết HR theo tài khoản mẫu của identity-service.
@@ -63,6 +64,7 @@ public class DevDataSeeder implements ApplicationRunner {
     private final JobRepository jobRepository;
     private final JobSkillRepository jobSkillRepository;
     private final Clock clock;
+    private final TransactionTemplate transactionTemplate;
 
     @Override
     public void run(ApplicationArguments args) {
@@ -157,15 +159,22 @@ public class DevDataSeeder implements ApplicationRunner {
         return job;
     }
 
+    /**
+     * Lưu JD và kỹ năng của nó trong một transaction: lỗi giữa chừng không để lại JD thiếu kỹ năng
+     * (lần chạy sau thấy JD đã có sẽ bỏ qua, không bao giờ bù kỹ năng). Dùng TransactionTemplate vì
+     * @Transactional trên method private/gọi nội bộ không có tác dụng.
+     */
     private void saveJob(Job job, List<JobSkill> skills) {
-        if (jobRepository.existsById(job.getId())) {
-            return;
-        }
-        jobRepository.save(job);
-        for (JobSkill s : skills) {
-            s.setJobId(job.getId());
-            jobSkillRepository.save(s);
-        }
-        log.info("Đã tạo JD mẫu {}", job.getTitle());
+        transactionTemplate.executeWithoutResult(status -> {
+            if (jobRepository.existsById(job.getId())) {
+                return;
+            }
+            jobRepository.save(job);
+            for (JobSkill s : skills) {
+                s.setJobId(job.getId());
+                jobSkillRepository.save(s);
+            }
+            log.info("Đã tạo JD mẫu {}", job.getTitle());
+        });
     }
 }
