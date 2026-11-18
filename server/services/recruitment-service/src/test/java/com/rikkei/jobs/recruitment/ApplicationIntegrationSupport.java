@@ -62,6 +62,8 @@ abstract class ApplicationIntegrationSupport {
     }
 
     @BeforeEach void resetData() {
+        jdbc.update("delete from recruitment.employment_records");
+        jdbc.update("delete from recruitment.offers");
         jdbc.update("delete from recruitment.application_status_notification_outbox");
         jdbc.update("delete from recruitment.interview_round_revisions");
         jdbc.update("delete from recruitment.interview_rounds");
