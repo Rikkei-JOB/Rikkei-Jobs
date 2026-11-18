@@ -9,11 +9,11 @@ import java.util.UUID;
 public record CandidateProfileResponse(UUID userId, String fullName, String email,
     LocalDate dob, Gender gender, String phone, String address, String avatarUrl,
     String headline, String summary, String program, String classCode, String courseName,
-    String visibility, Instant updatedAt) {
+    String visibility, Instant consentAt, Instant consentWithdrawnAt, Instant updatedAt) {
     public static CandidateProfileResponse from(CandidateProfile p) {
         return new CandidateProfileResponse(p.getUserId(), p.getFullName(), p.getEmail(),
             p.getDob(), p.getGender(), p.getPhone(), p.getAddress(), p.getAvatarUrl(),
             p.getHeadline(), p.getSummary(), p.getProgram(), p.getClassCode(), p.getCourseName(),
-            p.getVisibility(), p.getUpdatedAt());
+            p.getVisibility(), p.getConsentAt(), p.getConsentWithdrawnAt(), p.getUpdatedAt());
     }
 }

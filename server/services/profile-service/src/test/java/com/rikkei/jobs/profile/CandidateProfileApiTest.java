@@ -102,6 +102,64 @@ class CandidateProfileApiTest {
             .andExpect(status().isOk()).andExpect(jsonPath("$.phone").doesNotExist());
     }
 
+    @Test void publishAndWithdrawRecordOnlySuccessfulTransitions() throws Exception {
+        String auth = "Bearer " + token;
+        for (String invalid : new String[]{"{}", "{\"consent\":null}", "{\"consent\":false}", "{\"consent\":\"true\"}", "{\"consent\":1}"}) {
+            mvc.perform(post("/profiles/me/publish").header("Authorization", auth)
+                .contentType(MediaType.APPLICATION_JSON).content(invalid)).andExpect(status().isBadRequest());
+        }
+        assertThat(calls.get()).isZero();
+        mvc.perform(post("/profiles/me/withdraw").header("Authorization", auth)).andExpect(status().isConflict());
+        mvc.perform(post("/profiles/me/publish").header("Authorization", auth)
+            .contentType(MediaType.APPLICATION_JSON).content("{\"consent\":true}"))
+            .andExpect(status().isOk()).andExpect(jsonPath("$.visibility").value("PENDING"))
+            .andExpect(jsonPath("$.consentAt").isString());
+        mvc.perform(post("/profiles/me/publish").header("Authorization", auth)
+            .contentType(MediaType.APPLICATION_JSON).content("{\"consent\":true}")).andExpect(status().isConflict());
+        mvc.perform(post("/profiles/me/withdraw").header("Authorization", auth))
+            .andExpect(status().isOk()).andExpect(jsonPath("$.visibility").value("PRIVATE"))
+            .andExpect(jsonPath("$.consentWithdrawnAt").isString());
+        mvc.perform(get("/profiles/me/review-history").header("Authorization", auth))
+            .andExpect(status().isOk()).andExpect(jsonPath("$.length()").value(2))
+            .andExpect(jsonPath("$[0].action").value("WITHDRAW")).andExpect(jsonPath("$[1].action").value("SUBMIT"))
+            .andExpect(jsonPath("$[0].actorId").value(owner.toString())).andExpect(jsonPath("$[1].createdAt").isString());
+        mvc.perform(get("/profiles/me/review-history").header("Authorization", "Bearer " +
+            jwt.generateJwtToken(UUID.randomUUID(), Role.CANDIDATE, null))).andExpect(jsonPath("$.length()").value(0));
+    }
+    @Test void concurrentResubmissionsFromRejectedRecordOneConsent() throws Exception {
+        String auth = "Bearer " + token;
+        mvc.perform(get("/profiles/me").header("Authorization", auth)).andExpect(status().isOk());
+        jdbc.update("update profile.candidate_profiles set visibility='REJECTED' where user_id=?", owner);
+        try (var executor = java.util.concurrent.Executors.newFixedThreadPool(2)) {
+            var start = new java.util.concurrent.CountDownLatch(1);
+            java.util.concurrent.Callable<Integer> submit = () -> {
+                start.await();
+                return mvc.perform(post("/profiles/me/publish").header("Authorization", auth)
+                    .contentType(MediaType.APPLICATION_JSON).content("{\"consent\":true}"))
+                    .andReturn().getResponse().getStatus();
+            };
+            var first = executor.submit(submit);
+            var second = executor.submit(submit);
+            start.countDown();
+            assertThat(java.util.List.of(first.get(), second.get())).containsExactlyInAnyOrder(200, 409);
+        }
+        mvc.perform(get("/profiles/me/review-history").header("Authorization", auth))
+            .andExpect(jsonPath("$.length()").value(1)).andExpect(jsonPath("$[0].action").value("SUBMIT"));
+    }
+
+    @Test void withdrawingPublicRevokesLegacySkillAccess() throws Exception {
+        String auth = "Bearer " + token;
+        String hr = "Bearer " + jwt.generateJwtToken(UUID.randomUUID(), Role.HR, UUID.randomUUID());
+        mvc.perform(get("/profiles/me").header("Authorization", auth)).andExpect(status().isOk());
+        jdbc.update("update profile.candidate_profiles set visibility='PUBLIC' where user_id=?", owner);
+        jdbc.update("update profile.skill_profile_states set consented=true, approved=true where user_id=?", owner);
+        mvc.perform(post("/profiles/me/withdraw").header("Authorization", hr)).andExpect(status().isForbidden());
+        mvc.perform(get("/profiles/{id}/skills", owner).header("Authorization", hr)).andExpect(status().isOk());
+        mvc.perform(post("/profiles/me/withdraw").header("Authorization", auth)).andExpect(status().isOk());
+        mvc.perform(get("/profiles/{id}/skills", owner).header("Authorization", hr)).andExpect(status().isNotFound());
+        mvc.perform(get("/profiles/me/review-history").header("Authorization", hr)).andExpect(status().isForbidden());
+    }
+
     @Test void createsPrivateProfileFromLmsOnceAndReadsItOffline() throws Exception {
         mvc.perform(get("/profiles/me").header("Authorization", "Bearer " + token))
             .andExpect(status().isOk()).andExpect(jsonPath("$.userId").value(owner.toString()))
