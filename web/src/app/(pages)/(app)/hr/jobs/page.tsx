@@ -7,6 +7,7 @@ import { Alert } from "@/app/components/ui/alert"
 import { Button } from "@/app/components/ui/button"
 import { Tabs, TabsList, TabsTrigger } from "@/app/components/ui/tabs"
 import { JobTable } from "@/app/components/job/job-table"
+import { clearJobListNotice, peekJobListNotice } from "@/app/components/job/job-flash"
 import { STATUS_LABEL, STATUS_ORDER } from "@/app/components/job/job-labels"
 import { useAuthGuard } from "@/hooks/use-auth-guard"
 import { useMyCompany } from "@/hooks/use-my-company"
@@ -38,6 +39,10 @@ function HrJobsView() {
     [router],
   )
 
+  // Thông báo từ form JD ("Đã gửi duyệt"...), đọc một lần khi vào trang.
+  const [notice] = React.useState(peekJobListNotice)
+  React.useEffect(() => clearJobListNotice(), [])
+
   const { data: company } = useMyCompany(allowed)
   const { data, error, isPending, isFetching, refetch } = useMyJobs(status, page, allowed)
 
@@ -57,6 +62,7 @@ function HrJobsView() {
         )}
       </div>
 
+      {notice ? <Alert variant="success">{notice}</Alert> : null}
       {locked ? <Alert>Công ty đang bị khoá, bạn chỉ xem được danh sách JD.</Alert> : null}
 
       <Tabs value={status ?? ALL} onValueChange={(value) => navigate({ status: STATUS_ORDER.find((s) => s === value), page: 1 })}>

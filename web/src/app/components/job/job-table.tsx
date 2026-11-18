@@ -1,11 +1,12 @@
 "use client"
 
+import Link from "next/link"
 import { useRouter } from "next/navigation"
 import type { JobSummary } from "@/interface/job"
 import { JobStatusBadge } from "@/app/components/job/job-status-badge"
 import { LEVEL_LABEL, formatDate } from "@/app/components/job/job-labels"
 
-/** Bảng JD của HR; bấm một dòng mở /hr/jobs/{id}. */
+/** Bảng JD của HR; bấm một dòng (hoặc liên kết ở tiêu đề, cho bàn phím) mở /hr/jobs/{id}. */
 export function JobTable({ items }: { items: JobSummary[] }) {
   const router = useRouter()
   if (items.length === 0) {
@@ -25,18 +26,15 @@ export function JobTable({ items }: { items: JobSummary[] }) {
         </thead>
         <tbody>
           {items.map((job) => {
-            const open = () => router.push(`/hr/jobs/${job.id}`)
+            const href = `/hr/jobs/${job.id}`
             return (
-              <tr
-                key={job.id}
-                tabIndex={0}
-                onClick={open}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") open()
-                }}
-                className="cursor-pointer border-t hover:bg-muted/40 focus-visible:bg-muted/40 focus-visible:outline-none"
-              >
-                <td className="px-3 py-2 font-medium text-primary">{job.title}</td>
+              <tr key={job.id} onClick={() => router.push(href)} className="cursor-pointer border-t hover:bg-muted/40 focus-within:bg-muted/40">
+                <td className="px-3 py-2 font-medium text-primary">
+                  {/* stopPropagation: không để onClick của dòng điều hướng lần nữa. */}
+                  <Link href={href} onClick={(e) => e.stopPropagation()} className="hover:underline focus-visible:underline focus-visible:outline-none">
+                    {job.title}
+                  </Link>
+                </td>
                 <td className="px-3 py-2">{job.level ? LEVEL_LABEL[job.level] : "—"}</td>
                 <td className="px-3 py-2">{formatDate(job.deadline)}</td>
                 <td className="px-3 py-2">
