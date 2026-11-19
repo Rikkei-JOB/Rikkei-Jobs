@@ -46,7 +46,7 @@ test("UT-02 HR chuyển bước và chỉ thêm vòng khi đã phỏng vấn", a
     return route.fulfill({ headers: cors, json: {} });
   });
   await page.goto(`/hr/recruitment/${id}`);
-  await expect(page.getByText("Chưa có điểm khớp")).toBeVisible();
+  await expect(page.getByText(/Tạm thời không lấy được điểm phù hợp/)).toBeVisible();
   await expect(page.getByRole("button", { name: "Thêm vòng" })).toHaveCount(0);
   await expect(page.getByRole("button", { name: "Chuyển sang Phỏng vấn" })).toHaveCount(0);
   await page.getByRole("button", { name: "Chuyển sang Sàng lọc" }).click();

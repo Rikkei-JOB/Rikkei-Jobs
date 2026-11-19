@@ -1,6 +1,6 @@
 import { api } from "@/services/api";
 import type { ApplicationStatus } from "@/interface/application";
-import type { HrApplicationDetail, HrApplicationPage, InterviewRound, MentorRoundPage, RoundResult } from "@/interface/hr-application";
+import type { HrApplicationDetail, HrApplicationPage, InterviewRound, MentorRoundPage, RoundResult, MatchLookupResponse } from "@/interface/hr-application";
 import type { CreateOfferPayload, EmploymentRecord, Offer } from "@/interface/offer";
 
 const root = "/recruitment";
@@ -12,7 +12,8 @@ export const hrApplicationService = {
   async listStaff(params: { companyId?: string; jobId?: string; status?: ApplicationStatus; page?: number; size?: number }) {
     return (await api.get<HrApplicationPage>(`${root}/staff/applications`, { params })).data;
   },
-  async detail(id: string) { return (await api.get<HrApplicationDetail>(idPath(id))).data; },
+  async detail(id: string, signal?: AbortSignal) { return (await api.get<HrApplicationDetail>(idPath(id), { signal })).data; },
+  async match(id: string, signal?: AbortSignal) { return (await api.get<MatchLookupResponse>(`${idPath(id)}/match`, { signal })).data; },
   async sendOffer(id: string, payload: CreateOfferPayload) {
     return (await api.post<Offer>(`${idPath(id)}/offer`, payload)).data;
   },

@@ -18,6 +18,8 @@ export interface MatchSkill {
 export interface MatchScore {
   score: number; belowMinimum: boolean; met: MatchSkill[]; missing: MatchSkill[];
 }
+export type MatchStatus = "AVAILABLE" | "UNAVAILABLE" | "NOT_REQUESTED";
+export interface MatchLookupResponse { matchStatus: MatchStatus; match: MatchScore | null }
 export interface HrApplicationSummary {
   id: string; jobId: string; jobTitle: string; companyId: string; companyName: string;
   userId: string; candidateName: string; status: ApplicationStatus; createdAt: string; updatedAt: string;
@@ -28,7 +30,7 @@ export interface HrApplicationDetail {
   status: ApplicationStatus; createdAt: string; updatedAt: string;
   candidate: { userId: string; fullName: string; email: string; phone?: string | null };
   cvId: string; cvSnapshotUrl: string; coverLetter: string | null;
-  match: MatchScore | null; rounds: InterviewRound[]; roundRevisions: RoundRevision[];
+  match: MatchScore | null; matchStatus?: MatchStatus; rounds: InterviewRound[]; roundRevisions: RoundRevision[];
   history: ApplicationHistoryItem[]; allowedTransitions: ApplicationStatus[];
   offer: Offer | null;
   onboardConfirmedAt: string | null;

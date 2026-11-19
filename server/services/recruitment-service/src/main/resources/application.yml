@@ -45,6 +45,8 @@ app:
     profile-service-key: ${RECRUITMENT_PROFILE_SERVICE_KEY:${INTERNAL_SERVICE_KEY:dev-internal-key}}
     identity-base-url: ${IDENTITY_SERVICE_URL:http://localhost:8081}
     match-base-url: ${MATCH_SERVICE_URL:http://localhost:8085}
+    match-connect-timeout-ms: ${MATCH_CONNECT_TIMEOUT_MS:2000}
+    match-read-timeout-ms: ${MATCH_READ_TIMEOUT_MS:5000}
     identity-service-key: ${RECRUITMENT_IDENTITY_SERVICE_KEY:${INTERNAL_SERVICE_KEY:dev-internal-key}}
     cv-pdf-path: ${RECRUITMENT_CV_PDF_PATH:/profile/cvs/{cvId}/pdf}
     outbox-enabled: ${RECRUITMENT_OUTBOX_ENABLED:true}
