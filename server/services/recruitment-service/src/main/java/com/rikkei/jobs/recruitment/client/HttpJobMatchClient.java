@@ -18,8 +18,13 @@ public class HttpJobMatchClient implements JobMatchClient {
 
     @Autowired
     public HttpJobMatchClient(RestClient.Builder builder,
-        @Value("${app.recruitment.match-base-url}") String baseUrl) {
-        this(RecruitmentHttpSupport.client(builder, baseUrl));
+        @Value("${app.recruitment.match-base-url}") String baseUrl,
+        @Value("${app.recruitment.match-connect-timeout-ms:2000}") int connectTimeout,
+        @Value("${app.recruitment.match-read-timeout-ms:5000}") int readTimeout) {
+        var factory=new org.springframework.http.client.JdkClientHttpRequestFactory(
+            java.net.http.HttpClient.newBuilder().connectTimeout(java.time.Duration.ofMillis(connectTimeout)).build());
+        factory.setReadTimeout(java.time.Duration.ofMillis(readTimeout));
+        this.client=builder.clone().baseUrl(baseUrl).requestFactory(factory).build();
     }
 
     public HttpJobMatchClient(RestClient client) { this.client = client; }
