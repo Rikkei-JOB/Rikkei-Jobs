@@ -6,6 +6,7 @@ import { Alert } from "@/app/components/ui/alert"
 import { Button } from "@/app/components/ui/button"
 import { Input } from "@/app/components/ui/input"
 import { CompanyTable } from "@/app/components/staff-company/company-table"
+import { CreateCompanyDialog } from "@/app/components/staff-company/create-company-dialog"
 import { useAuthGuard } from "@/hooks/use-auth-guard"
 import { useStaffCompanies } from "@/hooks/use-staff-companies"
 import type { CompanyStatus } from "@/interface/company"
@@ -27,6 +28,7 @@ function StaffCompaniesView() {
   const page = Number.isInteger(rawPage) && rawPage > 0 ? rawPage : 1
 
   const [search, setSearch] = React.useState(q)
+  const [creating, setCreating] = React.useState(false)
 
   const navigate = React.useCallback(
     (next: { q: string; status?: CompanyStatus; page: number }) => {
@@ -54,7 +56,20 @@ function StaffCompaniesView() {
 
   return (
     <div className="mx-auto max-w-5xl space-y-4">
-      <h1 className="font-heading text-lg font-semibold">Doanh nghiệp</h1>
+      <div className="flex items-center justify-between gap-2">
+        <h1 className="font-heading text-lg font-semibold">Doanh nghiệp</h1>
+        <Button onClick={() => setCreating(true)}>+ Tạo công ty</Button>
+      </div>
+
+      {creating ? (
+        <CreateCompanyDialog
+          onClose={() => setCreating(false)}
+          onCreated={(company) => {
+            setCreating(false)
+            router.push(`${BASE_PATH}/${company.id}`)
+          }}
+        />
+      ) : null}
 
       <div className="flex flex-wrap gap-2">
         <Input

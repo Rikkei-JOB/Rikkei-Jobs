@@ -81,7 +81,7 @@ Quên mật khẩu với tài khoản bị khoá vẫn trả 200 nhưng **không
 
 | Trang | Vai trò | Nội dung |
 | --- | --- | --- |
-| `/staff/companies` | STAFF | Bảng công ty (tên, MST, trạng thái, số HR, số JD); ô tìm debounce 300 ms, lọc trạng thái, phân trang 20 dòng; `q`, `status`, `page` nằm trên URL |
+| `/staff/companies` | STAFF | Bảng công ty (tên, MST, trạng thái, số HR, số JD); ô tìm debounce 300 ms, lọc trạng thái, phân trang 20 dòng; `q`, `status`, `page` nằm trên URL; nút **"+ Tạo công ty"** mở hộp thoại (Tên công ty *, Mã số thuế * 10 hoặc 13 chữ số, Ngành, Quy mô, Địa chỉ, Thành phố, Website, Giới thiệu) gọi `POST /staff/companies` của DN-01; trùng mã số thuế báo "Mã số thuế đã tồn tại" ngay trong hộp; tạo xong chuyển sang trang chi tiết để thêm HR |
 | `/staff/companies/[id]` | STAFF | Thông tin công ty, bảng HR với trạng thái; nút Khoá (hộp thoại bắt buộc lý do), Mở khoá, Thêm HR |
 | `/hr/company` | HR | Hai cột: form sửa hồ sơ + thẻ tóm tắt; logo xem trước ngay khi chọn, báo trạng thái lưu; nút "Xem như ứng viên" |
 | `/hr/company/preview` | HR | Trang công ty như ứng viên thấy, luôn tải lại bản đã lưu |
