@@ -12,8 +12,19 @@ export interface CandidateProfile {
   program: string;
   classCode: string;
   courseName: string;
-  visibility: "PRIVATE";
+  visibility: "PRIVATE" | "PENDING" | "PUBLIC" | "REJECTED";
+  consentAt: string | null;
+  consentWithdrawnAt: string | null;
   updatedAt: string;
+}
+
+export interface ProfileReview {
+  id: number;
+  userId: string;
+  action: "SUBMIT" | "APPROVE" | "REJECT" | "WITHDRAW";
+  reason: string | null;
+  actorId: string;
+  createdAt: string;
 }
 
 export type UpdateCandidateProfile = Pick<CandidateProfile,
