@@ -6,6 +6,7 @@ import { formatApplicationDate } from "@/config/application-status";
 import type { HrApplicationDetail, InterviewRound, RoundResult } from "@/interface/hr-application";
 import { getErrorMessage } from "@/services/api";
 import { hrApplicationService } from "@/services/hr-application.service";
+import { SlotProposalForm } from "@/app/components/interviews/slot-proposal-form";
 
 function RoundEditor({ applicationId, round, onSaved }: { applicationId: string; round: InterviewRound; onSaved: () => void }) {
   const [result, setResult] = useState<RoundResult>(round.result);
@@ -36,7 +37,6 @@ function RoundEditor({ applicationId, round, onSaved }: { applicationId: string;
 export function InterviewRounds({ application, readOnly, onChanged }: { application: HrApplicationDetail; readOnly: boolean; onChanged: () => void }) {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
-  const [scheduledAt, setScheduledAt] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const canEdit = !readOnly && application.status === "INTERVIEW";
@@ -44,9 +44,9 @@ export function InterviewRounds({ application, readOnly, onChanged }: { applicat
     setBusy(true); setError("");
     try {
       await hrApplicationService.createRound(application.id, {
-        name: name.trim(), interviewerEmail: email.trim(), scheduledAt: scheduledAt ? new Date(scheduledAt).toISOString() : null,
+        name: name.trim(), interviewerEmail: email.trim(),
       });
-      setName(""); setEmail(""); setScheduledAt(""); onChanged();
+      setName(""); setEmail(""); onChanged();
     } catch (reason) { setError(getErrorMessage(reason)); }
     finally { setBusy(false); }
   }
@@ -58,6 +58,7 @@ export function InterviewRounds({ application, readOnly, onChanged }: { applicat
       {round.score !== null && <p className="mt-2 text-sm">Điểm: {round.score}/100</p>}
       {round.note && <p className="mt-2 whitespace-pre-wrap text-sm">{round.note}</p>}
       {canEdit && <RoundEditor applicationId={application.id} round={round} onSaved={onChanged} />}
+      {canEdit && round.result === "PENDING" && <SlotProposalForm round={round} onSaved={onChanged} />}
       {application.roundRevisions.filter(item => item.roundId === round.id).map(item => <p key={item.id} className="mt-3 text-xs text-muted-foreground">
         {formatApplicationDate(item.createdAt)} · {item.oldResult} → {item.newResult}{item.oldScore !== item.newScore ? ` · ${item.oldScore ?? "—"} → ${item.newScore ?? "—"} điểm` : ""}
         {item.oldNote !== item.newNote ? ` · Ghi chú: ${item.oldNote || "—"} → ${item.newNote || "—"}` : ""}
@@ -66,7 +67,6 @@ export function InterviewRounds({ application, readOnly, onChanged }: { applicat
     {canEdit && <div className="mt-6 grid gap-3 border-t pt-5 sm:grid-cols-3"><h3 className="font-medium sm:col-span-3">Thêm vòng phỏng vấn</h3>
       <label className="text-sm">Tên vòng<input aria-label="Tên vòng" value={name} onChange={e => setName(e.target.value)} maxLength={200} className="mt-1 w-full rounded-lg border bg-background px-3 py-2" /></label>
       <label className="text-sm">Email người phỏng vấn<input aria-label="Email người phỏng vấn" type="email" value={email} onChange={e => setEmail(e.target.value)} className="mt-1 w-full rounded-lg border bg-background px-3 py-2" /></label>
-      <label className="text-sm">Lịch dự kiến<input aria-label="Lịch dự kiến" type="datetime-local" value={scheduledAt} onChange={e => setScheduledAt(e.target.value)} className="mt-1 w-full rounded-lg border bg-background px-3 py-2" /></label>
       {error && <p role="alert" className="text-sm text-red-700 sm:col-span-3">{error}</p>}
       <Button disabled={busy || !name.trim() || !email.trim()} onClick={add} className="sm:w-fit">{busy ? "Đang thêm…" : "Thêm vòng"}</Button>
     </div>}

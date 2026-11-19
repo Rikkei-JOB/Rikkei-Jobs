@@ -1,5 +1,7 @@
 # Hợp đồng API mock hệ thống ngoài
 
+UT-06 bổ sung tuỳ chọn `Idempotency-Key` cho `POST /meet/rooms`: cùng key/payload trả200 cùng phòng, khác payload409 `IDEMPOTENCY_CONFLICT`, key không hợp lệ400. Không gửi key vẫn tạo phòng201 như trước. Key tồn tại trong bộ nhớ tiến trình và bị xoá khi reset. Hợp đồng body/response và 11 endpoint giữ nguyên; xem [UT-06](api/UT-06-interview-scheduling.md).
+
 Nguồn: tài liệu hướng dẫn dựng mock của mentor, mục 3 và mục 5. Cả nhóm code theo bảng này. **Muốn đổi thì cả nhóm thống nhất và sửa file này trước**, không tự ý đổi trong code.
 
 Mock chạy riêng ở `http://localhost:9000` (thư mục `mock/`). Cách chạy: [mock/README.md](../mock/README.md).

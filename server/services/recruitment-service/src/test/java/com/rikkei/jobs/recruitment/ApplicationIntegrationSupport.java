@@ -30,7 +30,7 @@ import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@SpringBootTest(properties = {"app.recruitment.outbox-enabled=false", "app.jwt.secret=test_secret_test_secret_test_secret_test_secret", "app.recruitment.cv-storage-dir=target/ut01-snapshots"})
+@SpringBootTest(properties = {"app.recruitment.outbox-enabled=false", "app.recruitment.interview-jobs-enabled=false", "app.jwt.secret=test_secret_test_secret_test_secret_test_secret", "app.recruitment.cv-storage-dir=target/ut01-snapshots"})
 @AutoConfigureMockMvc
 abstract class ApplicationIntegrationSupport {
     private static PostgreSQLContainer<?> postgres;
@@ -48,6 +48,9 @@ abstract class ApplicationIntegrationSupport {
     UUID user = UUID.randomUUID(), job = UUID.randomUUID(), company = UUID.randomUUID(), cv = UUID.randomUUID();
 
     @DynamicPropertySource static synchronized void database(DynamicPropertyRegistry properties) {
+        // Many cached Spring contexts share one test PostgreSQL instance.
+        properties.add("spring.datasource.hikari.maximum-pool-size", () -> 5);
+        properties.add("spring.datasource.hikari.minimum-idle", () -> 0);
         String url = System.getenv("UT01_TEST_DB_URL");
         if (url == null || url.isBlank()) {
             if (postgres == null) { postgres = new PostgreSQLContainer<>("postgres:16-alpine"); postgres.start(); }
@@ -65,6 +68,9 @@ abstract class ApplicationIntegrationSupport {
         jdbc.update("delete from recruitment.employment_records");
         jdbc.update("delete from recruitment.offers");
         jdbc.update("delete from recruitment.application_status_notification_outbox");
+        jdbc.update("delete from recruitment.interview_notification_outbox");
+        jdbc.update("delete from recruitment.interview_schedules");
+        jdbc.update("delete from recruitment.interview_slots");
         jdbc.update("delete from recruitment.interview_round_revisions");
         jdbc.update("delete from recruitment.interview_rounds");
         jdbc.update("delete from recruitment.application_notification_outbox");

@@ -27,6 +27,7 @@ public class InterviewRoundService {
     private final InterviewRoundRevisionRepository revisions;
     private final Clock clock;
     private final MentorIdentityClient mentors;
+    private final InterviewLifecycleService interviewLifecycle;
 
     @Transactional
     public InterviewRoundResponse create(AuthPrincipal actor, UUID applicationId, CreateRoundRequest request) {
@@ -114,6 +115,7 @@ public class InterviewRoundService {
             revisions.save(revision);
             round.setResult(request.result()); round.setScore(score); round.setNote(note);
         }
+        if (request.result() != InterviewRoundResult.PENDING) interviewLifecycle.completeForRound(roundId, clock.instant());
         return toResponse(rounds.saveAndFlush(round));
     }
 

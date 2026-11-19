@@ -1,10 +1,12 @@
 import type { ApplicationHistoryItem, ApplicationStatus } from "@/interface/application";
 import type { Offer } from "@/interface/offer";
+import type { InterviewSlot, InterviewSchedule } from "@/interface/interview";
 
 export type RoundResult = "PENDING" | "PASS" | "FAIL";
 export interface InterviewRound {
   id: string; applicationId: string; roundNo: number; name: string; interviewerEmail: string;
   scheduledAt: string | null; result: RoundResult; score: number | null; note: string | null; createdAt: string;
+  slots?: InterviewSlot[]; schedule?: InterviewSchedule | null;
 }
 export interface RoundRevision {
   id: string; roundId: string; actorId: string; oldResult: RoundResult; newResult: RoundResult;

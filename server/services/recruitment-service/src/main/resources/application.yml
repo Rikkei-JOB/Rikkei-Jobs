@@ -31,6 +31,11 @@ spring:
 
 app:
   recruitment:
+    meet-base-url: ${RIKKEI_MEET_URL:http://localhost:9000}
+    meet-service-key: ${RIKKEI_MEET_SERVICE_KEY:${LMS_SERVICE_KEY:}}
+    meet-connect-timeout-ms: ${MEET_CONNECT_TIMEOUT_MS:2000}
+    meet-read-timeout-ms: ${MEET_READ_TIMEOUT_MS:5000}
+    interview-jobs-enabled: ${INTERVIEW_JOBS_ENABLED:true}
     cv-storage-dir: ${RECRUITMENT_CV_STORAGE_DIR:.runtime/recruitment-cvs}
     company-base-url: ${COMPANY_SERVICE_URL:http://localhost:8085}
     job-context-path: ${RECRUITMENT_JOB_CONTEXT_PATH:/internal/jobs/{jobId}/application-context}

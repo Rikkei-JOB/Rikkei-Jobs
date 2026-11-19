@@ -167,8 +167,15 @@ services:
       RECRUITMENT_PROFILE_SERVICE_KEY: ${RECRUITMENT_PROFILE_SERVICE_KEY:-${INTERNAL_SERVICE_KEY:-dev-internal-key}}
       RECRUITMENT_CV_STORAGE_DIR: /app/data/cv-snapshots
       RECRUITMENT_OUTBOX_ENABLED: ${RECRUITMENT_OUTBOX_ENABLED:-true}
+      RIKKEI_MEET_URL: ${DOCKER_RIKKEI_MEET_URL:-http://mock:9000}
+      RIKKEI_MEET_SERVICE_KEY: ${RIKKEI_MEET_SERVICE_KEY:-${LMS_SERVICE_KEY:-dev-key}}
+      INTERVIEW_JOBS_ENABLED: ${INTERVIEW_JOBS_ENABLED:-true}
+      MEET_CONNECT_TIMEOUT_MS: ${MEET_CONNECT_TIMEOUT_MS:-2000}
+      MEET_READ_TIMEOUT_MS: ${MEET_READ_TIMEOUT_MS:-5000}
     volumes: [recruitment_cvs:/app/data/cv-snapshots]
     depends_on:
+      mock:
+        condition: service_healthy
       postgres:
         condition: service_healthy
       company-service:
