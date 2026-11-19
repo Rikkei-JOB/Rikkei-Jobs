@@ -151,8 +151,9 @@ Content-Type: application/json
 GET {{gw}}/jobs/{{jdDraft}}/match/{{c1}}
 Authorization: Bearer {{staffSso.response.body.accessToken}}
 
-### 5e. Don dep: xoa het ky nang cua JD DRAFT -> 200 (goi 2a-style tren JD nay se ra score 0, met/missing rong)
-# De dat lai 7 JD mau: xoa cac dong company.job_skills, company.jobs (va company.match_scores) roi khoi dong lai company-service voi profile dev.
+### 5e. Don dep: xoa het ky nang cua JD DRAFT -> 200 (sau do GET {{gw}}/jobs/{{jdDraft}}/match/{{c1}} ra score 0, met/missing rong)
+# De dat lai 7 JD mau cua DevDataSeeder (JD1 den JD7): xoa cac dong company.job_skills, company.jobs roi khoi dong lai company-service voi profile dev.
+# Phai xoa them company.match_scores cua cac JD do, vi bang nay giu ban dem diem cu cua JD da bi xoa/tao lai.
 PUT {{gw}}/jobs/{{jdDraft}}/skills
 Authorization: Bearer {{hr1Login.response.body.accessToken}}
 Content-Type: application/json

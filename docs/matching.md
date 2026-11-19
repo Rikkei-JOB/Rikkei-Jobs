@@ -22,7 +22,7 @@ Với mỗi kỹ năng của JD (bảng `job_skills`: `required` = bắt buộc 
 
 - `belowMinimum = true` khi có ít nhất một kỹ năng **bắt buộc** với `v < 0,5 × min_score` (`v = 0,5 × min_score` đúng biên thì **không** bật).
 - Kỹ năng **đạt** (`met`): `v ≥ min_score` (tức `s = 1`). Kỹ năng **thiếu** (`missing`): `v < min_score`; kỹ năng thiếu vẫn được tính điểm một phần qua `s`.
-- API trả `score` là **số nguyên**, làm tròn 0,5 lên (`HALF_UP`). Mọi phép tính trung gian giữ nguyên độ chính xác, chỉ làm tròn ở bước cuối.
+- API trả `score` là **số nguyên**, làm tròn 0,5 lên (`HALF_UP`). Các phép tính trung gian (`s`, `R`, `P`) tính với 10 chữ số thập phân, chỉ làm tròn số nguyên ở bước cuối.
 - Thứ tự trong `met` / `missing`: bắt buộc trước, ưu tiên sau, cùng nhóm theo tên.
 
 ## 2. Dữ liệu vào

@@ -30,7 +30,7 @@ Migration `company-service` `V4__match_scores.sql`, bảng `match_scores` (đệ
 | `stale` | BOOLEAN, mặc định false | Đánh `true` khi JD đổi danh sách kỹ năng |
 | `computed_at` | TIMESTAMPTZ | |
 
-**Không trả bản đệm cũ.** Mỗi lần gọi, company-service lấy `verified_score` hiện tại của ứng viên và chỉ dùng lại bản đệm khi `stale = false` **và** `inputs` đã lưu trùng với dữ liệu vào hiện tại (so số bằng `compareTo`, nên `70` và `70.000000` coi là bằng nhau). Ngược lại tính lại bằng `MatchCalculator` và ghi đè. Vì vậy đổi `min_score` hoặc điểm kỹ năng của ứng viên đều cho điểm mới ở lần gọi kế tiếp. `PUT /jobs/{id}` có `skills` và `PUT /jobs/{id}/skills` đánh `stale` trong cùng transaction (lưới an toàn, để DN-03 biết dòng nào cần tính lại). Bản đệm có `detail` hỏng hoặc đọc không được thì tính lại, không lỗi.
+**Không trả bản đệm cũ.** Mỗi lần gọi, company-service lấy `verified_score` hiện tại của ứng viên và chỉ dùng lại bản đệm khi `stale = false` **và** `inputs` đã lưu trùng với dữ liệu vào hiện tại (so số bằng `compareTo`, nên `70` và `70.000000` coi là bằng nhau). Ngược lại tính lại bằng `MatchCalculator` và ghi đè. Vì vậy đổi `min_score` hoặc điểm kỹ năng của ứng viên đều cho điểm mới ở lần gọi kế tiếp. `PUT /jobs/{id}` có `skills` và `PUT /jobs/{id}/skills` đánh `stale` trong cùng transaction (lưới an toàn, để DN-03 biết dòng nào cần tính lại). Bản đệm có `detail` hỏng hoặc đọc không được thì tính lại, không lỗi. **Lưu ý:** `stale = false` không có nghĩa là điểm đã lưu còn đúng (khi `verified_score` của ứng viên đổi thì không có gì đánh `stale`). DN-03 phải đọc điểm qua `MatchService` hoặc so `inputs`, không xếp hạng trực tiếp từ các dòng có `stale = false`.
 
 ## 3. API
 
@@ -129,7 +129,7 @@ Lưu ý:
 
 ### Chạy test recruitment-service khi Testcontainers không tới được Docker
 
-Máy dùng Docker Engine 29 với Testcontainers 1.19.8 có thể báo `Could not find a valid Docker environment`. Cách làm: dùng một DB riêng và trỏ test vào đó.
+Máy dùng Docker Engine 29 với Testcontainers 1.19.8 có thể báo `Could not find a valid Docker environment`. Cách làm: dùng một DB riêng và trỏ test vào đó. Lệnh dưới là **PowerShell**; trên bash dùng `export UT01_TEST_DB_URL=...` tương ứng.
 
 ```sql
 CREATE DATABASE rikkei_jobs_test;
@@ -181,7 +181,7 @@ Ba ví dụ (request tương ứng trong `DN-06.http`):
 | 7 | Hợp đồng UT-02: đúng 4 trường, phần tử đúng 4 trường, `candidateScore` không null | — | `JobMatchApiTest.responseMatchesUt02Contract` |
 | 8 | Đổi `min_score` qua `PUT /jobs/{id}/skills` → `stale = true`; gọi lại → điểm mới | 4 | `JobMatchApiTest.minScoreChangeGivesNewScore`, `putWithoutSkillsKeepsCacheFresh` |
 | 9 | `verified_score` đổi → gọi lại → điểm mới, không trả bản cũ; bản đệm còn đúng thì dùng lại | 4 | `JobMatchApiTest.verifiedScoreChangeGivesNewScore`, `cachedResultReusedWhenInputsUnchanged`, `cacheHitIgnoresDecimalScale`, `unreadableDetailIsRecomputed` |
-| 10 | profile / recruitment / danh mục tắt → 503; kỹ năng không còn trong danh mục → dùng `skillId` | — | `JobMatchApiTest.dependencyDownIs503`, `skillMissingFromCatalogFallsBackToId`; `HttpProfileSkillClientTest`, `HttpApplicationClientTest`, `HttpSkillCatalogClientTest` |
+| 10 | profile / recruitment / danh mục tắt → 503; kỹ năng không còn trong danh mục → dùng `skillId` | — | `JobMatchApiTest.dependencyDownIs503`, `skillMissingFromCatalogFallsBackToId`, `blankCatalogNameFallsBackToId`; `HttpProfileSkillClientTest`, `HttpApplicationClientTest`, `HttpSkillCatalogClientTest` |
 | 11 | Hai lần tính đầu cùng lúc đụng khoá chính vẫn trả kết quả | — | `MatchServiceImplTest.insertConflictStillReturnsResult` |
 | 12 | profile `verified-skills`: chỉ dòng có `verified_score`; thiếu/sai khoá → 401; đường mã hoá không qua được | 3 | `InternalVerifiedSkillsApiTest`: `returnsOnlyVerifiedScores`, `noScoresGivesEmptyArray`, `wrongOrMissingKeyIs401`, `missingJwtIs401`, `encodedPathWithoutKeyIsRejected` |
 | 13 | recruitment `exists`: có/không đơn, mọi trạng thái; thiếu/sai khoá → 401; token ứng viên → 403; thiếu tham số → 400 | — | `InternalApplicationExistsApiTest`: `appliedIsTrueForAnyStatus`, `notAppliedIsFalse`, `wrongOrMissingKeyIs401`, `candidateTokenIs403`, `missingParamIs400` |
@@ -189,7 +189,7 @@ Ba ví dụ (request tương ứng trong `DN-06.http`):
 
 ## 8. Trạng thái xác minh
 
-- **Test backend tự động** (`mvn -f server/pom.xml clean test`, 2026-11-19): common-core 14, api-gateway 20, identity-service 266, profile-service 143 (1 bỏ qua, gồm `InternalVerifiedSkillsApiTest`), company-service 206 (gồm `MatchCalculatorTest`, `JobMatchApiTest`), internship / assessment / learning mỗi service 5 đều đạt. **recruitment-service chưa chạy được trên máy xác minh** (PostgreSQL cục bộ không chạy, test UT-01 cần Postgres: 66/98 test lỗi `Connection to localhost:5432 refused`, trong đó có `InternalApplicationExistsApiTest`); cần chạy lại với Postgres bật theo cách ở mục 5 trước khi mở PR.
+- **Test backend tự động** (`mvn -f server/pom.xml clean test`, 2026-11-19): common-core 14, api-gateway 20, identity-service 266, profile-service 143 (1 bỏ qua, gồm `InternalVerifiedSkillsApiTest`), company-service 206 (gồm `MatchCalculatorTest`, `JobMatchApiTest`), internship / assessment / learning mỗi service 5 đều đạt. **recruitment-service 98/98 đạt** (gồm `InternalApplicationExistsApiTest`) ở commit `e91dbd0`, chạy với DB riêng `rikkei_jobs_test` qua `UT01_TEST_DB_*` và `-Dspring.datasource.hikari.maximum-pool-size=2` (cách ở mục 5). Toàn bộ backend xanh ở `e91dbd0`.
 - **Chạy thật toàn luồng** (Postgres, mock, identity + profile + recruitment + company-service profile `dev`, gateway, web) và **ảnh màn hình `/staff/match-preview` cho 3 ví dụ**: **chờ chạy thật**. Người làm chạy theo mục 5 và `DN-06.http`, so điểm với mục 6, rồi chụp ảnh vào `docs/api/screenshots/DN-06/` (đường dẫn dự kiến):
   - `match-example-1-jd6-c1.png` (78), `match-example-2-jd7-c3.png` (60), `match-example-3-jd6-no-skills.png` (0).
 - `web/`: chạy `type-check`, `lint`, `build` trước khi mở PR (CI chỉ chạy `type-check`).
@@ -198,6 +198,7 @@ Ba ví dụ (request tương ứng trong `DN-06.http`):
 
 - **UT-02** (`recruitment-service` `HttpJobMatchClient`) đã gọi sẵn `GET /jobs/{id}/match/{userId}` với đúng hợp đồng ở mục 3.1; DN-06 **không sửa** UT-02. Test `responseMatchesUt02Contract` canh để DN-06 không làm vỡ hợp đồng đó. Không thêm trường vào phản hồi mà không sửa UT-02.
 - **DN-03 / DN-04**: gọi cùng API, hoặc dùng `MatchCalculator` nếu cần tính hàng loạt trong company-service; gắn `MatchScoreCard` và hook `useJobMatch`. Đổi công thức phải sửa [docs/matching.md](../matching.md) trước.
+- **Gọi vòng giữa recruitment và company**: trang chi tiết đơn của HR (UT-02, recruitment-service) gọi company `GET /jobs/{id}/match/{userId}`, rồi company gọi ngược recruitment `GET /internal/applications/exists`. Khi tải đồng thời cao, lời gọi ngược có thể quá timeout 5 giây, company trả 503, UT-02 hiển thị `match: null`. Chỉ suy giảm hiển thị, không có deadlock; không cần sửa code UT-02.
 
 ## 10. Checklist nộp PR
 
