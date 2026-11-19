@@ -27,6 +27,8 @@ erDiagram
     skills ||--o{ skill_scores : "skill_id"
     external_records ||--o{ skill_evidences : "external_record_id"
     external_records ||--o{ manual_overrides : "record_id"
+    skill_evidences ||--o{ data_reports : "evidence_id (ON DELETE SET NULL)"
+    evaluation_templates ||--o{ evaluation_criteria : "template_id (ON DELETE CASCADE)"
     users ||..o{ sync_runs : "user_id"
 
     companies {
@@ -141,6 +143,7 @@ erDiagram
         VARCHAR code UK "JAVA, SQL..."
         VARCHAR name
         VARCHAR skill_group
+        BOOLEAN active "NT-12: tắt thì không chọn mới, dữ liệu cũ giữ"
     }
 
     skill_mappings {
@@ -212,6 +215,58 @@ erDiagram
         TIMESTAMPTZ updated_at
     }
 
+    score_weights {
+        VARCHAR source PK "LMS | EXAM | INTERNSHIP | MENTOR"
+        NUMERIC weight "0-100, tổng 4 nguồn = 100 (DG-03)"
+        UUID updated_by "ADMIN"
+        TIMESTAMPTZ updated_at
+    }
+
+    evaluation_templates {
+        UUID id PK
+        VARCHAR name UK
+        VARCHAR description
+        BOOLEAN active
+        TIMESTAMPTZ created_at
+        TIMESTAMPTZ updated_at
+    }
+
+    evaluation_criteria {
+        UUID id PK
+        UUID template_id FK
+        VARCHAR name
+        VARCHAR description
+        NUMERIC weight "0-100"
+        INT max_score "1-100"
+        INT sort_order
+    }
+
+    change_logs {
+        UUID id PK
+        VARCHAR entity "SKILL | SCORE_WEIGHT | EVALUATION_TEMPLATE | PROFILE | EVIDENCE | DATA_REPORT"
+        VARCHAR entity_id
+        VARCHAR field
+        VARCHAR old_value
+        VARCHAR new_value
+        VARCHAR reason "bắt buộc khi sửa hồ sơ, bằng chứng"
+        UUID admin_id
+        TIMESTAMPTZ created_at
+    }
+
+    data_reports {
+        UUID id PK
+        UUID user_id "ứng viên báo"
+        UUID evidence_id FK "NULL nếu bằng chứng đã bị xoá"
+        VARCHAR evidence_title "chụp lại lúc báo"
+        VARCHAR skill_name
+        VARCHAR content
+        VARCHAR status "OPEN | RESOLVED | REJECTED"
+        VARCHAR resolution
+        UUID resolved_by
+        TIMESTAMPTZ resolved_at
+        TIMESTAMPTZ created_at
+    }
+
     skill_profile_states {
         UUID user_id PK
         BOOLEAN consented "ứng viên đồng ý công khai"
@@ -257,6 +312,7 @@ erDiagram
 | company-service | `company` | `jobs`, `job_skills` | `V3__jobs.sql` | DN-02 |
 | profile-service | `profile` | `skills`, `skill_mappings`, `skill_evidences`, `skill_scores`, `external_records`, `skill_profile_states` | `V1__skill_profile.sql` → `V3__external_records_and_profile_state.sql` | HS-01 |
 | profile-service | `profile` | `manual_overrides`, `sync_runs`; thêm `source_key`, `payload`, `synced_at` vào `external_records` | `V8__nt05_external_sync.sql` | NT-05 |
+| profile-service | `profile` | `score_weights` (DG-03 dùng), `evaluation_templates`, `evaluation_criteria` (DG-01 dùng), `change_logs`, `data_reports`; thêm `active` vào `skills` | `V9__nt12_admin.sql` | NT-12 |
 | recruitment-service | `recruitment` | `applications`, `application_status_history`, `application_notification_outbox`, `interview_rounds`, `interview_round_revisions`, `application_status_notification_outbox` | `V1__applications.sql` → `V3__status_notification_outbox.sql` | UT-01, UT-02 |
 
 ### Quan hệ tuyển dụng UT-02

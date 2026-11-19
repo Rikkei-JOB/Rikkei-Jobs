@@ -1,0 +1,123 @@
+### NT-12 · Request mẫu (VS Code REST Client hoặc IntelliJ HTTP Client)
+### Chạy theo thứ tự. Token lấy qua SSO dev: ticket → /auth/sso.
+
+@api = http://localhost:8080/api/v1
+
+### 1. Vé SSO cho ADMIN (admin1)
+# @name adminTicket
+POST {{api}}/auth/dev/sso-ticket
+Content-Type: application/json
+
+{"lmsUserId": "lms-ad-001"}
+
+### 2. Token ADMIN
+# @name admin
+POST {{api}}/auth/sso
+Content-Type: application/json
+
+{"ticket": "{{adminTicket.response.body.ticket}}"}
+
+### 3. Danh mục kỹ năng (gồm cả kỹ năng đã tắt)
+GET {{api}}/admin/skills
+Authorization: Bearer {{admin.response.body.accessToken}}
+
+### 4. Thêm kỹ năng → hiện ngay ở form JD và hồ sơ (GET /skills)
+# @name kotlin
+POST {{api}}/admin/skills
+Authorization: Bearer {{admin.response.body.accessToken}}
+Content-Type: application/json
+
+{"code": "KOTLIN", "name": "Kotlin", "group": "Backend", "reason": "Bổ sung theo nhu cầu JD Android"}
+
+### 5. Xoá kỹ năng: chưa có dữ liệu thì xoá hẳn; đã có bằng chứng thì chỉ tắt (deactivated=true)
+DELETE {{api}}/admin/skills/{{kotlin.response.body.id}}?reason=Tạo nhầm
+Authorization: Bearer {{admin.response.body.accessToken}}
+
+### 6. Trọng số tổng 110 → 400 VALIDATION_ERROR
+PUT {{api}}/admin/score-weights
+Authorization: Bearer {{admin.response.body.accessToken}}
+Content-Type: application/json
+
+{"weights": [{"source": "LMS", "weight": 40}, {"source": "EXAM", "weight": 30},
+             {"source": "INTERNSHIP", "weight": 25}, {"source": "MENTOR", "weight": 15}]}
+
+### 7. Trọng số tổng 100 → 200, ghi change_logs
+PUT {{api}}/admin/score-weights
+Authorization: Bearer {{admin.response.body.accessToken}}
+Content-Type: application/json
+
+{"reason": "Tăng trọng số học tập theo quy chế 2026",
+ "weights": [{"source": "LMS", "weight": 40}, {"source": "EXAM", "weight": 20},
+             {"source": "INTERNSHIP", "weight": 25}, {"source": "MENTOR", "weight": 15}]}
+
+### 8. Thêm mẫu phiếu kèm tiêu chí
+POST {{api}}/admin/evaluation-templates
+Authorization: Bearer {{admin.response.body.accessToken}}
+Content-Type: application/json
+
+{"name": "Đánh giá giữa kỳ", "criteria": [
+  {"name": "Tiến độ công việc", "weight": 60, "maxScore": 10},
+  {"name": "Chủ động học hỏi", "weight": 40, "maxScore": 10}]}
+
+### 9. Vé SSO + token ứng viên (candidate1)
+# @name candTicket
+POST {{api}}/auth/dev/sso-ticket
+Content-Type: application/json
+
+{"lmsUserId": "lms-sv-001"}
+
+###
+# @name cand
+POST {{api}}/auth/sso
+Content-Type: application/json
+
+{"ticket": "{{candTicket.response.body.ticket}}"}
+
+### 10. Hồ sơ kỹ năng của ứng viên: lấy evidences[].id để báo sai
+GET {{api}}/profiles/me/skills
+Authorization: Bearer {{cand.response.body.accessToken}}
+
+### 11. Ứng viên báo bằng chứng sai (thay <evidenceId>)
+# @name report
+POST {{api}}/me/data-reports
+Authorization: Bearer {{cand.response.body.accessToken}}
+Content-Type: application/json
+
+{"evidenceId": "<evidenceId>", "content": "Điểm môn Lập trình Java của em là 9, không phải 8,5."}
+
+### 12. ADMIN xem báo cáo chờ xử lý
+GET {{api}}/admin/data-reports?status=OPEN
+Authorization: Bearer {{admin.response.body.accessToken}}
+
+### 13. Sửa bằng chứng không lý do → 400 (errors.reason)
+PUT {{api}}/admin/evidences/<evidenceId>
+Authorization: Bearer {{admin.response.body.accessToken}}
+Content-Type: application/json
+
+{"score": 90}
+
+### 14. Sửa bằng chứng có lý do → 200, change_logs ghi 85 → 90
+PUT {{api}}/admin/evidences/<evidenceId>
+Authorization: Bearer {{admin.response.body.accessToken}}
+Content-Type: application/json
+
+{"score": 90, "reason": "Phúc khảo theo đơn ngày 18/11/2026"}
+
+### 15. Đóng báo cáo kèm kết quả
+PUT {{api}}/admin/data-reports/{{report.response.body.id}}
+Authorization: Bearer {{admin.response.body.accessToken}}
+Content-Type: application/json
+
+{"status": "RESOLVED", "resolution": "Đã sửa điểm thành 9/10 theo kết quả phúc khảo."}
+
+### 16. Ứng viên xem kết quả
+GET {{api}}/me/data-reports
+Authorization: Bearer {{cand.response.body.accessToken}}
+
+### 17. Lịch sử thay đổi của bằng chứng trong ngày
+GET {{api}}/admin/change-logs?entity=EVIDENCE&from=2026-11-19&to=2026-11-19
+Authorization: Bearer {{admin.response.body.accessToken}}
+
+### 18. Token không phải ADMIN → 403
+GET {{api}}/admin/skills
+Authorization: Bearer {{cand.response.body.accessToken}}
