@@ -30,7 +30,8 @@ public class HrApplicationReadService {
     private final InterviewRoundRevisionRepository revisions;
     private final IdentityCandidateClient identities;
     private final CandidateContactClient contacts;
-    private final JobMatchClient matches;
+    private final MatchLookupService matches;
+    private final ApplicationReadAccessService access;
     private final HrTransitionPolicy policy;
     private final OfferRepository offers;
     private final EmploymentRecordRepository employmentRecords;
@@ -38,17 +39,13 @@ public class HrApplicationReadService {
 
     @Transactional(readOnly = true)
     public HrApplicationDetailResponse detail(AuthPrincipal actor, UUID id, String bearer) {
-        requireReader(actor);
-        var application = applications.findById(id)
-            .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy đơn ứng tuyển."));
-        if (actor.getRole() == Role.HR && !application.getCompanyId().equals(actor.getCompanyId()))
-            throw new ResourceNotFoundException("Không tìm thấy đơn ứng tuyển.");
+        var application = access.findReadable(actor,id);
         var identity = identities.get(application.getUserId());
         var candidate = new CandidateIdentity(identity.userId(), identity.fullName(), identity.email(),
             contacts.phone(application.getUserId(), bearer));
         // DN-06 authorizes HR and STAFF, but not ADMIN. ADMIN can inspect the workflow without a match lookup.
-        var match = actor.getRole() == Role.ADMIN ? null
-            : matches.get(application.getJobId(), application.getUserId(), bearer).orElse(null);
+        var match = actor.getRole() == Role.ADMIN ? new MatchLookupResponse(MatchStatus.NOT_REQUESTED,null)
+            : matches.lookup(application.getJobId(), application.getUserId(), bearer);
         var roundEntities = rounds.findByApplicationIdOrderByRoundNoAsc(id);
         var roundIds = roundEntities.stream().map(InterviewRound::getId).toList();
         var slotData = actor.getRole() == Role.HR ? interviewQueries.slotMap(roundIds) : java.util.Map.<UUID,java.util.List<InterviewSlotResponse>>of();
@@ -65,11 +62,11 @@ public class HrApplicationReadService {
         return new HrApplicationDetailResponse(id, application.getJobId(), application.getJobTitle(),
             application.getCompanyId(), application.getCompanyName(), application.getStatus(),
             application.getCreatedAt(), application.getUpdatedAt(), candidate, application.getCvId(),
-            application.getCvSnapshotUrl(), application.getCoverLetter(), match, roundData, revisionData,
+            application.getCvSnapshotUrl(), application.getCoverLetter(), match.match(), roundData, revisionData,
             historyData, actor.getRole() == Role.HR ? policy.allowedFrom(application.getStatus()) : java.util.Set.of(),
             actor.getRole() == Role.HR ? offers.findByApplicationId(id).map(OfferResponse::from).orElse(null) : null,
             actor.getRole() == Role.HR ? employmentRecords.findByApplicationId(id)
-                .map(EmploymentRecord::getConfirmedAt).orElse(null) : null);
+                .map(EmploymentRecord::getConfirmedAt).orElse(null) : null, match.matchStatus());
     }
 
     @Transactional(readOnly = true)
@@ -105,8 +102,4 @@ public class HrApplicationReadService {
         return PageResponse.of(result, summaries);
     }
 
-    private void requireReader(AuthPrincipal actor) {
-        if (actor == null || (actor.getRole() != Role.HR && actor.getRole() != Role.STAFF && actor.getRole() != Role.ADMIN))
-            throw new ForbiddenException("Bạn không có quyền xem đơn này.");
-    }
 }
