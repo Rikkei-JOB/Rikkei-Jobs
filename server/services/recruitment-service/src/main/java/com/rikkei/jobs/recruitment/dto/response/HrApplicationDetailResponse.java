@@ -13,4 +13,4 @@ public record HrApplicationDetailResponse(UUID id, UUID jobId, String jobTitle, 
     MatchResponse match, List<InterviewRoundResponse> rounds,
     List<InterviewRoundRevisionResponse> roundRevisions,
     List<ApplicationHistoryResponse> history, Set<ApplicationStatus> allowedTransitions,
-    OfferResponse offer, Instant onboardConfirmedAt) {}
+    OfferResponse offer, Instant onboardConfirmedAt, MatchStatus matchStatus) {}
