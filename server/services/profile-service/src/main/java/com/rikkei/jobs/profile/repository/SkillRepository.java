@@ -8,4 +8,6 @@ import java.util.UUID;
 
 public interface SkillRepository extends JpaRepository<Skill, UUID> {
     Optional<Skill> findByCode(String code);
+
+    boolean existsByCodeIgnoreCase(String code);
 }

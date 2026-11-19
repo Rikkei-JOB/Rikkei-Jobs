@@ -8,4 +8,9 @@ import java.util.UUID;
 
 public interface SkillEvidenceRepository extends JpaRepository<SkillEvidence, UUID> {
     List<SkillEvidence> findAllByUserId(UUID userId);
+
+    boolean existsBySkillId(UUID skillId);
+
+    @org.springframework.data.jpa.repository.Query("select distinct e.skillId from SkillEvidence e")
+    List<UUID> findUsedSkillIds();
 }

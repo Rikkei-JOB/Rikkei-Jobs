@@ -25,4 +25,8 @@ public class Skill {
 
     @Column(name = "skill_group", nullable = false, length = 100)
     private String group;
+
+    /** NT-12: kỹ năng tắt không hiện ở danh mục chọn mới, nhưng bằng chứng và điểm cũ giữ nguyên. */
+    @Column(nullable = false)
+    private boolean active = true;
 }
