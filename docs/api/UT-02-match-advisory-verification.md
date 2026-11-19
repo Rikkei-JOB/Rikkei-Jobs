@@ -72,4 +72,3 @@ Reviewer không tự chạy lại toàn bộ suite hoặc smoke nhiều service.
 ![Điểm0 vẫn tham khảo và offer không bị chặn](screenshots/ut02-match-available.png)
 ![Lỗi quyền lookup không che chi tiết đơn](screenshots/ut02-match-unavailable.png)
 ![Retry giữ input trên mobile](screenshots/ut02-match-mobile.png)
-
