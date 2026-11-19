@@ -38,6 +38,12 @@ public class SecurityConfig {
     /** Tài liệu OpenAPI của service ({@code /<khu>/api-docs}), để Swagger UI ở gateway đọc được mà không cần JWT. */
     public static final String[] API_DOCS_PATHS = {"/*/api-docs", "/*/api-docs/**"};
 
+    /**
+     * API quản trị (NT-12): chỉ ADMIN, chặn ngay ở tầng URL để vai trò khác luôn nhận 403,
+     * kể cả khi body sai định dạng (@PreAuthorize trên controller chỉ chạy sau khi đọc và kiểm body).
+     */
+    public static final String[] ADMIN_PATHS = {"/admin/**"};
+
     @Bean
     @ConditionalOnMissingBean
     public JwtUtils jwtUtils(JwtProperties jwtProperties) {
@@ -81,6 +87,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .requestMatchers("/actuator/health/**", "/actuator/info", "/actuator/prometheus").permitAll()
                         .requestMatchers(API_DOCS_PATHS).permitAll()
+                        .requestMatchers(ADMIN_PATHS).hasRole("ADMIN")
                         .anyRequest().authenticated()
                 );
 

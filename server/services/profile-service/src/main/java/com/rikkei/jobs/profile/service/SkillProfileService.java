@@ -113,6 +113,21 @@ public class SkillProfileService {
         return recomputeFromEvidences(userId);
     }
 
+    /** NT-12: ADMIN sửa trực tiếp bằng chứng không đến từ nguồn ngoài; khoá hồ sơ rồi tính lại điểm. */
+    @Transactional
+    public List<SkillProfileView> recomputeScores(UUID userId) {
+        requireUser(userId);
+        lockProfile(userId);
+        return recomputeFromEvidences(userId);
+    }
+
+    /** Khoá hồ sơ kỹ năng của ứng viên trong transaction hiện tại (dùng trước khi sửa bằng chứng). */
+    @Transactional
+    public void lockForUpdate(UUID userId) {
+        requireUser(userId);
+        lockProfile(userId);
+    }
+
     private List<SkillProfileView> recomputeFromEvidences(UUID userId) {
         Instant now = clock.instant();
         Map<UUID, List<SkillEvidence>> bySkill = evidences.findAllByUserId(userId).stream()
@@ -146,7 +161,7 @@ public class SkillProfileService {
     public List<SkillInfo> getCatalogue() {
         return skills.findAll().stream()
             .sorted(Comparator.comparing(Skill::getGroup).thenComparing(Skill::getCode))
-            .map(s -> new SkillInfo(s.getId(), s.getCode(), s.getName(), s.getGroup())).toList();
+            .map(s -> new SkillInfo(s.getId(), s.getCode(), s.getName(), s.getGroup(), s.isActive())).toList();
     }
 
     /** Full replacement of SELF only; verified scores and external evidence remain untouched. */
@@ -164,6 +179,13 @@ public class SkillProfileService {
         lockProfile(userId);
         Instant now = clock.instant();
         List<SkillEvidence> old = evidences.findAllByUserId(userId);
+        Set<UUID> previousSelf = old.stream().filter(e -> e.getSource() == EvidenceSource.SELF)
+            .map(SkillEvidence::getSkillId).collect(Collectors.toSet());
+        // NT-12: kỹ năng đã tắt chỉ được giữ nếu ứng viên đã khai từ trước, không chọn mới được.
+        for (SelfSkillRequest item : request) {
+            if (!catalogue.get(item.skillId()).isActive() && !previousSelf.contains(item.skillId()))
+                throw new BadRequestException("Kỹ năng " + catalogue.get(item.skillId()).getName() + " đã ngừng sử dụng.");
+        }
         Set<UUID> nonSelf = old.stream().filter(e -> e.getSource() != EvidenceSource.SELF)
             .map(SkillEvidence::getSkillId).collect(Collectors.toSet());
         evidences.deleteAll(old.stream().filter(e -> e.getSource() == EvidenceSource.SELF).toList());
@@ -213,10 +235,10 @@ public class SkillProfileService {
                     List<EvidenceView> details = evidenceBySkill.getOrDefault(skill.getId(), List.of()).stream()
                             .sorted(Comparator.comparing(SkillEvidence::getRecordedAt).reversed()
                                     .thenComparing(e -> e.getSource().name()).thenComparing(SkillEvidence::getSourceRef))
-                            .map(e -> new EvidenceView(e.getSource(), e.getTitle(), e.getScore(),
+                            .map(e -> new EvidenceView(e.getId(), e.getSource(), e.getTitle(), e.getScore(),
                                     e.getRecordedAt(), e.isVerified())).toList();
                     return new SkillProfileView(new SkillInfo(skill.getId(), skill.getCode(),
-                            skill.getName(), skill.getGroup()), score == null ? null : score.getVerifiedScore(),
+                            skill.getName(), skill.getGroup(), skill.isActive()), score == null ? null : score.getVerifiedScore(),
                             score == null ? null : score.getSelfScore(), score == null ? null : score.getLevel(), details);
                 }).toList();
     }

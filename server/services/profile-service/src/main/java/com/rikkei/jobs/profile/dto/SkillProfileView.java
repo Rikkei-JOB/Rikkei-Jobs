@@ -10,8 +10,10 @@ import java.util.UUID;
 
 public record SkillProfileView(SkillInfo skill, BigDecimal verifiedScore, BigDecimal selfScore,
                                SkillLevel level, List<EvidenceView> evidences) {
-    public record SkillInfo(UUID id, String code, String name, String group) { }
+    /** active=false: kỹ năng đã tắt (NT-12), không chọn mới được nhưng dữ liệu cũ vẫn hiện. */
+    public record SkillInfo(UUID id, String code, String name, String group, boolean active) { }
 
-    public record EvidenceView(EvidenceSource source, String title, BigDecimal score,
+    /** id dùng để ứng viên báo dữ liệu sai (NT-12). */
+    public record EvidenceView(UUID id, EvidenceSource source, String title, BigDecimal score,
                                Instant recordedAt, boolean verified) { }
 }
