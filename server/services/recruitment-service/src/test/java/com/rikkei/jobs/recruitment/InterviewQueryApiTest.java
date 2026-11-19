@@ -26,4 +26,11 @@ class InterviewQueryApiTest extends InterviewIntegrationSupport {
         pick(slot);
         mvc.perform(get("/recruitment/applications/{a}",applicationId).header("Authorization",hr())).andExpect(status().isOk()).andExpect(jsonPath("$.rounds[0].schedule.meetUrl").value("https://meet.test/room"));
     }
+    @Test void currentScheduleWinsOverCancelledHistoryEvenWhenClockMovesBack() throws Exception {
+        pick(propose(7200));
+        jdbc.update("update recruitment.interview_schedules set created_at=?",java.sql.Timestamp.from(NOW.plusSeconds(1)));
+        var text=mvc.perform(post("/recruitment/rounds/{r}/reschedule",roundId).header("Authorization",hr()).contentType("application/json").content(slots(14400))).andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
+        pick(UUID.fromString(json.readTree(text).get("slots").get(0).get("id").asText()));
+        mvc.perform(get("/recruitment/me/interviews").header("Authorization",candidate())).andExpect(status().isOk()).andExpect(jsonPath("$.items[0].schedule.status").value("SCHEDULED"));
+    }
 }

@@ -35,7 +35,7 @@ public class InterviewQueryService {
     }
     public Map<UUID,InterviewScheduleResponse> scheduleMap(List<UUID> ids){
         var result=new HashMap<UUID,InterviewScheduleResponse>();if(ids.isEmpty())return result;
-        jdbc.query("select s.*,t.start_at,t.end_at from recruitment.interview_schedules s join recruitment.interview_slots t on t.id=s.slot_id where s.round_id in ("+marks(ids.size())+") order by s.created_at desc,s.id",(org.springframework.jdbc.core.RowCallbackHandler)rs->{var s=schedule(rs);result.putIfAbsent(s.roundId(),s);},ids.toArray());return result;
+        jdbc.query("select s.*,t.start_at,t.end_at from recruitment.interview_schedules s join recruitment.interview_slots t on t.id=s.slot_id where s.round_id in ("+marks(ids.size())+") order by case when s.status='SCHEDULED' then 0 else 1 end,s.created_at desc,s.id",(org.springframework.jdbc.core.RowCallbackHandler)rs->{var s=schedule(rs);result.putIfAbsent(s.roundId(),s);},ids.toArray());return result;
     }
     public PageResponse<InterviewCalendarItemResponse> listCompany(AuthPrincipal actor,Instant from,Instant to,String email,String status,int page,int size){
         if(actor==null || actor.getRole()!=Role.HR || actor.getCompanyId()==null)throw new ForbiddenException("Chỉ HR được xem lịch công ty.");page(page,size);
