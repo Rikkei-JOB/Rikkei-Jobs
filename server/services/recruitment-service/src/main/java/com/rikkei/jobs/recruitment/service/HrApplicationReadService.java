@@ -34,6 +34,7 @@ public class HrApplicationReadService {
     private final HrTransitionPolicy policy;
     private final OfferRepository offers;
     private final EmploymentRecordRepository employmentRecords;
+    private final InterviewQueryService interviewQueries;
 
     @Transactional(readOnly = true)
     public HrApplicationDetailResponse detail(AuthPrincipal actor, UUID id, String bearer) {
@@ -48,9 +49,13 @@ public class HrApplicationReadService {
         // DN-06 authorizes HR and STAFF, but not ADMIN. ADMIN can inspect the workflow without a match lookup.
         var match = actor.getRole() == Role.ADMIN ? null
             : matches.get(application.getJobId(), application.getUserId(), bearer).orElse(null);
-        var roundData = rounds.findByApplicationIdOrderByRoundNoAsc(id).stream()
+        var roundEntities = rounds.findByApplicationIdOrderByRoundNoAsc(id);
+        var roundIds = roundEntities.stream().map(InterviewRound::getId).toList();
+        var slotData = actor.getRole() == Role.HR ? interviewQueries.slotMap(roundIds) : java.util.Map.<UUID,java.util.List<InterviewSlotResponse>>of();
+        var scheduleData = actor.getRole() == Role.HR ? interviewQueries.scheduleMap(roundIds) : java.util.Map.<UUID,InterviewScheduleResponse>of();
+        var roundData = roundEntities.stream()
             .map(r -> new InterviewRoundResponse(r.getId(), r.getApplicationId(), r.getRoundNo(), r.getName(),
-                r.getInterviewerEmail(), r.getScheduledAt(), r.getResult(), r.getScore(), r.getNote(), r.getCreatedAt())).toList();
+                r.getInterviewerEmail(), r.getScheduledAt(), r.getResult(), r.getScore(), r.getNote(), r.getCreatedAt(), slotData.getOrDefault(r.getId(), java.util.List.of()), scheduleData.get(r.getId()))).toList();
         var revisionData = revisions.findByApplicationIdOrderByCreatedAtAscIdAsc(id).stream()
             .map(r -> new InterviewRoundRevisionResponse(r.getId(), r.getRoundId(), r.getActorId(), r.getOldResult(),
                 r.getNewResult(), r.getOldScore(), r.getNewScore(), r.getOldNote(), r.getNewNote(), r.getCreatedAt())).toList();

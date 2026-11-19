@@ -13,6 +13,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 abstract class InterviewIntegrationSupport extends ApplicationIntegrationSupport {
     @MockBean MeetRoomClient meet;
     @MockBean IdentityCandidateClient identities;
+    @MockBean JobMatchClient matches;
     UUID roundId,applicationId;
     @BeforeEach void setupInterview() throws Exception {
         when(identities.get(any())).thenAnswer(a->new CandidateIdentity(a.getArgument(0),"Candidate","candidate@test.local"));

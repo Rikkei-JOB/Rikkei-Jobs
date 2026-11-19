@@ -12,6 +12,9 @@ import org.springframework.web.bind.annotation.*;
 @RestController @RequestMapping("/recruitment") @RequiredArgsConstructor @PreAuthorize(Roles.HR)
 public class HrInterviewController {
     private final InterviewSchedulingService service;
+    private final com.rikkei.jobs.recruitment.service.InterviewQueryService queries;
+    @GetMapping("/companies/me/interviews")
+    public com.rikkei.jobs.common.dto.response.PageResponse<InterviewCalendarItemResponse> calendar(@AuthenticationPrincipal AuthPrincipal actor,@RequestParam java.time.OffsetDateTime from,@RequestParam java.time.OffsetDateTime to,@RequestParam(required=false) String interviewerEmail,@RequestParam(required=false) String status,@RequestParam(defaultValue="1") int page,@RequestParam(defaultValue="20") int size){return queries.listCompany(actor,from.toInstant(),to.toInstant(),interviewerEmail,status,page,size);}
     @PostMapping("/rounds/{roundId}/slots") @ResponseStatus(HttpStatus.CREATED)
     public InterviewProposalResponse propose(@AuthenticationPrincipal AuthPrincipal actor,@PathVariable UUID roundId,@RequestBody List<InterviewSlotRequest> slots){return service.propose(actor,roundId,slots);}
     @PostMapping("/rounds/{roundId}/reschedule")
