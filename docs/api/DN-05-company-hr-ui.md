@@ -69,9 +69,11 @@ Cùng khoá `X-Internal-Key` như DN-01 (thiếu hoặc sai → 401 `INVALID_SER
 
 | Ở đâu | HTTP |
 | --- | --- |
-| `POST /auth/login` (kể cả khi nhập sai mật khẩu, không tăng bộ đếm), `POST /auth/sso` | **403** |
+| `POST /auth/login` (chỉ khi mật khẩu đúng), `POST /auth/sso` | **403** |
 | Bộ lọc JWT của identity-service (mọi đường dẫn, kể cả `/auth/**`, đọc DB mỗi request) | **401** |
 | `HrLockedFilter` của company-service (đọc `company_hr.locked_at` mỗi request) | **401** |
+
+Đăng nhập sai mật khẩu vào tài khoản bị cán bộ khoá trả 401 `INVALID_CREDENTIALS` và tăng bộ đếm như mọi tài khoản khác, để không ai dò được email nào đang bị khoá. Mở khoá đưa bộ đếm về 0.
 
 Quên mật khẩu với tài khoản bị khoá vẫn trả 200 nhưng **không** cấp token và không gửi thư; đặt lại mật khẩu cũ không mở khoá. Khoá cán bộ khác khoá tạm: `ACCOUNT_LOCKED` (429) vẫn là khoá 15 phút do sai mật khẩu.
 
