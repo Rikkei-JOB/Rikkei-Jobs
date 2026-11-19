@@ -11,6 +11,7 @@ public interface ApplicationRepository extends JpaRepository<Application, UUID> 
     Page<Application> findByUserId(UUID userId, Pageable page);
     Page<Application> findByUserIdAndStatus(UUID userId, ApplicationStatus status, Pageable page);
     boolean existsByUserIdAndJobIdAndStatusNotIn(UUID userId, UUID jobId, Collection<ApplicationStatus> statuses);
+    boolean existsByJobIdAndUserId(UUID jobId, UUID userId);
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select a from Application a where a.id = :id")
     Optional<Application> findForUpdate(@Param("id") UUID id);

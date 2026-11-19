@@ -15,7 +15,10 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.UUID;
+import com.rikkei.jobs.company.client.ApplicationClient;
 import com.rikkei.jobs.company.client.IdentityClient;
+import com.rikkei.jobs.company.client.ProfileSkillClient;
+import com.rikkei.jobs.company.repository.MatchScoreRepository;
 import com.rikkei.jobs.company.client.SkillCatalogClient;
 import org.junit.jupiter.api.BeforeEach;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -48,8 +51,11 @@ public abstract class CompanyApiTestSupport {
     @Autowired protected CompanyHrRepository companyHrs;
     @Autowired protected JobRepository jobs;
     @Autowired protected JobSkillRepository jobSkills;
+    @Autowired protected MatchScoreRepository matchScores;
     @MockBean protected IdentityClient identity;
     @MockBean protected SkillCatalogClient skillCatalog;
+    @MockBean protected ProfileSkillClient profileSkills;
+    @MockBean protected ApplicationClient applications;
 
     @DynamicPropertySource
     static void uploadDir(DynamicPropertyRegistry registry) {
@@ -66,6 +72,7 @@ public abstract class CompanyApiTestSupport {
 
     @BeforeEach
     void cleanTables() {
+        matchScores.deleteAll();
         jobSkills.deleteAll();
         jobs.deleteAll();
         companyHrs.deleteAll();

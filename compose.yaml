@@ -140,6 +140,8 @@ services:
       IDENTITY_SERVICE_URL: http://identity-service:8081
       COMPANY_DB_SCHEMA: ${COMPANY_DB_SCHEMA:-company}
       COMPANY_UPLOAD_DIR: /app/data/uploads
+      PROFILE_SERVICE_URL: ${DOCKER_COMPANY_PROFILE_URL:-http://profile-service:8082}
+      RECRUITMENT_SERVICE_URL: ${DOCKER_COMPANY_RECRUITMENT_URL:-http://recruitment-service:8083}
     volumes: [company_uploads:/app/data/uploads]
     depends_on:
       postgres:

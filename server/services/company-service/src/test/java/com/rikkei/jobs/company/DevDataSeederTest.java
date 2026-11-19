@@ -46,11 +46,27 @@ class DevDataSeederTest extends CompanyApiTestSupport {
     }
 
     private void assertSeededJobs() {
-        assertThat(jobs.count()).isEqualTo(5);
+        assertThat(jobs.count()).isEqualTo(7);
         List<Job> aJobs = jobs.findAll();
         assertThat(aJobs).allMatch(j -> A.equals(j.getCompanyId()) && HR1.equals(j.getCreatedBy()));
         assertThat(aJobs).extracting(Job::getStatus).containsExactlyInAnyOrder(
-                JobStatus.REJECTED, JobStatus.PENDING, JobStatus.APPROVED, JobStatus.DRAFT, JobStatus.CLOSED);
+                JobStatus.REJECTED, JobStatus.PENDING, JobStatus.APPROVED, JobStatus.DRAFT, JobStatus.CLOSED,
+                JobStatus.APPROVED, JobStatus.APPROVED);
+
+        Job backend = jobs.findById(jobId(6)).orElseThrow();
+        assertThat(backend.getStatus()).isEqualTo(JobStatus.APPROVED);
+        List<JobSkill> backendSkills = jobSkills.findByJobId(backend.getId());
+        assertThat(backendSkills).hasSize(6);
+        assertThat(backendSkills.stream().filter(JobSkill::isRequired).count()).isEqualTo(3);
+        assertThat(backendSkills).filteredOn(s -> s.getSkillId().equals(
+                UUID.fromString("00000000-0000-0000-0001-000000000003"))).singleElement()
+                .satisfies(s -> assertThat(s.getMinScore()).isEqualTo(90));
+
+        Job fresher = jobs.findById(jobId(7)).orElseThrow();
+        assertThat(fresher.getStatus()).isEqualTo(JobStatus.APPROVED);
+        List<JobSkill> fresherSkills = jobSkills.findByJobId(fresher.getId());
+        assertThat(fresherSkills).hasSize(3);
+        assertThat(fresherSkills).allMatch(s -> s.isRequired() && s.getMinScore() == 60);
 
         Job junior = jobs.findById(jobId(1)).orElseThrow();
         assertThat(junior.getTitle()).isEqualTo("Junior Backend Developer (Java/Spring Boot)");

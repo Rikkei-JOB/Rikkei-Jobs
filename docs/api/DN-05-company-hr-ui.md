@@ -149,6 +149,20 @@ Các lớp test nằm ở `server/services/company-service/src/test` và `server
 - mở khoá hr2 → hr2 đăng nhập lại được;
 - HR sửa hồ sơ, đổi logo (xem trước rồi "Dùng ảnh này"), lưu, "Xem như ứng viên" hiện đúng bản đã lưu.
 
+**Ảnh minh chứng** (chụp 2026-11-19 khi chạy lại toàn hệ thống; Công ty A đã được đổi tên thành "RikkeiSoft" trên DB dev):
+
+| Tiêu chí | Ảnh | Nội dung |
+| --- | --- | --- |
+| 6 | ![Danh sách công ty](screenshots/DN-05/company-list.png) | `/staff/companies`: bảng công ty với mã số thuế, số HR, số JD, trạng thái; nút "+ Tạo công ty" |
+| 6 | ![Tìm theo mã số thuế](screenshots/DN-05/find-company-by-taxID.png) | Tìm `0101234567` ra đúng RikkeiSoft |
+| — | ![Tạo công ty trùng mã số thuế](screenshots/DN-05/create-company-dialog.png) | Hộp "Tạo công ty" báo "Mã số thuế đã tồn tại" ngay trong hộp |
+| 4 | ![Khoá không lý do](screenshots/DN-05/lock-reason-required.png) | Khoá `hr-new1` để trống lý do: "Vui lòng nhập lý do khoá", không gửi request |
+| 1 | ![Khoá thành công](screenshots/DN-05/account-locked-successful.png) | "Đã khoá tài khoản hr-new1@rikkeijobs.test"; dòng HR hiện "Đã khoá", thời điểm và lý do, nút "Mở khoá" |
+| 2 | ![Đăng nhập bị khoá](screenshots/DN-05/login-account-locked.png) | hr-new1 đăng nhập: "Tài khoản đã bị khoá" |
+| 5 | ![Xem như ứng viên](screenshots/DN-05/hr-company-preview.png) | HR xem trang công ty như ứng viên thấy, đúng bản đã lưu (mục việc làm đang tuyển tạm thời luôn 0, theo thiết kế) |
+
+Tiêu chí 3 (mở khoá rồi đăng nhập lại) không chụp lại; đã kiểm ở lần chạy 2026-11-17 phía trên và có test tự động ở mục 6.
+
 ## 8. Khác với thiết kế ban đầu
 
 - Phân trang sai (`page < 1`, `size < 1` hoặc `> 100`) trả 400 `BAD_REQUEST` (`BadRequestException`), không phải `VALIDATION_ERROR`; `status` không hợp lệ cũng 400.

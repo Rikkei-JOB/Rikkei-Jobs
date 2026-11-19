@@ -25,8 +25,7 @@ public class ProfileAvatarService {
             var file = files.requireOwned(owner, url);
             if (!file.getContentType().startsWith("image/")) throw new BadRequestException("Avatar chỉ nhận JPG hoặc PNG.");
         }
-        profiles.get(owner);
-        var profile = repository.findById(owner).orElseThrow();
+        var profile = profiles.forUpdate(owner);
         profile.setAvatarUrl(url); profile.setUpdatedAt(clock.instant());
         return CandidateProfileResponse.from(repository.save(profile));
     }

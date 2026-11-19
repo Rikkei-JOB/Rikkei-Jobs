@@ -1,0 +1,161 @@
+# DN-06 - request mau (IntelliJ HTTP Client hoac VS Code REST Client).
+# Chay truoc: Postgres, mock (9000), identity (profile dev), profile-service (profile dev + PROFILE_DEMO_DATA_ENABLED=true),
+# recruitment-service, company-service (profile dev), gateway (8080).
+# BAT BUOC: INTERNAL_SERVICE_KEY=dev-internal-key cho company, profile VA recruitment (neu khong API tra 503 EXTERNAL_UNAVAILABLE).
+# Xem docs/api/DN-06-job-match.md muc "Cach chay" va cong thuc o docs/matching.md.
+#
+# UUID ung vien KHAC NHAU theo tung database. Lay bang:
+#   select id, lms_user_id from public.users where role='CANDIDATE';
+# roi dien vao @c1 (lms-sv-001), @c2 (lms-sv-002), @c3 (lms-sv-003) ben duoi.
+# Diem mong doi ben duoi tinh tay tu hs01/candidates.json; neu ung vien da mo ho so, NT-05 co the doi diem:
+# kiem tra "select * from profile.skill_scores where user_id = ..." roi cap nhat.
+
+@gw = http://localhost:8080/api/v1
+@c1 = THAY-BANG-UUID-CUA-lms-sv-001
+@c2 = THAY-BANG-UUID-CUA-lms-sv-002
+@c3 = THAY-BANG-UUID-CUA-lms-sv-003
+# Ung vien chua co ky nang nao (bat ky UUID nao khong co diem trong profile-service)
+@noSkills = 00000000-0000-0000-0009-000000000009
+@jd6 = 00000000-0000-0000-0003-000000000006
+@jd7 = 00000000-0000-0000-0003-000000000007
+# JD DRAFT cua Cong ty A (DevDataSeeder) - dung de doi min_score. KHONG sua JD6/JD7 bang HR: sua JD APPROVED se dua ve PENDING.
+@jdDraft = 00000000-0000-0000-0003-000000000004
+# UUID ky nang co dinh cua profile-service (V2__skill_catalog.sql)
+@JAVA = 00000000-0000-0000-0001-000000000001
+@SPRING_BOOT = 00000000-0000-0000-0001-000000000002
+@SQL = 00000000-0000-0000-0001-000000000003
+@GIT = 00000000-0000-0000-0001-000000000004
+@DOCKER = 00000000-0000-0000-0001-000000000011
+@ENGLISH = 00000000-0000-0000-0001-000000000017
+
+############################## 1. Token ##############################
+
+### 1a. Xin ve SSO cho staff1 (chi dev) -> 200 {ticket, issuedAt}
+# @name staffTicket
+POST {{gw}}/auth/dev/sso-ticket
+Content-Type: application/json
+
+{ "lmsUserId": "lms-st-001" }
+
+### 1b. Doi ve lay token STAFF (trong 60 giay, dung mot lan) -> 200 {accessToken, user}
+# @name staffSso
+POST {{gw}}/auth/sso
+Content-Type: application/json
+
+{ "ticket": "{{staffTicket.response.body.ticket}}" }
+
+### 1c. Xin ve SSO cho ung vien lms-sv-001 (chi dev) -> 200 {ticket, issuedAt}
+# @name c1Ticket
+POST {{gw}}/auth/dev/sso-ticket
+Content-Type: application/json
+
+{ "lmsUserId": "lms-sv-001" }
+
+### 1d. Doi ve lay token ung vien C1 -> 200 {accessToken, user}
+# @name c1Sso
+POST {{gw}}/auth/sso
+Content-Type: application/json
+
+{ "ticket": "{{c1Ticket.response.body.ticket}}" }
+
+### 1e. hr1 (Cong ty A) -> 200 {accessToken, ...}
+# @name hr1Login
+POST {{gw}}/auth/login
+Content-Type: application/json
+
+{ "email": "hr1@rikkeijobs.test", "password": "Test@123" }
+
+############################## 2. Ba vi du tinh tay (STAFF xem moi JD, moi ung vien) ##############################
+
+### 2a. Vi du 1: JD6 x C1 -> 200 score 78, belowMinimum false
+# met: Java, Spring Boot, Git. missing: SQL (81.153846/90), Docker (0/50), Tieng Anh (0/60).
+# Diem tu khai Tieng Anh 65 KHONG tinh: neu tinh se ra 88.
+GET {{gw}}/jobs/{{jd6}}/match/{{c1}}
+Authorization: Bearer {{staffSso.response.body.accessToken}}
+
+### 2b. Vi du 2: JD7 x C3 -> 200 score 60, belowMinimum true (Git 0 < 30)
+# met rong. missing: Git, Java, SQL.
+GET {{gw}}/jobs/{{jd7}}/match/{{c3}}
+Authorization: Bearer {{staffSso.response.body.accessToken}}
+
+### 2c. Vi du 3: JD6 x ung vien chua co ky nang -> 200 score 0, belowMinimum true
+# met rong. missing du 6: Java, Spring Boot, SQL, Docker, Git, Tieng Anh (candidateScore 0 het).
+GET {{gw}}/jobs/{{jd6}}/match/{{noSkills}}
+Authorization: Bearer {{staffSso.response.body.accessToken}}
+
+### 2d. Them: JD6 x C2 -> 200 (C2: Java 65, SQL 65, Git 80; khong co Spring Boot, Docker, Tieng Anh)
+GET {{gw}}/jobs/{{jd6}}/match/{{c2}}
+Authorization: Bearer {{staffSso.response.body.accessToken}}
+
+############################## 3. Ung vien xem diem cua minh ##############################
+
+### 3a. C1 xem JD6 qua /match/me -> 200 score 78 (giong 2a)
+GET {{gw}}/jobs/{{jd6}}/match/me
+Authorization: Bearer {{c1Sso.response.body.accessToken}}
+
+### 3b. C1 xem JD DRAFT -> 404 NOT_FOUND (chi JD APPROVED moi co diem khop cho ung vien)
+GET {{gw}}/jobs/{{jdDraft}}/match/me
+Authorization: Bearer {{c1Sso.response.body.accessToken}}
+
+############################## 4. Phan quyen ##############################
+
+### 4a. HR xem ung vien CHUA ung tuyen JD6 -> 404 NOT_FOUND "Khong tim thay JD" (HR chi xem ung vien da nop don vao JD cua cong ty minh)
+# Neu da co don ung tuyen cua C1 vao JD6 (nop qua UT-01) thi request nay tra 200 score 78.
+GET {{gw}}/jobs/{{jd6}}/match/{{c1}}
+Authorization: Bearer {{hr1Login.response.body.accessToken}}
+
+### 4b. Ung vien goi API cua HR/STAFF -> 403 FORBIDDEN
+GET {{gw}}/jobs/{{jd6}}/match/{{c1}}
+Authorization: Bearer {{c1Sso.response.body.accessToken}}
+
+### 4c. STAFF goi /match/me -> 403 FORBIDDEN
+GET {{gw}}/jobs/{{jd6}}/match/me
+Authorization: Bearer {{staffSso.response.body.accessToken}}
+
+############################## 5. Doi min_score -> goi lai ra diem moi (khong tra ban dem cu) ##############################
+# Dung JD DRAFT cua Cong ty A (khong dung JD6/JD7). Sau buoc 5a, JD ...0004 co bo ky nang giong JD6 (SQL 90).
+
+### 5a. HR dat ky nang cho JD DRAFT giong JD6 (SQL min 90) -> 200, van DRAFT
+PUT {{gw}}/jobs/{{jdDraft}}/skills
+Authorization: Bearer {{hr1Login.response.body.accessToken}}
+Content-Type: application/json
+
+[
+  { "skillId": "{{JAVA}}", "required": true, "minScore": 80 },
+  { "skillId": "{{SPRING_BOOT}}", "required": true, "minScore": 70 },
+  { "skillId": "{{SQL}}", "required": true, "minScore": 90 },
+  { "skillId": "{{DOCKER}}", "required": false, "minScore": 50 },
+  { "skillId": "{{ENGLISH}}", "required": false, "minScore": 60 },
+  { "skillId": "{{GIT}}", "required": false, "minScore": 60 }
+]
+
+### 5b. STAFF xem C1 tren JD DRAFT -> 200 score 78 (SQL 81.153846/90 chua dat)
+GET {{gw}}/jobs/{{jdDraft}}/match/{{c1}}
+Authorization: Bearer {{staffSso.response.body.accessToken}}
+
+### 5c. Ha min_score cua SQL tu 90 xuong 80 -> 200 (match_scores.stale = true cho JD nay)
+PUT {{gw}}/jobs/{{jdDraft}}/skills
+Authorization: Bearer {{hr1Login.response.body.accessToken}}
+Content-Type: application/json
+
+[
+  { "skillId": "{{JAVA}}", "required": true, "minScore": 80 },
+  { "skillId": "{{SPRING_BOOT}}", "required": true, "minScore": 70 },
+  { "skillId": "{{SQL}}", "required": true, "minScore": 80 },
+  { "skillId": "{{DOCKER}}", "required": false, "minScore": 50 },
+  { "skillId": "{{ENGLISH}}", "required": false, "minScore": 60 },
+  { "skillId": "{{GIT}}", "required": false, "minScore": 60 }
+]
+
+### 5d. Goi lai -> 200 score 80 (SQL 81.153846 >= 80 nen R = 1: 70*1 + 30*0.333333 = 80), SQL chuyen sang met
+GET {{gw}}/jobs/{{jdDraft}}/match/{{c1}}
+Authorization: Bearer {{staffSso.response.body.accessToken}}
+
+### 5e. Don dep: xoa het ky nang cua JD DRAFT -> 200 (sau do GET {{gw}}/jobs/{{jdDraft}}/match/{{c1}} ra score 0, met/missing rong)
+# De dat lai 7 JD mau cua DevDataSeeder (JD1 den JD7): xoa cac dong company.job_skills, company.jobs roi khoi dong lai company-service voi profile dev.
+# Phai xoa them company.match_scores cua cac JD do, vi bang nay giu ban dem diem cu cua JD da bi xoa/tao lai.
+PUT {{gw}}/jobs/{{jdDraft}}/skills
+Authorization: Bearer {{hr1Login.response.body.accessToken}}
+Content-Type: application/json
+
+[]

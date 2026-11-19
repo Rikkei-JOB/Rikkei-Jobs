@@ -175,7 +175,7 @@ paths:
         '404': {description: Missing or another owner's certificate}
   /profiles/me:
     get:
-      summary: Read or initialize the candidate's PRIVATE profile from LMS
+      summary: Read the current profile or initialize a PRIVATE profile from LMS
       responses:
         '200':
           description: Profile; subsequent reads use stored data
@@ -322,5 +322,7 @@ components:
             program: {type: string, readOnly: true}
             classCode: {type: string, readOnly: true}
             courseName: {type: string, readOnly: true}
-            visibility: {type: string, enum: [PRIVATE], readOnly: true}
+            visibility: {type: string, enum: [PRIVATE, PENDING, PUBLIC, REJECTED], readOnly: true}
+            consentAt: {type: string, format: date-time, nullable: true, readOnly: true}
+            consentWithdrawnAt: {type: string, format: date-time, nullable: true, readOnly: true}
             updatedAt: {type: string, format: date-time, readOnly: true}

@@ -6,8 +6,8 @@ import com.rikkei.jobs.company.config.exception.CompanyErrorCode;
 import com.rikkei.jobs.company.config.exception.CompanyException;
 import java.net.http.HttpClient;
 import java.time.Duration;
-import java.util.HashSet;
-import java.util.Set;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpHeaders;
@@ -35,7 +35,7 @@ public class HttpSkillCatalogClient implements SkillCatalogClient {
     }
 
     @Override
-    public Set<UUID> skillIds(String authorization) {
+    public List<CatalogSkill> skills(String authorization) {
         try {
             JsonNode body = restClient.get()
                     .uri("/skills")
@@ -46,11 +46,14 @@ public class HttpSkillCatalogClient implements SkillCatalogClient {
                 log.error("profile-service trả danh mục kỹ năng rỗng hoặc sai định dạng");
                 throw unavailable();
             }
-            Set<UUID> ids = new HashSet<>();
+            List<CatalogSkill> skills = new ArrayList<>();
             for (JsonNode item : body) {
-                ids.add(UUID.fromString(item.path("id").asText()));
+                String code = item.path("code").asText("");
+                String name = item.path("name").asText("");
+                skills.add(new CatalogSkill(UUID.fromString(item.path("id").asText()), code,
+                        name.isBlank() ? code : name));
             }
-            return ids;
+            return skills;
         } catch (CompanyException e) {
             throw e;
         } catch (Exception e) {
