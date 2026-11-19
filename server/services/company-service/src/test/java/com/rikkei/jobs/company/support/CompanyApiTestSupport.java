@@ -19,6 +19,7 @@ import com.rikkei.jobs.company.client.ApplicationClient;
 import com.rikkei.jobs.company.client.IdentityClient;
 import com.rikkei.jobs.company.client.ProfileSkillClient;
 import com.rikkei.jobs.company.repository.MatchScoreRepository;
+import com.rikkei.jobs.company.repository.CompanyActionRepository;
 import com.rikkei.jobs.company.client.SkillCatalogClient;
 import org.junit.jupiter.api.BeforeEach;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -52,6 +53,7 @@ public abstract class CompanyApiTestSupport {
     @Autowired protected JobRepository jobs;
     @Autowired protected JobSkillRepository jobSkills;
     @Autowired protected MatchScoreRepository matchScores;
+    @Autowired protected CompanyActionRepository companyActions;
     @MockBean protected IdentityClient identity;
     @MockBean protected SkillCatalogClient skillCatalog;
     @MockBean protected ProfileSkillClient profileSkills;
@@ -73,6 +75,7 @@ public abstract class CompanyApiTestSupport {
     @BeforeEach
     void cleanTables() {
         matchScores.deleteAll();
+        companyActions.deleteAll();
         jobSkills.deleteAll();
         jobs.deleteAll();
         companyHrs.deleteAll();

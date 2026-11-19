@@ -108,7 +108,7 @@ public class DevDataSeeder implements ApplicationRunner {
         return UUID.fromString(String.format("00000000-0000-0000-0003-%012d", n));
     }
 
-    /** 7 JD của Công ty A: 5 JD mỗi trạng thái một JD, thêm 2 JD APPROVED mẫu DN-06; deadline tính theo đồng hồ để seed không hết hạn theo thời gian. */
+    /** 7 JD của Công ty A và 2 JD của Công ty B (JD8 APPROVED, JD9 PENDING). Công ty A: 5 JD mỗi trạng thái một JD, thêm 2 JD APPROVED mẫu DN-06; deadline tính theo đồng hồ để seed không hết hạn theo thời gian. */
     private void seedJobs() {
         LocalDate today = JobRules.today(clock);
         Job junior = job(1, "Junior Backend Developer (Java/Spring Boot)", JobLevel.JUNIOR, JobType.FULLTIME,
@@ -146,12 +146,24 @@ public class DevDataSeeder implements ApplicationRunner {
                 today.plusDays(45)), List.of(
                 new JobSkill(null, JAVA, true, 60), new JobSkill(null, SQL, true, 60),
                 new JobSkill(null, GIT, true, 60)));
+
+        // JD8/JD9 của Công ty B: một JD đã duyệt (hiện cho ứng viên) và một JD chờ duyệt (cho cán bộ thử duyệt).
+        saveJob(job(8, COMPANY_B_ID, HR2_ID, "Thực tập sinh Marketing", JobLevel.INTERN, JobType.INTERNSHIP,
+                JobStatus.APPROVED, today.plusDays(45)), List.of(new JobSkill(null, ENGLISH, true, 40)));
+
+        saveJob(job(9, COMPANY_B_ID, HR2_ID, "Nhân viên vận hành sàn TMĐT", JobLevel.JUNIOR, JobType.FULLTIME,
+                JobStatus.PENDING, today.plusDays(45)), List.of(new JobSkill(null, ENGLISH, true, 40)));
     }
 
     private Job job(int n, String title, JobLevel level, JobType type, JobStatus status, LocalDate deadline) {
+        return job(n, COMPANY_A_ID, HR1_ID, title, level, type, status, deadline);
+    }
+
+    private Job job(int n, UUID companyId, UUID createdBy, String title, JobLevel level, JobType type,
+                    JobStatus status, LocalDate deadline) {
         Job job = new Job();
         job.setId(jobId(n));
-        job.setCompanyId(COMPANY_A_ID);
+        job.setCompanyId(companyId);
         job.setTitle(title);
         job.setPosition(title);
         job.setLevel(level);
@@ -167,7 +179,10 @@ public class DevDataSeeder implements ApplicationRunner {
         job.setBenefits("Quyền lợi mẫu cho vị trí " + title + ".");
         job.setDeadline(deadline);
         job.setStatus(status);
-        job.setCreatedBy(HR1_ID);
+        job.setCreatedBy(createdBy);
+        if (status == JobStatus.APPROVED || status == JobStatus.REJECTED || status == JobStatus.CLOSED) {
+            job.setReviewedAt(clock.instant());
+        }
         return job;
     }
 
