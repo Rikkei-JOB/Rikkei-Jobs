@@ -59,7 +59,7 @@ public class InterviewSchedulingService {
         var list=new ArrayList<InterviewSlotResponse>();
         for(var r:requests) {var s=new InterviewSlot();s.setId(UUID.randomUUID());s.setRoundId(c.round().getId());s.setProposalId(proposal);s.setStartAt(r.startAt().toInstant());s.setEndAt(r.endAt().toInstant());s.setStatus("OPEN");s.setCreatedAt(now);slots.save(s);list.add(slotResponse(s));}
         var candidate=identities.get(c.application().getUserId());
-        notifications.enqueue("proposal:"+proposal,"INVITATION",new InterviewNotificationPayload(null,c.round().getId(),c.round().getName(),c.application().getCompanyName(),candidate.fullName(),c.round().getInterviewerEmail(),null,null,null),List.of(candidate.email()),now);
+        notifications.enqueue("proposal:"+proposal,"INVITATION",new InterviewNotificationPayload(null,c.round().getId(),c.round().getName(),c.application().getCompanyName(),candidate.fullName(),candidate.email(),c.round().getInterviewerEmail(),null,null,null),List.of(candidate.email()),now);
         return new InterviewProposalResponse(proposal,c.round().getId(),list);
     }
     @Transactional
@@ -88,7 +88,7 @@ public class InterviewSchedulingService {
         for(var other:slots.findByRoundIdOrderByStartAtAsc(roundId)) {if("OPEN".equals(other.getStatus())) {other.setStatus(other.getId().equals(slotId)?"PICKED":"CANCELLED");slots.save(other);}}
         c.round().setScheduledAt(slot.getStartAt());rounds.save(c.round());
         notifications.cancelPending(roundId);
-        notifications.enqueue("schedule:"+s.getId(),"CONFIRMATION",new InterviewNotificationPayload(s.getId(),roundId,c.round().getName(),c.application().getCompanyName(),candidate.fullName(),s.getInterviewerEmail(),slot.getStartAt(),slot.getEndAt(),url),List.of(s.getCandidateEmail(),s.getInterviewerEmail()),clock.instant());
+        notifications.enqueue("schedule:"+s.getId(),"CONFIRMATION",new InterviewNotificationPayload(s.getId(),roundId,c.round().getName(),c.application().getCompanyName(),candidate.fullName(),candidate.email(),s.getInterviewerEmail(),slot.getStartAt(),slot.getEndAt(),url),List.of(s.getCandidateEmail(),s.getInterviewerEmail()),clock.instant());
         return scheduleResponse(s,slot);
     }
     public static InterviewSlotResponse slotResponse(InterviewSlot s){return new InterviewSlotResponse(s.getId(),s.getRoundId(),s.getProposalId(),s.getStartAt(),s.getEndAt(),s.getStatus());}
