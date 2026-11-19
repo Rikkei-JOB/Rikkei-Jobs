@@ -7,8 +7,8 @@ import java.time.Instant;
 import java.util.UUID;
 
 /**
- * Trạng thái tài khoản cho company-service. {@code status} là giá trị suy ra: LOCKED khi và chỉ khi bị cán bộ khoá
- * (lockedAt khác null), ngược lại ACTIVE. {@code tempLockedUntil} chỉ có khi đang khoá tạm (sai mật khẩu) còn hạn.
+ * Trạng thái tài khoản cho company-service. {@code status} là giá trị suy ra: LOCKED khi bị khoá riêng (lockedAt khác null)
+ * hoặc khoá theo công ty ({@code companyLocked}), ngược lại ACTIVE. {@code tempLockedUntil} chỉ có khi đang khoá tạm (sai mật khẩu) còn hạn.
  */
 public record InternalUserStatusResponse(
         UUID userId,
@@ -19,7 +19,8 @@ public record InternalUserStatusResponse(
         String status,
         String lockedReason,
         Instant lockedAt,
-        Instant tempLockedUntil) {
+        Instant tempLockedUntil,
+        boolean companyLocked) {
 
     public static InternalUserStatusResponse from(User user, Instant now) {
         boolean adminLocked = user.isAdminLocked();
@@ -31,9 +32,10 @@ public record InternalUserStatusResponse(
                 user.getFullName(),
                 user.getRole(),
                 user.getCompanyId(),
-                adminLocked ? "LOCKED" : "ACTIVE",
+                user.isLoginBlocked() ? "LOCKED" : "ACTIVE",
                 user.getLockedReason(),
                 user.getLockedAt(),
-                temp);
+                temp,
+                user.isCompanyLocked());
     }
 }

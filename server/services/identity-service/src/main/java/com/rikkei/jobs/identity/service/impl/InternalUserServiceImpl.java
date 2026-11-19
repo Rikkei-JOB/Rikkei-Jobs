@@ -164,6 +164,29 @@ public class InternalUserServiceImpl implements InternalUserService {
     }
 
     @Override
+    @Transactional
+    public List<InternalUserStatusResponse> setCompanyLock(List<UUID> ids, boolean locked) {
+        Instant now = clock.instant();
+        Set<UUID> distinct = new LinkedHashSet<>(ids);
+        Map<UUID, User> byId = new HashMap<>();
+        userRepository.findAllById(distinct).forEach(u -> byId.put(u.getId(), u));
+        return distinct.stream()
+                .map(byId::get)
+                .filter(u -> u != null && u.getRole() == Role.HR)
+                .map(u -> {
+                    if (locked) {
+                        if (u.getCompanyLockedAt() == null) {
+                            u.setCompanyLockedAt(now);
+                        }
+                    } else {
+                        u.setCompanyLockedAt(null);
+                    }
+                    return InternalUserStatusResponse.from(userRepository.save(u), now);
+                })
+                .toList();
+    }
+
+    @Override
     @Transactional(readOnly = true)
     public List<InternalUserStatusResponse> lookup(List<UUID> ids) {
         Instant now = clock.instant();

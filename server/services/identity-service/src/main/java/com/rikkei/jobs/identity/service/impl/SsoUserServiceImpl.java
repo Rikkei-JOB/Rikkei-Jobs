@@ -53,5 +53,8 @@ public class SsoUserServiceImpl implements SsoUserService {
         if (user.isAdminLocked()) {
             throw new ApiException(ErrorCode.ACCOUNT_DISABLED);
         }
+        if (user.isCompanyLocked()) {
+            throw new ApiException(ErrorCode.ACCOUNT_DISABLED, LoginServiceImpl.COMPANY_LOCKED_MESSAGE);
+        }
     }
 }

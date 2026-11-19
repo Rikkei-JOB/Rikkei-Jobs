@@ -1,0 +1,1 @@
+ALTER TABLE users ADD COLUMN company_locked_at TIMESTAMP WITH TIME ZONE;
