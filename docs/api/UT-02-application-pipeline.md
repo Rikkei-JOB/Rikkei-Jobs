@@ -1,5 +1,19 @@
 # UT-02 — HR xử lý đơn và STAFF theo dõi
 
+## Điểm DN-06 chỉ để tham khảo
+
+Chi tiết đơn của HR/STAFF dùng `MatchScoreCard` chung của DN-06, có dòng **“Điểm phù hợp chỉ mang tính tham khảo”**. Điểm0 hoặc cảnh báo thiếu kỹ năng bắt buộc không chặn ứng tuyển, chuyển bước, đặt lịch hay gửi offer; các policy UT-01/02/06/07 giữ nguyên.
+
+Trường `match` giữ nguyên, thêm `matchStatus`: `AVAILABLE` có kết quả hợp lệ kể cả0%; `UNAVAILABLE` kèm `match:null` khi riêng dịch vụ điểm lỗi; `NOT_REQUESTED` cho ADMIN. JD không có kỹ năng vẫn AVAILABLE và hiện thông báo riêng. Không lưu snapshot điểm trong DB recruitment hoặc tự tính công thức ở FE.
+
+Nút **Tải lại điểm** khi đang có kết quả, hoặc **Thử lại** khi lỗi, gọi riêng `GET /api/v1/recruitment/applications/{id}/match`. Endpoint chỉ HR/STAFF, kiểm quyền đơn trước khi chuyển tiếp JWT tới DN-06; không đọc lại identity/contact và không thay trạng thái đơn. Retry chỉ thay phần điểm, giữ input CV/vòng/ghi chú/offer đang xem hoặc nhập. Response trễ của đơn/phiên cũ bị bỏ qua. ADMIN không có khối điểm hoặc nút retry.
+
+Lỗi mạng, timeout, upstream404/5xx, payload không hợp lệ hoặc lỗi xác thực từ DN-06 được cô lập thành UNAVAILABLE; không dùng credential khác để gọi lại. Lỗi401/403/404 của chính API UT-02 và lỗi identity/profile khác vẫn giữ xử lý chuẩn. `MATCH_CONNECT_TIMEOUT_MS` mặc định2000, `MATCH_READ_TIMEOUT_MS` mặc định5000 chỉ áp dụng cho client DN-06 (thấp hơn Axios15s); không đổi timeout các dependency khác. Không retry tự động.
+
+Test giao diện: mở đơn ở `/hr/recruitment/{id}` hoặc `/staff/applications/{id}`, kiểm tra điểm0/78 và nhãn tham khảo; nhập thử ghi chú chuyển bước, tên vòng mới, hoặc offer đủ điều kiện rồi tải lại điểm — các input phải giữ nguyên. Với môi trường test riêng, dừng riêng company-service/DN-06, bấm tải lại điểm: chỉ khối điểm báo tạm lỗi, phần đơn/CV/vòng vẫn hiện; khởi động lại và **Thử lại** để nhận kết quả hiện hành. Nếu company-service còn phục vụ chức năng khác, không dùng việc dừng service để kết luận các thao tác phụ thuộc nó đều hoạt động: bằng chứng ở đây chỉ là lỗi matching không xoá chi tiết đã tải.
+
+Kiểm quyền: HR công ty khác404; ADMIN đọc đơn được nhưng không gọi retry; candidate/mentor không gọi endpoint match-only UT-02. [Request mẫu](UT-02-match-advisory.http) · [Kết quả kiểm chứng](UT-02-match-advisory-verification.md).
+
 ## Chạy thử
 
 Yêu cầu JDK 21, Maven 3.9+, Node theo `web/package.json`, PostgreSQL và các service identity, company, profile. Từ root repo:
