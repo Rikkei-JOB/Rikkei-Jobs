@@ -1,3 +1,4 @@
+const meetRoomKeys = require('./meet-rooms')();
 const express = require('express');
 const fs = require('fs');
 const path = require('path');
@@ -172,9 +173,18 @@ app.post('/meet/rooms', (req, res) => {
   const { title, startAt, endAt } = req.body;
   if (!isIsoDate(startAt) || !isIsoDate(endAt)) return badRequest(res, 'startAt, endAt phải là thời gian ISO 8601');
   if (Date.parse(endAt) <= Date.parse(startAt)) return badRequest(res, 'endAt phải sau startAt');
+  const key = req.get('Idempotency-Key');
+  if (key && !/^[A-Za-z0-9_-]{1,100}$/.test(key)) return badRequest(res, 'Idempotency-Key không hợp lệ');
+  const fingerprint = JSON.stringify([title, new Date(startAt).toISOString(), new Date(endAt).toISOString()]);
+  if (key) {
+    const existing = meetRoomKeys.find(key, fingerprint);
+    if (existing === false) return conflict(res, 'IDEMPOTENCY_CONFLICT', 'Khoá đã dùng cho yêu cầu khác');
+    if (existing) return res.status(200).json(existing);
+  }
   const roomId = `room-${crypto.randomBytes(4).toString('hex')}`;
   const room = { roomId, roomUrl: `https://meet.rikkei.test/r/${roomId}`, title, startAt, endAt };
   meetRooms.push(room);
+  meetRoomKeys.save(key, fingerprint, room);
   res.status(201).json(room);
 });
 
@@ -208,6 +218,7 @@ app.post('/mock/reset', (req, res) => {
   enrollments.length = 0;
   batchMembers.length = 0;
   meetRooms.length = 0;
+  meetRoomKeys.reset();
   requestLog.length = 0;
   res.json({ ok: true });
 });
