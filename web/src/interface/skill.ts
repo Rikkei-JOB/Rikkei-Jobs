@@ -7,9 +7,13 @@ export interface Skill {
   code: string;
   name: string;
   group: string;
+  /** false: kỹ năng đã tắt (NT-12), không chọn mới được nhưng dữ liệu cũ vẫn hiện. */
+  active: boolean;
 }
 
 export interface SkillEvidence {
+  /** Dùng khi ứng viên báo dữ liệu sai (NT-12). */
+  id: string;
   source: SkillSource;
   title: string;
   score: number;

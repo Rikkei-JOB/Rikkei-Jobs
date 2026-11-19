@@ -38,8 +38,9 @@ export function JobSkillsStep({ form, catalog, readOnly, disabled = false }: Job
   const byId = React.useMemo(() => new Map(catalog.map((s) => [s.id, s])), [catalog])
   const selectedIds = new Set(skills.map((s) => s.skillId))
   const needle = normalize(query.trim())
+  // Kỹ năng đã tắt (NT-12) không chọn mới được; JD cũ có kỹ năng đó vẫn hiện qua byId.
   const matches = catalog.filter(
-    (s) => !selectedIds.has(s.id) && (needle === "" || normalize(`${s.name} ${s.code} ${s.group}`).includes(needle)),
+    (s) => s.active !== false && !selectedIds.has(s.id) && (needle === "" || normalize(`${s.name} ${s.code} ${s.group}`).includes(needle)),
   )
   const full = skills.length >= MAX_JOB_SKILLS
   const required = skills.filter((s) => s.required)

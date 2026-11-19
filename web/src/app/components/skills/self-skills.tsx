@@ -79,7 +79,7 @@ export function SelfSkills({ onSaved }: { onSaved: () => void }) {
                   aria-describedby={errors[index]?.skillId ? `self-skill-${index}-error` : undefined}
                   onChange={event => change(rows.map((item, at) => at === index ? { ...item, skillId: event.target.value } : item))}>
                   <option value="">Chọn kỹ năng</option>
-                  {catalog.map(skill => <option key={skill.id} value={skill.id} disabled={rows.some((item, at) => at !== index && item.skillId === skill.id)}>{skill.name} · {skill.group}</option>)}
+                  {catalog.filter(skill => skill.active !== false || skill.id === row.skillId).map(skill => <option key={skill.id} value={skill.id} disabled={rows.some((item, at) => at !== index && item.skillId === skill.id)}>{skill.name} · {skill.group}</option>)}
                 </select>
               </FormField>
               <FormField label={`Điểm tự đánh giá ${index + 1}`} htmlFor={`self-score-${index}`} error={errors[index]?.score}>

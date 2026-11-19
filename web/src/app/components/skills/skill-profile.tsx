@@ -19,6 +19,7 @@ import { Alert } from "@/app/components/ui/alert";
 import { skillService } from "@/services/skill.service";
 import type { SkillProfileItem, SkillEvidence, SkillLevel, SkillSource } from "@/interface/skill";
 import { getErrorMessage } from "@/services/api";
+import { EvidenceReport, type ReportsByEvidence, useReportsByEvidence } from "@/app/components/skills/data-reports";
 
 const LEVEL_CONFIG: Record<
   NonNullable<SkillLevel>,
@@ -86,6 +87,8 @@ function SkillProfileContent({ userId, readOnly = false }: SkillProfileProps) {
   const [actionMessage, setActionMessage] = React.useState<{ type: "success" | "error"; text: string } | null>(null);
   const [expandedSkillIds, setExpandedSkillIds] = React.useState<Set<string>>(new Set());
   const [reloadKey, setReloadKey] = React.useState(0);
+  // NT-12: chỉ ở hồ sơ của chính ứng viên mới báo được dữ liệu sai.
+  const reports = useReportsByEvidence(!readOnly && !userId);
 
   React.useEffect(() => {
     let ignore = false;
@@ -468,7 +471,7 @@ function SkillProfileContent({ userId, readOnly = false }: SkillProfileProps) {
                             <div className="mt-2 space-y-2 pt-1">
                               {item.evidences && item.evidences.length > 0 ? (
                                 item.evidences.map((ev, idx) => (
-                                  <EvidenceItem key={`${ev.source}-${ev.recordedAt}-${idx}`} evidence={ev} />
+                                  <EvidenceItem key={ev.id ?? `${ev.source}-${ev.recordedAt}-${idx}`} evidence={ev} reports={reports} />
                                 ))
                               ) : (
                                 <p className="py-2 text-center text-xs text-muted-foreground">
@@ -491,7 +494,7 @@ function SkillProfileContent({ userId, readOnly = false }: SkillProfileProps) {
   );
 }
 
-function EvidenceItem({ evidence }: { evidence: SkillEvidence }) {
+function EvidenceItem({ evidence, reports }: { evidence: SkillEvidence; reports: ReportsByEvidence | null }) {
   const sourceInfo = SOURCE_LABEL[evidence.source] || {
     label: evidence.source,
     badgeClass: "bg-muted text-muted-foreground",
@@ -545,6 +548,9 @@ function EvidenceItem({ evidence }: { evidence: SkillEvidence }) {
           )}
         </div>
       </div>
+      {reports && evidence.source !== "SELF" && evidence.id ? (
+        <EvidenceReport evidenceId={evidence.id} reports={reports} />
+      ) : null}
     </div>
   );
 }
