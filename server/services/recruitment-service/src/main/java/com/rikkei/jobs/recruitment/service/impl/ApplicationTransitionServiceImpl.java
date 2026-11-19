@@ -13,6 +13,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Service @RequiredArgsConstructor
 public class ApplicationTransitionServiceImpl implements ApplicationTransitionService {
     private final ApplicationRepository applications;
+    private final com.rikkei.jobs.recruitment.service.InterviewLifecycleService interviewLifecycle;
     private final ApplicationStatusHistoryRepository histories;
     private final ApplicationStatusNotificationRepository statusNotifications;
     private final InterviewRoundRepository rounds;
@@ -50,6 +51,7 @@ public class ApplicationTransitionServiceImpl implements ApplicationTransitionSe
         var history = new ApplicationStatusHistory();
         history.setId(UUID.randomUUID()); history.setApplicationId(a.getId()); history.setFromStatus(a.getStatus());
         history.setToStatus(target); history.setActorId(actorId); history.setNote(note); history.setCreatedAt(now);
+        if (a.getStatus() == ApplicationStatus.INTERVIEW && target != ApplicationStatus.INTERVIEW) interviewLifecycle.cancelForApplication(a.getId(), now);
         a.setStatus(target); a.setUpdatedAt(now); histories.saveAndFlush(history);
         var notification = new ApplicationStatusNotification();
         notification.setId(UUID.randomUUID()); notification.setStatusHistoryId(history.getId());

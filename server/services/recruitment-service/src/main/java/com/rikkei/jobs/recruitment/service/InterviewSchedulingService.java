@@ -27,6 +27,7 @@ public class InterviewSchedulingService {
     private final InterviewNotifications notifications;
     private final JdbcTemplate jdbc;
     private final Clock clock;
+    private final InterviewLifecycleService lifecycle;
 
     record Context(Application application,InterviewRound round) {}
     Context locked(AuthPrincipal actor,UUID roundId,boolean hr) {
@@ -60,6 +61,12 @@ public class InterviewSchedulingService {
         var candidate=identities.get(c.application().getUserId());
         notifications.enqueue("proposal:"+proposal,"INVITATION",new InterviewNotificationPayload(null,c.round().getId(),c.round().getName(),c.application().getCompanyName(),candidate.fullName(),c.round().getInterviewerEmail(),null,null,null),List.of(candidate.email()),now);
         return new InterviewProposalResponse(proposal,c.round().getId(),list);
+    }
+    @Transactional
+    public InterviewProposalResponse reschedule(AuthPrincipal actor,UUID roundId,List<InterviewSlotRequest> requests) {
+        validate(requests);var c=locked(actor,roundId,true);
+        lifecycle.cancelRound(roundId,clock.instant());
+        return createProposal(c,requests);
     }
     @Transactional
     public InterviewScheduleResponse pick(AuthPrincipal actor,UUID roundId,UUID slotId) {

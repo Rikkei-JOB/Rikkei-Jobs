@@ -14,4 +14,6 @@ public class HrInterviewController {
     private final InterviewSchedulingService service;
     @PostMapping("/rounds/{roundId}/slots") @ResponseStatus(HttpStatus.CREATED)
     public InterviewProposalResponse propose(@AuthenticationPrincipal AuthPrincipal actor,@PathVariable UUID roundId,@RequestBody List<InterviewSlotRequest> slots){return service.propose(actor,roundId,slots);}
+    @PostMapping("/rounds/{roundId}/reschedule")
+    public InterviewProposalResponse reschedule(@AuthenticationPrincipal AuthPrincipal actor,@PathVariable UUID roundId,@RequestBody List<InterviewSlotRequest> slots){return service.reschedule(actor,roundId,slots);}
 }
