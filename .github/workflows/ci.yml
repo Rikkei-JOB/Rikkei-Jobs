@@ -55,8 +55,17 @@ jobs:
           distribution: 'temurin'
           cache: maven
 
+      - name: Set up Node.js for Meet integration tests
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: mock/package-lock.json
+
       - name: Build with Maven
+        # UT-06 live-boundary test starts the repository's Express Meet mock.
         run: |
+          npm ci --prefix mock
           cd server
           mvn clean test
 

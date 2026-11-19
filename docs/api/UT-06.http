@@ -1,0 +1,55 @@
+@base = http://localhost:8080/api/v1/recruitment
+@hrToken = replace-with-hr-token
+@candidateToken = replace-with-candidate-token
+@roundId = replace-with-pending-round-id
+@slotId = replace-with-open-slot-id
+
+### HR đề xuất lần đầu — thay ngày bằng thời gian tương lai
+POST {{base}}/rounds/{{roundId}}/slots
+Authorization: Bearer {{hrToken}}
+Content-Type: application/json
+
+[
+  {"startAt":"2030-01-01T09:00:00+07:00","endAt":"2030-01-01T09:30:00+07:00"},
+  {"startAt":"2030-01-01T10:00:00+07:00","endAt":"2030-01-01T11:00:00+07:00"}
+]
+
+### Lời mời của ứng viên
+GET {{base}}/me/interviews?page=1&size=20
+Authorization: Bearer {{candidateToken}}
+
+### Chọn khung; lặp cùng khung hiện tại trả cùng lịch
+POST {{base}}/me/interviews/{{roundId}}/pick
+Authorization: Bearer {{candidateToken}}
+Content-Type: application/json
+
+{"slotId":"{{slotId}}"}
+
+### Đổi lịch — huỷ lịch cũ ngay nếu body hợp lệ
+POST {{base}}/rounds/{{roundId}}/reschedule
+Authorization: Bearer {{hrToken}}
+Content-Type: application/json
+
+[{"startAt":"2030-01-02T09:00:00+07:00","endAt":"2030-01-02T10:00:00+07:00"}]
+
+### Chọn lại slotId cũ sau đổi lịch phải 409
+POST {{base}}/me/interviews/{{roundId}}/pick
+Authorization: Bearer {{candidateToken}}
+Content-Type: application/json
+
+{"slotId":"{{slotId}}"}
+
+### Khung quá khứ hoặc <30 phút trả400, không huỷ lịch hiện tại
+POST {{base}}/rounds/{{roundId}}/reschedule
+Authorization: Bearer {{hrToken}}
+Content-Type: application/json
+
+[{"startAt":"2020-01-01T09:00:00+07:00","endAt":"2020-01-01T09:15:00+07:00"}]
+
+### Lịch tuần của toàn công ty; dấu + trong query phải encode thành %2B
+GET {{base}}/companies/me/interviews?from=2029-12-31T00:00:00%2B07:00&to=2030-01-07T00:00:00%2B07:00&page=1&size=100
+Authorization: Bearer {{hrToken}}
+
+### Lọc người phỏng vấn và lịch đã huỷ
+GET {{base}}/companies/me/interviews?from=2029-12-31T00:00:00Z&to=2030-01-07T00:00:00Z&interviewerEmail=hr@example.test&status=CANCELLED
+Authorization: Bearer {{hrToken}}

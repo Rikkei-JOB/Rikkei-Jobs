@@ -8,7 +8,7 @@ import org.springframework.test.context.*;
 import org.springframework.test.util.ReflectionTestUtils;
 import static org.assertj.core.api.Assertions.*;
 
-@SpringBootTest(properties = {"app.recruitment.outbox-enabled=false", "app.jwt.secret=test_secret_test_secret_test_secret_test_secret"})
+@SpringBootTest(properties = {"app.recruitment.outbox-enabled=false", "app.recruitment.interview-jobs-enabled=false", "app.jwt.secret=test_secret_test_secret_test_secret_test_secret"})
 class RecruitmentConfigurationSmokeTest {
     @DynamicPropertySource static void database(DynamicPropertyRegistry properties) { ApplicationIntegrationSupport.database(properties); }
     @Autowired JobApplicationClient jobs;

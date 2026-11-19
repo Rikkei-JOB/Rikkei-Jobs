@@ -233,3 +233,6 @@ npm.cmd test
 ```
 
 Suite tự chạy mock ở các cổng tạm, kiểm tra HTTP thực cho JD/CV và regression 11 endpoint ngoài; không cần bật backend, PostgreSQL hoặc SMTP. CI có job riêng chạy suite này. Các test này xác minh mock/consumer contract, chưa thay thế nghiệm thu tích hợp với producer DN-04/HS-04 thật.
+## UT-06: Meet idempotency
+
+`POST /meet/rooms` nhận tuỳ chọn header `Idempotency-Key` (1–100 ký tự chữ/số/`_`/`-`). Cùng key và title/startAt/endAt tương đương trả200 cùng phòng; key đã dùng với payload khác trả409 `IDEMPOTENCY_CONFLICT`. Không có key giữ hành vi tạo phòng mới201. Backend UT-06 dùng slotId làm key. Dữ liệu key theo vòng đời tiến trình và được xoá cùng phòng khi `/mock/reset`; không bảo đảm qua restart. Response vẫn dùng `roomUrl`, backend ánh xạ sang `meetUrl`.

@@ -29,7 +29,7 @@ class InterviewRoundServiceTest {
     private final InterviewRoundRevisionRepository revisions = mock(InterviewRoundRevisionRepository.class);
     private final Clock clock = Clock.fixed(Instant.parse("2030-01-01T00:00:00Z"), ZoneOffset.UTC);
     private final InterviewRoundService service = new InterviewRoundService(applications, rounds, revisions, clock,
-        mock(MentorIdentityClient.class));
+        mock(MentorIdentityClient.class), mock(com.rikkei.jobs.recruitment.service.InterviewLifecycleService.class));
     private final UUID companyId = UUID.randomUUID(), applicationId = UUID.randomUUID(), actorId = UUID.randomUUID();
     private final AuthPrincipal hr = new AuthPrincipal(actorId, Role.HR, companyId);
     private Application application;
