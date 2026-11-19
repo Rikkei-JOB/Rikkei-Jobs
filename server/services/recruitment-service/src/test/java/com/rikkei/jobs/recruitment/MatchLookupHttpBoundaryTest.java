@@ -35,4 +35,24 @@ class MatchLookupHttpBoundaryTest {
             assertEquals(MatchStatus.UNAVAILABLE,lookup.get(2,TimeUnit.SECONDS).matchStatus());assertEquals(1,release.getCount());
         }finally{release.countDown();server.stop(0);pool.shutdownNow();}
     }
+    @Test void timeoutAlsoCoversAStalledJsonBodyAfterHeaders()throws Exception {
+        var flushed=new CountDownLatch(1);var release=new CountDownLatch(1);var server=HttpServer.create(new InetSocketAddress("127.0.0.1",0),0);
+        server.createContext("/jobs",e->{try{e.getResponseHeaders().set("Content-Type","application/json");e.sendResponseHeaders(200,0);e.getResponseBody().write('{');e.getResponseBody().flush();flushed.countDown();release.await(5,TimeUnit.SECONDS);}catch(InterruptedException ex){Thread.currentThread().interrupt();}finally{e.close();}});server.start();
+        var pool=Executors.newSingleThreadExecutor();
+        try {
+            var service=new MatchLookupService(new HttpJobMatchClient(RestClient.builder(),"http://127.0.0.1:"+server.getAddress().getPort(),1000,250));
+            var lookup=pool.submit(()->service.lookup(UUID.randomUUID(),UUID.randomUUID(),"Bearer hr"));assertTrue(flushed.await(2,TimeUnit.SECONDS));
+            assertEquals(MatchStatus.UNAVAILABLE,lookup.get(2,TimeUnit.SECONDS).matchStatus());assertEquals(1,release.getCount());
+        }finally{release.countDown();server.stop(0);pool.shutdownNow();}
+    }
+    @Test void missingOrNullBooleanFlagsAreContractFailures()throws Exception {
+        var body=new AtomicReference<String>();var server=HttpServer.create(new InetSocketAddress("127.0.0.1",0),0);
+        server.createContext("/jobs",e->{byte[] b=body.get().getBytes(StandardCharsets.UTF_8);e.getResponseHeaders().set("Content-Type","application/json");e.sendResponseHeaders(200,b.length);e.getResponseBody().write(b);e.close();});server.start();
+        try {
+            var service=new MatchLookupService(new HttpJobMatchClient(RestClient.builder(),"http://127.0.0.1:"+server.getAddress().getPort(),1000,1000));
+            for(String json:new String[]{"{\"score\":0,\"met\":[],\"missing\":[]}","{\"score\":0,\"belowMinimum\":null,\"met\":[],\"missing\":[]}","{\"score\":0,\"belowMinimum\":false,\"met\":[{\"skill\":\"Java\",\"minScore\":80,\"candidateScore\":82}],\"missing\":[]}","{\"score\":0,\"belowMinimum\":false,\"met\":[{\"skill\":\"Java\",\"required\":null,\"minScore\":80,\"candidateScore\":82}],\"missing\":[]}"}) {
+                body.set(json);assertEquals(MatchStatus.UNAVAILABLE,service.lookup(UUID.randomUUID(),UUID.randomUUID(),"Bearer hr").matchStatus(),json);
+            }
+        }finally{server.stop(0);}
+    }
 }

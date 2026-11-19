@@ -9,16 +9,16 @@ function detail(id: string, match: MatchScore|null, matchStatus?: string) {
 async function fixture(page: Page, role: "HR"|"STAFF"|"ADMIN"="HR", initial: MatchScore|null=null, initialStatus?: string) {
   const user={id:"viewer-old",role,fullName:"Viewer",email:"viewer@test.local",companyId:role==="HR"?"company":null,mustChangePassword:false};
   await page.addInitScript(user=>localStorage.setItem("rikkei-jobs-auth",JSON.stringify({state:{token:"token-old",user},version:0})),user);
-  const state={user,initial,initialStatus,calls:0,detailCalls:0,retry:async(route: Route)=>route.fulfill({headers:cors,json:{matchStatus:"AVAILABLE",match:score()}})};
+  const state={user,initial,initialStatus,loginViewerId:"viewer-new",calls:0,detailCalls:0,detailResponder:null as null|((route:Route,id:string)=>Promise<void>),retry:async(route: Route)=>route.fulfill({headers:cors,json:{matchStatus:"AVAILABLE",match:score()}})};
   await page.route("**/api/v1/**",async route=>{
     if(route.request().method()==="OPTIONS")return route.fulfill({status:204,headers:cors});
     const path=new URL(route.request().url()).pathname;
     if(path.endsWith("/auth/me"))return route.fulfill({headers:cors,json:state.user});
-    if(path.endsWith("/auth/login")){state.user={...state.user,id:"viewer-new",fullName:"New Viewer"};return route.fulfill({headers:cors,json:{accessToken:"token-new",user:state.user,mustChangePassword:false}});}
+    if(path.endsWith("/auth/login")){state.user={...state.user,id:state.loginViewerId,fullName:"New Viewer"};return route.fulfill({headers:cors,json:{accessToken:"token-new",user:state.user,mustChangePassword:false}});}
     if(path.endsWith("/match")){state.calls++;return state.retry(route);}
     const id=path.match(/\/applications\/(app-[ab])$/)?.[1];
-    if(id){state.detailCalls++;return route.fulfill({headers:cors,json:detail(id,id==="app-b"?score(88):state.initial,id==="app-b"?"AVAILABLE":state.initialStatus)});}
-    if(path.endsWith("/hr/applications"))return route.fulfill({headers:cors,json:{items:[{id:"app-b",jobId:"job",jobTitle:"Java app-b",companyId:"company",companyName:"Company",userId:"candidate-b",candidateName:"Candidate app-b",status:"INTERVIEW",createdAt:stamp,updatedAt:stamp}],total:1,page:1,size:20}});
+    if(id){state.detailCalls++;if(state.detailResponder)return state.detailResponder(route,id);return route.fulfill({headers:cors,json:detail(id,id==="app-b"?score(88):state.initial,id==="app-b"?"AVAILABLE":state.initialStatus)});}
+    if(path.endsWith("/hr/applications"))return route.fulfill({headers:cors,json:{items:["app-a","app-b"].map(id=>({id,jobId:"job",jobTitle:`Java ${id}`,companyId:"company",companyName:"Company",userId:`candidate-${id}`,candidateName:`Candidate ${id}`,status:"INTERVIEW",createdAt:stamp,updatedAt:stamp})),total:2,page:1,size:20}});
     return route.fulfill({headers:cors,json:{}});
   });
   return state;
@@ -75,11 +75,33 @@ test("late retry for old application cannot replace new application's score",asy
   await expect(page.getByRole("img",{name:"Điểm phù hợp 88%"})).toBeVisible();release();await done;
   await expect(page.getByRole("img",{name:"Điểm phù hợp 88%"})).toBeVisible();await expect(page.getByRole("img",{name:"Điểm phù hợp 55%"})).toHaveCount(0);
 });
-test("late retry from previous login cannot affect the next viewer",async({page})=>{
+for(const sameViewer of [false,true]) test(`late retry from previous login cannot affect same application (${sameViewer?"rotated token":"next viewer"})`,async({page})=>{
   const state=await fixture(page,"HR",null,"UNAVAILABLE");let release!:()=>void,finished!:()=>void;const hold=new Promise<void>(r=>{release=r;}),done=new Promise<void>(r=>{finished=r;});
+  if(sameViewer)state.loginViewerId="viewer-old";
   state.retry=async route=>{await hold;try{await route.fulfill({headers:cors,json:{matchStatus:"AVAILABLE",match:score(55)}});}catch{}finally{finished();}};
   await page.goto("/hr/recruitment/app-a");await page.getByRole("button",{name:"Thử lại",exact:true}).click();await expect.poll(()=>state.calls).toBe(1);
   await page.getByRole("button",{name:"Đăng xuất"}).click();await page.getByRole("tab",{name:"Doanh nghiệp",exact:true}).click();await page.getByLabel("Email",{exact:true}).fill("new@test.local");await page.getByLabel("Mật khẩu",{exact:true}).fill("Password123!");await page.getByRole("button",{name:"Đăng nhập",exact:true}).click();
-  await page.getByRole("navigation",{name:"Menu chính"}).getByRole("link",{name:"Tuyển dụng",exact:true}).click();await page.getByRole("link").filter({hasText:"Candidate app-b"}).click();await expect(page.getByRole("img",{name:"Điểm phù hợp 88%"})).toBeVisible();
-  release();await done;await expect(page.getByRole("img",{name:"Điểm phù hợp 55%"})).toHaveCount(0);
+  state.retry=async route=>route.fulfill({headers:cors,json:{matchStatus:"AVAILABLE",match:score(88)}});
+  await page.getByRole("navigation",{name:"Menu chính"}).getByRole("link",{name:"Tuyển dụng",exact:true}).click();await page.getByRole("link").filter({hasText:"Candidate app-a"}).click();
+  await page.getByRole("button",{name:"Thử lại",exact:true}).click();await expect.poll(()=>state.calls).toBe(2);await expect(page.getByRole("img",{name:"Điểm phù hợp 88%"})).toBeVisible();
+  release();await done;await expect(page.getByRole("img",{name:"Điểm phù hợp 88%"})).toBeVisible();await expect(page.getByRole("img",{name:"Điểm phù hợp 55%"})).toHaveCount(0);
+});
+
+for (const failed of [false,true]) test(`newer detail wins over pending retry ${failed?"failure":"success"}`,async({page})=>{
+  const state=await fixture(page,"HR",null,"UNAVAILABLE");let release!:()=>void,finished!:()=>void;
+  const hold=new Promise<void>(r=>{release=r;}),done=new Promise<void>(r=>{finished=r;});
+  state.retry=async route=>{await hold;try{await route.fulfill(failed?{status:403,headers:cors,json:{message:"Old forbidden"}}:{headers:cors,json:{matchStatus:"AVAILABLE",match:score(55)}});}catch{}finally{finished();}};
+  await page.goto("/hr/recruitment/app-a");await page.getByRole("button",{name:"Thử lại",exact:true}).click();await expect.poll(()=>state.calls).toBe(1);
+  state.initial=score(86);state.initialStatus="AVAILABLE";await page.getByRole("button",{name:"Lưu kết quả",exact:true}).click();
+  await expect(page.getByRole("img",{name:"Điểm phù hợp 86%"})).toBeVisible();release();await done;
+  await expect(page.getByRole("img",{name:"Điểm phù hợp 86%"})).toBeVisible();await expect(page.getByText("Old forbidden")).toHaveCount(0);
+});
+
+test("newer retry wins while older detail still refreshes workflow fields",async({page})=>{
+  const state=await fixture(page,"HR",null,"UNAVAILABLE");let release!:()=>void;const hold=new Promise<void>(r=>{release=r;});
+  await page.goto("/hr/recruitment/app-a");await expect(page.getByRole("button",{name:"Thử lại",exact:true})).toBeVisible();
+  state.detailResponder=async(route,id)=>{await hold;await route.fulfill({headers:cors,json:{...detail(id,score(55),"AVAILABLE"),jobTitle:"Updated workflow title"}});};
+  await page.getByRole("button",{name:"Lưu kết quả",exact:true}).click();await expect.poll(()=>state.detailCalls).toBe(2);
+  await page.getByRole("button",{name:"Thử lại",exact:true}).click();await expect(page.getByRole("img",{name:"Điểm phù hợp 78%"})).toBeVisible();release();
+  await expect(page.getByRole("heading",{name:"Updated workflow title"})).toBeVisible();await expect(page.getByRole("img",{name:"Điểm phù hợp 78%"})).toBeVisible();
 });

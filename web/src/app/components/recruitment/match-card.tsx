@@ -11,36 +11,41 @@ type Scope = { applicationId: string; viewerId: string | undefined; token: strin
 function sameScope(a: Scope | null | undefined, b: Scope) {
   return a?.applicationId === b.applicationId && a?.viewerId === b.viewerId && a?.token === b.token;
 }
-export function MatchCard({ applicationId, match, matchStatus, onMatchChanged }: {
-  applicationId: string; match: MatchScore | null; matchStatus?: MatchStatus; onMatchChanged: (value: MatchLookupResponse) => void;
+export function MatchCard({ applicationId, match, matchStatus, revision, onRequestStart, isRequestCurrent, onMatchChanged }: {
+  applicationId: string; match: MatchScore | null; matchStatus?: MatchStatus; revision: number;
+  onRequestStart: () => number; isRequestCurrent: (generation: number) => boolean;
+  onMatchChanged: (value: MatchLookupResponse, generation: number) => void;
 }) {
   const viewerId = useAuthStore(state => state.user?.id), token = useAuthStore(state => state.token);
   const scope: Scope = { applicationId, viewerId, token };
-  const flight = useRef<{ scope: Scope; controller: AbortController } | null>(null);
-  const [pendingScope, setPendingScope] = useState<Scope | null>(null);
-  const [retryError, setRetryError] = useState<{ scope: Scope; error: unknown } | null>(null);
+  const flight = useRef<{ scope: Scope; controller: AbortController; generation: number } | null>(null);
+  const [pendingScope, setPendingScope] = useState<(Scope & { generation: number }) | null>(null);
+  const [retryError, setRetryError] = useState<{ scope: Scope; generation: number; error: unknown } | null>(null);
   useEffect(() => () => { flight.current?.controller.abort(); flight.current = null; }, [applicationId, viewerId, token]);
+  useEffect(() => {
+    if (flight.current && flight.current.generation < revision) { flight.current.controller.abort(); flight.current = null; }
+  }, [revision]);
   async function retry() {
     if (flight.current && sameScope(flight.current.scope, scope)) return;
     flight.current?.controller.abort();
-    const request = { scope, controller: new AbortController() }; flight.current = request;
-    setPendingScope(scope); setRetryError(null);
-    function current() {
+    const request = { scope, controller: new AbortController(), generation: onRequestStart() }; flight.current = request;
+    setPendingScope({ ...scope, generation: request.generation }); setRetryError(null);
+    function ownsRequest() {
       const auth = useAuthStore.getState();
       return flight.current === request && !request.controller.signal.aborted && auth.user?.id === scope.viewerId && auth.token === scope.token;
     }
     try {
       const result = await hrApplicationService.match(applicationId, request.controller.signal);
-      if (current()) onMatchChanged(result);
+      if (ownsRequest() && isRequestCurrent(request.generation)) onMatchChanged(result, request.generation);
     } catch (error) {
-      if (current()) { setRetryError({ scope, error }); onMatchChanged({ matchStatus: "UNAVAILABLE", match: null }); }
+      if (ownsRequest() && isRequestCurrent(request.generation)) { setRetryError({ scope, generation: request.generation, error }); onMatchChanged({ matchStatus: "UNAVAILABLE", match: null }, request.generation); }
     } finally {
-      if (current()) { flight.current = null; setPendingScope(null); }
+      if (ownsRequest()) { flight.current = null; setPendingScope(null); }
     }
   }
   const status = matchStatus ?? (match ? "AVAILABLE" : "UNAVAILABLE");
-  const pending = sameScope(pendingScope, scope);
-  const error = status === "UNAVAILABLE" && retryError && sameScope(retryError.scope, scope) ? retryError.error : null;
+  const pending = sameScope(pendingScope, scope) && (pendingScope?.generation ?? 0) >= revision;
+  const error = status === "UNAVAILABLE" && retryError && retryError.generation >= revision && sameScope(retryError.scope, scope) ? retryError.error : null;
   if (status === "NOT_REQUESTED") return null;
   const unavailable = status !== "AVAILABLE" || !match || Boolean(error);
   return <section className="rounded-xl border bg-background p-5" aria-label="Điểm khớp với JD">
