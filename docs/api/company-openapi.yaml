@@ -13,6 +13,8 @@ tags:
     description: HR quản lý công ty của chính mình (role HR)
   - name: job
     description: HR quản lý JD của công ty mình (role HR, DN-02). Công ty lấy từ company_hr theo userId của JWT; JD của công ty khác trả 404 giống id không tồn tại.
+  - name: match
+    description: Điểm khớp ứng viên với JD theo kỹ năng (DN-06). CANDIDATE xem của mình, HR/STAFF xem của ứng viên. Công thức ở docs/matching.md.
   - name: internal
     description: API nội bộ giữa service (header X-Internal-Key), KHÔNG qua gateway
 paths:
@@ -691,6 +693,81 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Error' }
+  /jobs/{id}/match/me:
+    get:
+      tags: [match]
+      summary: Ứng viên xem điểm khớp của mình với một JD
+      description: |
+        Vai trò CANDIDATE. Chỉ JD APPROVED (JD khác trả 404, không lộ JD chưa công bố). Công thức ở docs/matching.md. Kỹ năng chỉ tự khai không được cộng điểm;
+        chưa có điểm xác minh thì candidateScore = 0. Mỗi lần gọi lấy verified_score hiện tại của ứng viên (profile-service), đổi min_score hoặc điểm kỹ năng
+        thì ra điểm mới, không trả bản đệm cũ. Hợp đồng đúng như UT-02 (ut02-openapi.yaml Match/MatchSkill).
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        '200':
+          description: Điểm khớp và giải thích
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/MatchResponse' }
+        '401':
+          description: UNAUTHORIZED; ACCOUNT_DISABLED
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '403':
+          description: FORBIDDEN (không phải CANDIDATE) hoặc MUST_CHANGE_PASSWORD
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '404':
+          description: NOT_FOUND - không có JD hoặc JD chưa APPROVED
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '503':
+          description: EXTERNAL_UNAVAILABLE - profile-service hoặc danh mục kỹ năng không trả lời
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+  /jobs/{id}/match/{userId}:
+    get:
+      tags: [match]
+      summary: HR hoặc STAFF xem điểm khớp của một ứng viên với JD
+      description: |
+        Vai trò HR hoặc STAFF. HR: JD phải thuộc công ty của HR và userId phải có đơn ứng tuyển vào JD này (mọi trạng thái, kể cả REJECTED, WITHDRAWN);
+        không thoả thì 404 NOT_FOUND "Không tìm thấy JD", giống JD không tồn tại. STAFF: mọi JD (kể cả DRAFT), mọi ứng viên, không kiểm tra đơn ứng tuyển.
+        Đây là endpoint recruitment-service (UT-02, HttpJobMatchClient) gọi sẵn; hợp đồng không đổi.
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+        - { name: userId, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        '200':
+          description: Điểm khớp và giải thích
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/MatchResponse' }
+        '401':
+          description: UNAUTHORIZED; ACCOUNT_DISABLED
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '403':
+          description: FORBIDDEN (không phải HR hoặc STAFF), MUST_CHANGE_PASSWORD hoặc COMPANY_LOCKED
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '404':
+          description: NOT_FOUND - không có JD, JD của công ty khác, hoặc (HR) ứng viên chưa ứng tuyển JD này
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '503':
+          description: EXTERNAL_UNAVAILABLE - profile-service, recruitment-service hoặc danh mục kỹ năng không trả lời
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
   /internal/jobs/{jobId}/application-context:
     get:
       tags: [internal]
@@ -933,6 +1010,23 @@ components:
         total: { type: integer, format: int64 }
         page: { type: integer, description: Bắt đầu từ 1 }
         size: { type: integer }
+    MatchSkill:
+      type: object
+      required: [skill, required, minScore, candidateScore]
+      properties:
+        skill: { type: string, description: Tên kỹ năng trong danh mục (không còn trong danh mục thì là skillId) }
+        required: { type: boolean }
+        minScore: { type: number }
+        candidateScore: { type: number, description: verified_score của ứng viên; 0 khi chưa có }
+    MatchResponse:
+      type: object
+      description: Điểm khớp ứng viên với JD (DN-06), đúng hợp đồng Match của ut02-openapi.yaml. Công thức ở docs/matching.md.
+      required: [score, belowMinimum, met, missing]
+      properties:
+        score: { type: number, minimum: 0, maximum: 100, description: Số nguyên (làm tròn 0,5 lên) }
+        belowMinimum: { type: boolean, description: true khi có kỹ năng bắt buộc với điểm dưới 50% min_score }
+        met: { type: array, items: { $ref: '#/components/schemas/MatchSkill' }, description: Kỹ năng đạt (điểm >= min_score) }
+        missing: { type: array, items: { $ref: '#/components/schemas/MatchSkill' }, description: Kỹ năng thiếu (điểm < min_score) }
     JobApplicationContext:
       type: object
       description: Khớp record JobApplicationContext của recruitment-service (UT-01). recruitment tự chặn nộp hồ sơ khi status khác APPROVED, deadline không sau hiện tại hoặc companyLocked.
