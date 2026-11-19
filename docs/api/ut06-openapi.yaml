@@ -1,0 +1,547 @@
+openapi: 3.0.3
+info:
+  title: UT-06 Interview Scheduling
+  version: 1.0.0
+  description: >-
+    HR proposes 1–5 future slots of >=30 minutes; candidate picks, Meet room and mail outbox are created.
+    Integration branch: test.
+servers:
+  - url: http://localhost:8080/api/v1/recruitment
+    description: Gateway
+  - url: http://localhost:8083/recruitment
+    description: Direct service
+security:
+  - bearerAuth: []
+paths:
+  /rounds/{roundId}/slots:
+    post:
+      operationId: proposeInterviewSlots
+      summary: 'HR: initial slot proposal'
+      parameters:
+        - name: roundId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                $ref: '#/components/schemas/SlotInput'
+              minItems: 1
+              maxItems: 5
+              description: >-
+                Atomic list: each start is in the future, end-start >=30 minutes; intervals must not overlap.
+                All timestamps include an ISO offset.
+      responses:
+        '201':
+          description: Proposal created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Proposal'
+        '400':
+          description: Invalid body, ISO8601 offset time, duration/count/overlap, range or pagination
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Wrong role
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Not found or outside ownership
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: Cancelled/expired slot, duplicate proposal, invalid round/application state or booking conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '503':
+          description: Meet or identity dependency unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /me/interviews:
+    get:
+      operationId: listMyInterviews
+      summary: 'Candidate: own invitations and current schedule'
+      parameters:
+        - name: page
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 1
+            minimum: 1
+        - name: size
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 20
+            minimum: 1
+            maximum: 100
+      responses:
+        '200':
+          description: Owned invitations, stable descending round order
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InvitationPage'
+        '400':
+          description: Invalid body, ISO8601 offset time, duration/count/overlap, range or pagination
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Wrong role
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /me/interviews/{roundId}/pick:
+    post:
+      operationId: pickInterviewSlot
+      summary: 'Candidate: pick one slot; repeat current slot reuses schedule'
+      parameters:
+        - name: roundId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - slotId
+              properties:
+                slotId:
+                  type: string
+                  format: uuid
+      responses:
+        '200':
+          description: Confirmed with meetUrl; other slots cancelled; email queued
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Schedule'
+        '400':
+          description: Invalid body, ISO8601 offset time, duration/count/overlap, range or pagination
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Wrong role
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Not found or outside ownership
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: Cancelled/expired slot, duplicate proposal, invalid round/application state or booking conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '503':
+          description: Meet or identity dependency unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /rounds/{roundId}/reschedule:
+    post:
+      operationId: rescheduleInterview
+      summary: 'HR: cancel current booking immediately and replace slots atomically'
+      parameters:
+        - name: roundId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                $ref: '#/components/schemas/SlotInput'
+              minItems: 1
+              maxItems: 5
+              description: >-
+                Atomic list: each start is in the future, end-start >=30 minutes; intervals must not overlap.
+                All timestamps include an ISO offset.
+      responses:
+        '200':
+          description: Old schedule cancelled; new proposal created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Proposal'
+        '400':
+          description: Invalid body, ISO8601 offset time, duration/count/overlap, range or pagination
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Wrong role
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Not found or outside ownership
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: Cancelled/expired slot, duplicate proposal, invalid round/application state or booking conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '503':
+          description: Meet or identity dependency unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /companies/me/interviews:
+    get:
+      operationId: listCompanyInterviews
+      summary: 'HR: whole company calendar intersecting [from,to)'
+      parameters:
+        - name: from
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date-time
+        - name: to
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date-time
+        - name: interviewerEmail
+          in: query
+          required: false
+          schema:
+            type: string
+            format: email
+        - name: status
+          in: query
+          required: false
+          schema:
+            type: string
+            enum:
+              - SCHEDULED
+              - DONE
+              - CANCELLED
+            description: Omit for SCHEDULED and DONE
+        - name: page
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 1
+            minimum: 1
+        - name: size
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 20
+            minimum: 1
+            maximum: 100
+      responses:
+        '200':
+          description: Company-only calendar sorted by startAt/id
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CalendarPage'
+        '400':
+          description: Invalid body, ISO8601 offset time, duration/count/overlap, range or pagination
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Wrong role
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    SlotInput:
+      type: object
+      required:
+        - startAt
+        - endAt
+      properties:
+        startAt:
+          type: string
+          format: date-time
+        endAt:
+          type: string
+          format: date-time
+    Slot:
+      type: object
+      required:
+        - id
+        - roundId
+        - proposalId
+        - startAt
+        - endAt
+        - status
+      properties:
+        id:
+          type: string
+          format: uuid
+        roundId:
+          type: string
+          format: uuid
+        proposalId:
+          type: string
+          format: uuid
+        startAt:
+          type: string
+          format: date-time
+        endAt:
+          type: string
+          format: date-time
+        status:
+          type: string
+          enum:
+            - OPEN
+            - PICKED
+            - CANCELLED
+    Schedule:
+      type: object
+      required:
+        - id
+        - roundId
+        - slotId
+        - startAt
+        - endAt
+        - meetUrl
+        - status
+      properties:
+        id:
+          type: string
+          format: uuid
+        roundId:
+          type: string
+          format: uuid
+        slotId:
+          type: string
+          format: uuid
+        startAt:
+          type: string
+          format: date-time
+        endAt:
+          type: string
+          format: date-time
+        meetUrl:
+          type: string
+          format: uri
+          nullable: true
+        status:
+          type: string
+          enum:
+            - SCHEDULED
+            - DONE
+            - CANCELLED
+    Proposal:
+      type: object
+      required:
+        - proposalId
+        - roundId
+        - slots
+      properties:
+        proposalId:
+          type: string
+          format: uuid
+        roundId:
+          type: string
+          format: uuid
+        slots:
+          type: array
+          items:
+            $ref: '#/components/schemas/Slot'
+    Invitation:
+      type: object
+      required:
+        - roundId
+        - roundName
+        - jobTitle
+        - companyName
+        - interviewerEmail
+        - slots
+        - schedule
+      properties:
+        roundId:
+          type: string
+          format: uuid
+        roundName:
+          type: string
+        jobTitle:
+          type: string
+        companyName:
+          type: string
+        interviewerEmail:
+          type: string
+          format: email
+        slots:
+          type: array
+          items:
+            $ref: '#/components/schemas/Slot'
+        schedule:
+          nullable: true
+          allOf:
+            - $ref: '#/components/schemas/Schedule'
+    CalendarItem:
+      type: object
+      required:
+        - schedule
+        - candidateId
+        - candidateName
+        - jobTitle
+        - roundName
+        - interviewerEmail
+      properties:
+        schedule:
+          $ref: '#/components/schemas/Schedule'
+        candidateId:
+          type: string
+          format: uuid
+        candidateName:
+          type: string
+        jobTitle:
+          type: string
+        roundName:
+          type: string
+        interviewerEmail:
+          type: string
+          format: email
+    InvitationPage:
+      type: object
+      required:
+        - items
+        - total
+        - page
+        - size
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Invitation'
+        total:
+          type: integer
+          format: int64
+          minimum: 0
+        page:
+          type: integer
+          minimum: 1
+        size:
+          type: integer
+          minimum: 1
+          maximum: 100
+    CalendarPage:
+      type: object
+      required:
+        - items
+        - total
+        - page
+        - size
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/CalendarItem'
+        total:
+          type: integer
+          format: int64
+          minimum: 0
+        page:
+          type: integer
+          minimum: 1
+        size:
+          type: integer
+          minimum: 1
+          maximum: 100
+    Error:
+      type: object
+      required:
+        - code
+        - message
+      properties:
+        code:
+          type: string
+        message:
+          type: string

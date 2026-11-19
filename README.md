@@ -1,5 +1,7 @@
 # Rikkei Jobs Platform
 
+UT-06 bổ sung đề xuất/chọn giờ phỏng vấn, phòng Meet, email/ICS, nhắc24h/1h và lịch tuần HR. Xem [hướng dẫn, API và kiểm chứng UT-06](docs/api/UT-06-interview-scheduling.md).
+
 UT-07 đã bổ sung gửi và phản hồi offer, tự hết hạn, xác nhận đi làm và kinh nghiệm trên hồ sơ. Xem [cách chạy, dữ liệu mẫu, ảnh và OpenAPI](docs/api/UT-07-offer-employment.md).
 
 UT-02 đã bổ sung luồng xử lý đơn HR, nhiều vòng phỏng vấn, danh sách STAFF và email ứng viên theo mỗi lần đổi trạng thái. Xem [cách chạy, dữ liệu mẫu, ảnh và OpenAPI](docs/api/UT-02-application-pipeline.md).
