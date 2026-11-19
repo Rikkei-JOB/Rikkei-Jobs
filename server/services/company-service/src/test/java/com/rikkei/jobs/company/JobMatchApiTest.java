@@ -159,7 +159,7 @@ class JobMatchApiTest extends CompanyApiTestSupport {
 
     @Test
     void candidateMeOnUnpublishedJobIs404() throws Exception {
-        for (JobStatus status : List.of(JobStatus.DRAFT, JobStatus.PENDING)) {
+        for (JobStatus status : List.of(JobStatus.DRAFT, JobStatus.PENDING, JobStatus.REJECTED, JobStatus.CLOSED)) {
             Job job = jd6(company.getId(), status);
             meAs(C1, Role.CANDIDATE, job.getId())
                     .andExpect(status().isNotFound())
@@ -228,6 +228,7 @@ class JobMatchApiTest extends CompanyApiTestSupport {
 
         viewAs(C1, Role.CANDIDATE, job.getId(), C1).andExpect(status().isForbidden());
         meAs(UUID.randomUUID(), Role.MENTOR, job.getId()).andExpect(status().isForbidden());
+        viewAs(UUID.randomUUID(), Role.ADMIN, job.getId(), C1).andExpect(status().isForbidden());
     }
 
     @Test
@@ -344,6 +345,22 @@ class JobMatchApiTest extends CompanyApiTestSupport {
                 new CatalogSkill(SQL, "SQL", "SQL"),
                 new CatalogSkill(GIT, "GIT", "Git"),
                 new CatalogSkill(ENGLISH, "ENGLISH", "Tiếng Anh")));
+        Job job = jd6(company.getId(), JobStatus.APPROVED);
+
+        meAs(C1, Role.CANDIDATE, job.getId())
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.missing[?(@.skill == '" + DOCKER + "')]", hasSize(1)));
+    }
+
+    @Test
+    void blankCatalogNameFallsBackToId() throws Exception {
+        stubCatalog(List.of(
+                new CatalogSkill(JAVA, "JAVA", "Java"),
+                new CatalogSkill(SPRING_BOOT, "SPRING_BOOT", "Spring Boot"),
+                new CatalogSkill(SQL, "SQL", "SQL"),
+                new CatalogSkill(GIT, "GIT", "Git"),
+                new CatalogSkill(ENGLISH, "ENGLISH", "Tiếng Anh"),
+                new CatalogSkill(DOCKER, "", "")));
         Job job = jd6(company.getId(), JobStatus.APPROVED);
 
         meAs(C1, Role.CANDIDATE, job.getId())

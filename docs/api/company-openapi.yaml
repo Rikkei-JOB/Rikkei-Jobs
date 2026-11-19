@@ -754,7 +754,7 @@ paths:
             application/json:
               schema: { $ref: '#/components/schemas/Error' }
         '403':
-          description: FORBIDDEN (không phải HR hoặc STAFF), MUST_CHANGE_PASSWORD hoặc COMPANY_LOCKED
+          description: FORBIDDEN (không phải HR hoặc STAFF) hoặc MUST_CHANGE_PASSWORD
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Error' }

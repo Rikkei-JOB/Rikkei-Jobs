@@ -112,7 +112,9 @@ public class MatchServiceImpl implements MatchService {
 
         Map<UUID, String> names = new HashMap<>();
         for (CatalogSkill skill : skillCatalog.skills(authorization)) {
-            names.put(skill.id(), skill.name());
+            if (skill.name() != null && !skill.name().isBlank()) {
+                names.put(skill.id(), skill.name());
+            }
         }
         List<JobSkillInput> calcInputs = jobSkills.stream()
                 .map(s -> new JobSkillInput(s.getSkillId(),
