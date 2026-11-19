@@ -11,6 +11,9 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 public interface InterviewRoundRepository extends JpaRepository<InterviewRound, UUID> {
+    @org.springframework.data.jpa.repository.Lock(jakarta.persistence.LockModeType.PESSIMISTIC_WRITE)
+    @Query("select r from InterviewRound r where r.id=:id")
+    Optional<InterviewRound> findForUpdate(@Param("id") UUID id);
     List<InterviewRound> findByApplicationIdOrderByRoundNoAsc(UUID applicationId);
     Optional<InterviewRound> findByIdAndApplicationId(UUID id, UUID applicationId);
     @Query("select r.applicationId from InterviewRound r where r.id = :id")
