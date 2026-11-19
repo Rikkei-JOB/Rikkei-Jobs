@@ -154,6 +154,17 @@ Tên lớp test ở cột cuối là các lớp trong `server/services/company-s
   - đổi logo thành công; ảnh trên 2MB bị chặn trên giao diện và 4b trả 400 `FILE_TOO_LARGE`;
   - đăng xuất rồi đăng nhập hr2 trong cùng tab thấy Công ty B; API nội bộ: thiếu khoá → 401 (5a), gọi qua gateway → 404 (5b).
 
+**Ảnh minh chứng** (chụp 2026-11-19 khi chạy lại toàn hệ thống; Công ty A đã được đổi tên thành "RikkeiSoft" trên DB dev, mã số thuế vẫn `0101234567`):
+
+| Tiêu chí | Ảnh | Nội dung |
+| --- | --- | --- |
+| 1 | ![Tạo công ty](screenshots/DN-01/staff-create-company.png) | staff1 mở hộp "Tạo công ty" ở `/staff/companies` (giao diện thêm ở DN-05, gọi `POST /staff/companies` của DN-01) |
+| 1 | ![Thêm HR](screenshots/DN-01/staff-add-hr.png) | staff1 thêm HR `hr-new1@rikkeijobs.test` cho RikkeiSoft |
+| 1 | ![Email mật khẩu tạm](screenshots/DN-01/mailhog-temp-password.png) | MailHog nhận email "Tài khoản HR Rikkei Jobs của bạn" có mật khẩu tạm và yêu cầu đổi mật khẩu lần đầu |
+| 3, 4 | ![Sửa hồ sơ công ty](screenshots/DN-01/hr-company-edit.png) | HR mới (sau khi đổi mật khẩu) sửa hồ sơ ở `/hr/company`, xem trước logo mới, báo "Đã lưu lúc 09:02" |
+
+Các ca 409 trùng email, 404 sửa công ty khác và logo quá 2 MB không chụp lại; đã kiểm ở lần chạy 2026-11-12 phía trên và có test tự động ở mục 7.
+
 ## 9. Checklist nộp PR
 
 - [x] Nhánh `feature/DN-01-company-hr`, PR **vào `test`**, tiêu đề `[DN-01] Doanh nghiệp: hồ sơ công ty, tài khoản HR` (đã merge, PR #9)

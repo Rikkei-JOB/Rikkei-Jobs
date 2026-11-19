@@ -11,6 +11,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 public class AppProperties {
     private Identity identity = new Identity();
     private Profile profile = new Profile();
+    private Recruitment recruitment = new Recruitment();
     private Internal internal = new Internal();
     private Upload upload = new Upload();
     private DevData devData = new DevData();
@@ -29,8 +30,14 @@ public class AppProperties {
 
     @Getter
     @Setter
+    public static class Recruitment {
+        private String baseUrl = "http://localhost:8083";
+    }
+
+    @Getter
+    @Setter
     public static class Internal {
-        /** Khoá X-Internal-Key khi gọi /internal/** của identity-service. */
+        /** Khoá X-Internal-Key khi gọi /internal/** của identity, profile và recruitment-service. */
         private String serviceKey = "";
     }
 
