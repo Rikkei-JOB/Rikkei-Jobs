@@ -27,5 +27,7 @@ public class CandidateProfile {
     @Column(name = "class_code", nullable = false, length = 100) private String classCode;
     @Column(name = "course_name", nullable = false) private String courseName;
     @Column(nullable = false, length = 10) private String visibility = "PRIVATE";
+    private Instant consentAt;
+    private Instant consentWithdrawnAt;
     @Column(name = "updated_at", nullable = false) private Instant updatedAt;
 }

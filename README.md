@@ -1,5 +1,7 @@
 # Rikkei Jobs Platform
 
+HS-05 bổ sung gửi duyệt, trả lại, công khai và rút hồ sơ tại `/candidate/profile`. Xem [hướng dẫn chạy, dữ liệu mẫu và ảnh nghiệm thu](docs/api/HS-05-cong-khai-ho-so.md).
+
 UT-07 đã bổ sung gửi và phản hồi offer, tự hết hạn, xác nhận đi làm và kinh nghiệm trên hồ sơ. Xem [cách chạy, dữ liệu mẫu, ảnh và OpenAPI](docs/api/UT-07-offer-employment.md).
 
 UT-02 đã bổ sung luồng xử lý đơn HR, nhiều vòng phỏng vấn, danh sách STAFF và email ứng viên theo mỗi lần đổi trạng thái. Xem [cách chạy, dữ liệu mẫu, ảnh và OpenAPI](docs/api/UT-02-application-pipeline.md).
