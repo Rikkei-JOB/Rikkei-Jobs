@@ -9,7 +9,7 @@ Gateway dùng tiền tố `http://localhost:8080/api/v1`; service nhận `/profi
 | Method | Đường dẫn sau tiền tố gateway | Quyền / hành vi |
 | --- | --- | --- |
 | GET | `/profiles/me/skills` | `CANDIDATE`; lấy UUID từ JWT |
-| GET | `/profiles/{userId}/skills` | Có JWT; chủ sở hữu đọc được; người khác cần cả `consented=true` và `approved=true` |
+| GET | `/profiles/{userId}/skills` | Chủ hồ sơ đọc bằng JWT. Với người xem khác, HS-05 kiểm tra hồ sơ trong `profile.public_candidate_ids`. |
 | POST | `/profiles/me/skills/recompute` | `CANDIDATE`; không có request body; tính lại từ dữ liệu nguồn đã lưu của chính người gọi |
 
 Thành công trả thẳng mảng JSON, không bọc `data` hoặc phân trang. Mỗi phần tử có `skill {id, code, name, group}`, `verifiedScore`, `selfScore`, `level` và `evidences [{source, title, score, recordedAt, verified}]`. Danh sách sắp theo nhóm/mã kỹ năng; bằng chứng theo ngày giảm dần.

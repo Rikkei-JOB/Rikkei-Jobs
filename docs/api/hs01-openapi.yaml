@@ -36,7 +36,7 @@ paths:
       summary: Read an owner's or a published profile's skills
       description: |
         Requires a valid JWT. The owner can always read their own skills.
-        Other users can read only when profile.skill_profile_states has consented=true AND approved=true.
+        Other users can read only when the owner appears in the HS-05 public_candidate_ids scope (PUBLIC with active consent).
         Missing and private profiles produce the same 404 response. Roles do not bypass this privacy rule.
       parameters:
         - name: userId

@@ -137,13 +137,17 @@ class SkillProfileApiTest {
     }
 
     @Test
-    void bothPublicationFlagsAllowReadAndRevocationHidesItImmediately() throws Exception {
+    void currentPublicConsentAllowsReadAndRevocationHidesItImmediately() throws Exception {
         UUID owner = seededCandidate("85");
         String viewer = token(UUID.randomUUID(), Role.HR);
         publication(owner, true, true);
+        read("/profiles/" + owner + "/skills", viewer).andExpect(status().isNotFound());
+        jdbc.update("insert into profile.candidate_profiles(user_id,full_name,email,program,class_code,course_name,"
+            + "visibility,consent_at,updated_at) values (?, 'Candidate','c@example.test','P','C','K','PUBLIC',"
+            + "CURRENT_TIMESTAMP,CURRENT_TIMESTAMP)", owner);
         JsonNode published = body(read("/profiles/" + owner + "/skills", viewer).andExpect(status().isOk()));
         assertThat(javaSkill(published).path("verifiedScore").decimalValue()).isEqualByComparingTo("85");
-        publication(owner, false, true);
+        jdbc.update("update profile.candidate_profiles set visibility='PRIVATE' where user_id=?", owner);
         read("/profiles/" + owner + "/skills", viewer)
                 .andExpect(status().isNotFound()).andExpect(jsonPath("$.code").value("NOT_FOUND"));
     }
