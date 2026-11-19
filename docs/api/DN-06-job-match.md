@@ -190,9 +190,16 @@ Ba ví dụ (request tương ứng trong `DN-06.http`):
 ## 8. Trạng thái xác minh
 
 - **Test backend tự động** (`mvn -f server/pom.xml clean test`, 2026-11-19): common-core 14, api-gateway 20, identity-service 266, profile-service 143 (1 bỏ qua, gồm `InternalVerifiedSkillsApiTest`), company-service 206 (gồm `MatchCalculatorTest`, `JobMatchApiTest`), internship / assessment / learning mỗi service 5 đều đạt. **recruitment-service 98/98 đạt** (gồm `InternalApplicationExistsApiTest`) ở commit `e91dbd0`, chạy với DB riêng `rikkei_jobs_test` qua `UT01_TEST_DB_*` và `-Dspring.datasource.hikari.maximum-pool-size=2` (cách ở mục 5). Toàn bộ backend xanh ở `e91dbd0`.
-- **Chạy thật toàn luồng** (Postgres, mock, identity + profile + recruitment + company-service profile `dev`, gateway, web) và **ảnh màn hình `/staff/match-preview` cho 3 ví dụ**: **chờ chạy thật**. Người làm chạy theo mục 5 và `DN-06.http`, so điểm với mục 6, rồi chụp ảnh vào `docs/api/screenshots/DN-06/` (đường dẫn dự kiến):
-  - `match-example-1-jd6-c1.png` (78), `match-example-2-jd7-c3.png` (60), `match-example-3-jd6-no-skills.png` (0).
-- `web/`: chạy `type-check`, `lint`, `build` trước khi mở PR (CI chỉ chạy `type-check`).
+- **2026-11-19, chạy thật toàn luồng** theo mục 5 (Postgres và MailHog trong Docker, mock LMS, identity + profile + recruitment + company-service, gateway, web; profile chạy profile `dev` với `PROFILE_DEMO_DATA_ENABLED=true`, `INTERNAL_SERVICE_KEY=dev-internal-key` ở cả ba service). staff1 mở `/staff/match-preview`; **cả 3 ví dụ ở mục 6 ra đúng điểm tính tay**:
+
+  | Ví dụ | Kết quả trên giao diện | Ảnh |
+  | --- | --- | --- |
+  | 1. JD6 × C1 | **78%**. Đạt: Java 82.1/80, Spring Boot 80.5/70, Git 90/60. Thiếu: SQL 81.2/90 "thiếu 9 điểm", Docker 0/50, Tiếng Anh 0/60 (điểm tự khai 65 không được tính) | ![JD6 × C1](screenshots/DN-06/jd6-candidate1.png) |
+  | 2. JD7 × C3 | **60%**, banner "Thiếu kỹ năng bắt buộc tối thiểu". Thiếu: Git 0/60, Java 49.1/60 "thiếu 11 điểm", SQL 58.8/60 "thiếu 2 điểm" | ![JD7 × C3](screenshots/DN-06/jd7-candidate3.png) |
+  | 3. JD6 × ứng viên chưa có kỹ năng (`11111111-1111-1111-1111-111111111111`) | **0%**, banner, thiếu đủ 6 kỹ năng | ![JD6 × chưa có kỹ năng](screenshots/DN-06/jd6-no-skill.png) |
+
+  Điểm `verified_score` thật trong DB trùng bảng ở mục 6 (giao diện làm tròn 1 chữ số thập phân). Lỗi gặp khi chạy: profile-service và recruitment-service chạy thiếu `INTERNAL_SERVICE_KEY` thì trang báo "Không lấy được điểm kỹ năng của ứng viên" (company trả 503). Đặt biến trong đúng terminal hoặc cấu hình đang chạy service rồi khởi động lại là hết.
+- `web/`: `npm run type-check` sạch, `npm run lint` 0 lỗi (1 cảnh báo có sẵn ở `commitlint.config.mjs`), `npm run build` thành công, có route `/staff/match-preview`.
 
 ## 9. Ghi chú cho UT-02, DN-03, DN-04
 
@@ -205,6 +212,6 @@ Ba ví dụ (request tương ứng trong `DN-06.http`):
 - [ ] Nhánh `feature/DN-06-job-match`, PR **vào `test`** (không vào `main`), tiêu đề `[DN-06] Điểm khớp ứng viên với JD theo kỹ năng`
 - [x] Có: cách chạy, dữ liệu mẫu, OpenAPI (`company-openapi.yaml`), request mẫu `DN-06.http`, công thức và 3 ví dụ ở `docs/matching.md`, migration `V4__match_scores.sql`
 - [x] 3 ví dụ tính tay khớp kết quả API (test); 0 điểm khi không có kỹ năng; tự khai không cộng điểm; đổi `min_score` ra điểm mới; unit test công thức
-- [ ] Chạy thật toàn luồng và chụp ảnh `/staff/match-preview` cho 3 ví dụ vào `docs/api/screenshots/DN-06/` (chờ chạy thật)
-- [ ] Tự chạy `npm run lint` và `npm run build` ở `web/` (CI chỉ chạy `type-check`)
+- [x] Chạy thật toàn luồng và chụp ảnh `/staff/match-preview` cho 3 ví dụ (mục 8, `docs/api/screenshots/DN-06/`)
+- [x] Tự chạy `npm run lint` và `npm run build` ở `web/` (CI chỉ chạy `type-check`)
 - [ ] Một bạn trong nhóm review trước, mentor duyệt PR
