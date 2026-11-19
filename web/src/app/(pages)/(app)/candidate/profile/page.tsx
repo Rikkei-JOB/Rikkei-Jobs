@@ -2,6 +2,7 @@ import { CandidateSkills } from "@/app/components/skills/candidate-skills"
 import { PersonalProfile } from "@/app/components/profile/personal-profile"
 import { Educations } from "@/app/components/profile/educations"
 import { Certificates } from "@/app/components/profile/certificates"
+import { EmploymentRecords } from "@/app/components/profile/employment-records"
 
 /**
  * Hồ sơ cá nhân HS-02 và hồ sơ năng lực kỹ năng HS-01 của ứng viên.
@@ -14,6 +15,7 @@ export default function CandidateProfilePage() {
       <PersonalProfile />
       <Educations />
       <Certificates />
+      <EmploymentRecords />
       <CandidateSkills />
     </div>
   )

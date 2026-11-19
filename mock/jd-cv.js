@@ -122,6 +122,26 @@ function mountJdCv(app, getData) {
   });
   cvs.use((req, res) => error(res, 404, 'ROUTE_NOT_FOUND', 'Không có endpoint mock CV này.'));
   app.use(['/profile/cvs', '/api/v1/profile/cvs'], cvs);
+
+  const internalProfiles = express.Router();
+  internalProfiles.use((req, res, next) => {
+    const expected = process.env.RECRUITMENT_PROFILE_SERVICE_KEY || process.env.INTERNAL_SERVICE_KEY || 'dev-internal-key';
+    if (!expected.trim()) return error(res, 503, 'DEPENDENCY_NOT_CONFIGURED', 'Chưa cấu hình internal key của mock profile.');
+    const actualBytes = Buffer.from(req.get('X-Internal-Key') || '');
+    const expectedBytes = Buffer.from(expected);
+    if (actualBytes.length !== expectedBytes.length || !timingSafeEqual(actualBytes, expectedBytes)) {
+      return error(res, 401, 'INVALID_INTERNAL_KEY', 'Thiếu hoặc sai X-Internal-Key.');
+    }
+    next();
+  });
+  internalProfiles.get('/:userId/phone', (req, res) => {
+    if (!UUID.test(req.params.userId)) return error(res, 400, 'VALIDATION_ERROR', 'userId phải là UUID.');
+    const user = (getData().users || []).find(u => u.id && u.id.toLowerCase() === req.params.userId.toLowerCase());
+    const phone = (user && user.phone !== undefined) ? user.phone : '0912345678';
+    res.json({ userId: req.params.userId, phone });
+  });
+  internalProfiles.use((req, res) => error(res, 404, 'ROUTE_NOT_FOUND', 'Không có endpoint mock profile này.'));
+  app.use('/internal/profiles', internalProfiles);
 }
 
 module.exports = { mountJdCv };

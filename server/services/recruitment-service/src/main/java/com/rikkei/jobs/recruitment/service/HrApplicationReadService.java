@@ -32,6 +32,8 @@ public class HrApplicationReadService {
     private final CandidateContactClient contacts;
     private final JobMatchClient matches;
     private final HrTransitionPolicy policy;
+    private final OfferRepository offers;
+    private final EmploymentRecordRepository employmentRecords;
 
     @Transactional(readOnly = true)
     public HrApplicationDetailResponse detail(AuthPrincipal actor, UUID id, String bearer) {
@@ -59,7 +61,10 @@ public class HrApplicationReadService {
             application.getCompanyId(), application.getCompanyName(), application.getStatus(),
             application.getCreatedAt(), application.getUpdatedAt(), candidate, application.getCvId(),
             application.getCvSnapshotUrl(), application.getCoverLetter(), match, roundData, revisionData,
-            historyData, actor.getRole() == Role.HR ? policy.allowedFrom(application.getStatus()) : java.util.Set.of());
+            historyData, actor.getRole() == Role.HR ? policy.allowedFrom(application.getStatus()) : java.util.Set.of(),
+            actor.getRole() == Role.HR ? offers.findByApplicationId(id).map(OfferResponse::from).orElse(null) : null,
+            actor.getRole() == Role.HR ? employmentRecords.findByApplicationId(id)
+                .map(EmploymentRecord::getConfirmedAt).orElse(null) : null);
     }
 
     @Transactional(readOnly = true)

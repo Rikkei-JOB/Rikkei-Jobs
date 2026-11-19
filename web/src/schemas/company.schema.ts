@@ -1,5 +1,5 @@
 import { z } from "zod";
-import type { UpdateCompanyPayload } from "@/interface/company";
+import type { CreateCompanyPayload, UpdateCompanyPayload } from "@/interface/company";
 
 export const COMPANY_SIZES = ["1-50", "51-200", "201-1000", "1000+"] as const;
 export const LOGO_MAX_BYTES = 2 * 1024 * 1024;
@@ -35,6 +35,18 @@ export function toUpdatePayload(values: CompanyProfileValues): UpdateCompanyPayl
     website: orNull(values.website),
     description: orNull(values.description),
   };
+}
+
+export const TAX_CODE_MESSAGE = "Mã số thuế phải gồm 10 hoặc 13 chữ số";
+
+/** Cán bộ tạo công ty: cùng luật với hồ sơ công ty, thêm mã số thuế (khớp CreateCompanyRequest ở backend). */
+export const createCompanySchema = companyProfileSchema.extend({
+  taxCode: z.string().trim().regex(/^(\d{10}|\d{13})$/, TAX_CODE_MESSAGE),
+});
+export type CreateCompanyValues = z.infer<typeof createCompanySchema>;
+
+export function toCreatePayload(values: CreateCompanyValues): CreateCompanyPayload {
+  return { ...toUpdatePayload(values), taxCode: values.taxCode.trim() };
 }
 
 /** Kiểm tra sơ bộ ở trình duyệt; backend vẫn kiểm tra lại. Trả message lỗi hoặc null. */

@@ -1,5 +1,7 @@
 # Rikkei Jobs Platform
 
+UT-07 đã bổ sung gửi và phản hồi offer, tự hết hạn, xác nhận đi làm và kinh nghiệm trên hồ sơ. Xem [cách chạy, dữ liệu mẫu, ảnh và OpenAPI](docs/api/UT-07-offer-employment.md).
+
 UT-02 đã bổ sung luồng xử lý đơn HR, nhiều vòng phỏng vấn, danh sách STAFF và email ứng viên theo mỗi lần đổi trạng thái. Xem [cách chạy, dữ liệu mẫu, ảnh và OpenAPI](docs/api/UT-02-application-pipeline.md).
 
 HS-02 giai đoạn 1 đã bổ sung thông tin cá nhân và dữ liệu LMS chỉ đọc tại

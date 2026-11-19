@@ -1,0 +1,185 @@
+openapi: 3.0.3
+info:
+  title: UT-07 Offer and employment
+  version: 1.0.0
+  description: Lương offer là số nguyên dương VND/tháng gross. Mọi thời điểm trả lời do server quyết định.
+servers:
+  - url: http://localhost:8080/api/v1/recruitment
+security:
+  - bearerAuth: []
+paths:
+  /applications/{id}/offer:
+    post:
+      operationId: sendOffer
+      summary: HR gửi offer cho đơn đã qua vòng phỏng vấn cuối
+      description: HR phải thuộc công ty của đơn. Đơn phải INTERVIEW, có ít nhất một vòng, không còn vòng PENDING và vòng có roundNo lớn nhất là PASS. Thành công đổi đơn sang OFFER và tạo email qua outbox.
+      parameters:
+        - $ref: '#/components/parameters/ApplicationId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CreateOffer' }
+            example: { position: Java Developer, salary: 12000000, startDate: '2030-02-01', workLocation: 'Hà Nội', responseDeadline: '2030-01-03T00:00:00Z', note: 'Làm việc hybrid' }
+      responses:
+        '201': { description: Offer đã gửi, content: { application/json: { schema: { $ref: '#/components/schemas/Offer' } } } }
+        '400': { $ref: '#/components/responses/Error' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '409': { description: Đơn/vòng chưa đủ điều kiện hoặc đã có offer, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+  /applications/{id}/offer/confirm-onboard:
+    post:
+      operationId: confirmOnboard
+      summary: HR xác nhận ứng viên đã đi làm
+      description: Chỉ sau khi offer ACCEPTED và đơn HIRED. Gọi lại giữ nguyên confirmedAt.
+      parameters:
+        - $ref: '#/components/parameters/ApplicationId'
+      responses:
+        '200': { description: Hồ sơ việc làm đã xác nhận, content: { application/json: { schema: { $ref: '#/components/schemas/EmploymentRecord' } } } }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '409': { $ref: '#/components/responses/Error' }
+  /me/offers:
+    get:
+      operationId: listMyOffers
+      summary: Ứng viên xem offer của mình
+      parameters:
+        - { name: page, in: query, schema: { type: integer, minimum: 1, default: 1 } }
+        - { name: size, in: query, schema: { type: integer, minimum: 1, maximum: 100, default: 20 } }
+      responses:
+        '200': { description: Danh sách phân trang, content: { application/json: { schema: { $ref: '#/components/schemas/OfferPage' } } } }
+        '400': { $ref: '#/components/responses/Error' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+  /me/offers/{id}:
+    get:
+      operationId: getMyOffer
+      summary: Ứng viên xem chi tiết offer của mình
+      parameters:
+        - $ref: '#/components/parameters/OfferId'
+      responses:
+        '200': { description: Offer, content: { application/json: { schema: { $ref: '#/components/schemas/Offer' } } } }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { description: Offer không tồn tại hoặc thuộc ứng viên khác, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+  /me/offers/{id}/accept:
+    post:
+      operationId: acceptMyOffer
+      summary: Ứng viên nhận offer
+      description: Chỉ khi SENT và thời gian server còn trước responseDeadline. Thành công đổi đơn sang HIRED, tạo employment record; đơn khác giữ nguyên.
+      parameters:
+        - $ref: '#/components/parameters/OfferId'
+      responses:
+        '200': { description: Offer ACCEPTED, content: { application/json: { schema: { $ref: '#/components/schemas/Offer' } } } }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '409': { description: Đã phản hồi hoặc đến hạn, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+  /me/offers/{id}/decline:
+    post:
+      operationId: declineMyOffer
+      summary: Ứng viên từ chối offer
+      description: Chỉ khi SENT và còn hạn. Thành công đổi đơn sang REJECTED; HR xem được declineReason trong chi tiết đơn.
+      parameters:
+        - $ref: '#/components/parameters/OfferId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [reason]
+              properties:
+                reason: { type: string, minLength: 1, maxLength: 1000, description: Không được chỉ chứa khoảng trắng }
+            example: { reason: 'Đã nhận công việc khác' }
+      responses:
+        '200': { description: Offer DECLINED, content: { application/json: { schema: { $ref: '#/components/schemas/Offer' } } } }
+        '400': { $ref: '#/components/responses/Error' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '409': { $ref: '#/components/responses/Error' }
+  /me/employment-records:
+    get:
+      operationId: listMyEmploymentRecords
+      summary: Ứng viên xem kinh nghiệm đã nhận việc
+      responses:
+        '200': { description: Hồ sơ việc làm của ứng viên, content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/EmploymentRecord' } } } } }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+  /applications/{id}:
+    get:
+      operationId: getApplicationWithOffer
+      summary: Chi tiết đơn UT-02, mở rộng trường offer cho HR
+      description: Response đầy đủ theo ut02-openapi.yaml. Chỉ HR cùng công ty nhìn thấy offer và onboardConfirmedAt; STAFF và ADMIN nhận cả hai là null.
+      parameters:
+        - $ref: '#/components/parameters/ApplicationId'
+      responses:
+        '200': { description: Chi tiết đơn gồm offer tùy quyền, content: { application/json: { schema: { type: object, properties: { offer: { nullable: true, allOf: [ { $ref: '#/components/schemas/Offer' } ] }, onboardConfirmedAt: { type: string, format: date-time, nullable: true } } } } } }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+components:
+  securitySchemes:
+    bearerAuth: { type: http, scheme: bearer, bearerFormat: JWT }
+  parameters:
+    ApplicationId: { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+    OfferId: { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+  responses:
+    Error: { description: Lỗi theo mã HTTP, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+  schemas:
+    Error:
+      type: object
+      properties:
+        code: { type: string }
+        message: { type: string }
+        errors: { type: object, nullable: true, additionalProperties: true }
+    CreateOffer:
+      type: object
+      required: [position, salary, startDate, workLocation, responseDeadline]
+      properties:
+        position: { type: string, minLength: 1, maxLength: 255 }
+        salary: { type: integer, format: int64, minimum: 1, description: VND/tháng gross }
+        startDate: { type: string, format: date }
+        workLocation: { type: string, minLength: 1, maxLength: 500 }
+        responseDeadline: { type: string, format: date-time, description: ISO 8601 với múi giờ; phải ở tương lai }
+        note: { type: string, nullable: true, maxLength: 2000 }
+    Offer:
+      type: object
+      required: [id, applicationId, position, salary, startDate, workLocation, responseDeadline, status, createdAt]
+      properties:
+        id: { type: string, format: uuid }
+        applicationId: { type: string, format: uuid }
+        position: { type: string }
+        salary: { type: integer, format: int64, description: VND/tháng gross }
+        startDate: { type: string, format: date }
+        workLocation: { type: string }
+        note: { type: string, nullable: true }
+        responseDeadline: { type: string, format: date-time }
+        status: { type: string, enum: [SENT, ACCEPTED, DECLINED, EXPIRED] }
+        respondedAt: { type: string, format: date-time, nullable: true }
+        declineReason: { type: string, nullable: true }
+        createdAt: { type: string, format: date-time }
+    OfferPage:
+      type: object
+      required: [items, total, page, size]
+      properties:
+        items: { type: array, items: { $ref: '#/components/schemas/Offer' } }
+        total: { type: integer, format: int64 }
+        page: { type: integer, description: Bắt đầu từ 1 }
+        size: { type: integer }
+    EmploymentRecord:
+      type: object
+      required: [id, applicationId, userId, companyId, jobId, companyName, position, startDate]
+      properties:
+        id: { type: string, format: uuid }
+        applicationId: { type: string, format: uuid }
+        userId: { type: string, format: uuid }
+        companyId: { type: string, format: uuid }
+        jobId: { type: string, format: uuid }
+        companyName: { type: string }
+        position: { type: string }
+        startDate: { type: string, format: date }
+        confirmedAt: { type: string, format: date-time, nullable: true }
