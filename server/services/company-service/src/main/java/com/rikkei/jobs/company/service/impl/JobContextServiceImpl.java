@@ -20,7 +20,6 @@ import java.util.Locale;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
@@ -35,8 +34,11 @@ public class JobContextServiceImpl implements JobContextService {
     private final CompanyHrRepository companyHrs;
     private final IdentityClient identity;
 
+    /**
+     * Cố ý không dùng @Transactional: activeHrEmails gọi HTTP sang identity, nếu nằm trong transaction thì giữ
+     * connection DB suốt lúc chờ mạng. Mỗi lời gọi repository tự mở và trả connection (open-in-view tắt).
+     */
     @Override
-    @Transactional(readOnly = true)
     public JobApplicationContextResponse applicationContext(UUID jobId) {
         Job job = jobs.findById(jobId).orElseThrow(() -> new ResourceNotFoundException(NOT_FOUND));
         Company company = companies.findById(job.getCompanyId())
