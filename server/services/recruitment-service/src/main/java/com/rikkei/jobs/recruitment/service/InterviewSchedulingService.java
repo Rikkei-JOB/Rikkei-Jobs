@@ -66,6 +66,7 @@ public class InterviewSchedulingService {
     public InterviewProposalResponse reschedule(AuthPrincipal actor,UUID roundId,List<InterviewSlotRequest> requests) {
         validate(requests);var c=locked(actor,roundId,true);
         lifecycle.cancelRound(roundId,clock.instant());
+        c.round().setScheduledAt(null);
         return createProposal(c,requests);
     }
     @Transactional

@@ -43,4 +43,12 @@ class InterviewSchedulingConcurrencyTest extends InterviewIntegrationSupport {
         UUID other=UUID.randomUUID(),r=secondRound(other,"hr@test.local"),c=open(r,next);
         assertEquals(200,select(r,c,other));
     }
+    @Test void pickRacingRescheduleCannotLeaveOldBookingActive() throws Exception {
+        UUID old=open(roundId,7200);
+        var result=race(()->select(roundId,old,user),()->mvc.perform(post("/recruitment/rounds/{r}/reschedule",roundId).header("Authorization",hr()).contentType("application/json").content(slots(14400,18000))).andReturn().getResponse().getStatus());
+        assertTrue(result.get(0)==200 || result.get(0)==409);assertEquals(200,result.get(1));
+        assertEquals(0,jdbc.queryForObject("select count(*) from recruitment.interview_schedules where status='SCHEDULED'",Integer.class));
+        assertEquals(2,jdbc.queryForObject("select count(*) from recruitment.interview_slots where status='OPEN'",Integer.class));
+        assertEquals("CANCELLED",jdbc.queryForObject("select status from recruitment.interview_slots where id=?",String.class,old));
+    }
 }

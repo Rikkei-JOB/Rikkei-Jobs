@@ -48,6 +48,9 @@ abstract class ApplicationIntegrationSupport {
     UUID user = UUID.randomUUID(), job = UUID.randomUUID(), company = UUID.randomUUID(), cv = UUID.randomUUID();
 
     @DynamicPropertySource static synchronized void database(DynamicPropertyRegistry properties) {
+        // Many cached Spring contexts share one test PostgreSQL instance.
+        properties.add("spring.datasource.hikari.maximum-pool-size", () -> 5);
+        properties.add("spring.datasource.hikari.minimum-idle", () -> 0);
         String url = System.getenv("UT01_TEST_DB_URL");
         if (url == null || url.isBlank()) {
             if (postgres == null) { postgres = new PostgreSQLContainer<>("postgres:16-alpine"); postgres.start(); }

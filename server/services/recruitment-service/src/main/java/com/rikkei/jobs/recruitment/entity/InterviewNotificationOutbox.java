@@ -6,6 +6,7 @@ import java.util.UUID;
 @Entity @Table(name="interview_notification_outbox", schema="recruitment")
 @Getter @Setter @NoArgsConstructor
 public class InterviewNotificationOutbox {
+    @Column(name="claim_token") private UUID claimToken;
     @Id @Column(name="id") private UUID id;
     @Column(name="event_key", length=100) private String eventKey;
     @Column(name="type", length=24) private String type;

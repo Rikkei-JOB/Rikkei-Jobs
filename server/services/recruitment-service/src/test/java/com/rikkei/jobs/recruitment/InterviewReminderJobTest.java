@@ -39,4 +39,9 @@ class InterviewReminderJobTest extends InterviewIntegrationSupport {
         assertEquals(2,jdbc.queryForObject("select count(*) from recruitment.interview_notification_outbox where type='REMINDER_1H' and status='SENT'",Integer.class));
         assertNotNull(jdbc.queryForObject("select reminded_1h_at from recruitment.interview_schedules",java.sql.Timestamp.class));
     }
+    @Test void fractionalSecondAboveOneHourStillUses24HourWindow() throws Exception {
+        pick(propose(7200));worker.dispatchBatch();
+        when(clock.instant()).thenReturn(NOW.plusMillis(3599500));job.enqueueDue();worker.dispatchBatch();
+        assertEquals(2,jdbc.queryForObject("select count(*) from recruitment.interview_notification_outbox where type='REMINDER_24H' and status='SENT'",Integer.class));
+    }
 }

@@ -42,4 +42,17 @@ class InterviewSchedulingApiTest extends InterviewIntegrationSupport {
         assertEquals(0,count("interview_schedules"));
         assertEquals("OPEN",jdbc.queryForObject("select status from recruitment.interview_slots where id=?",String.class,slot));
     }
+    @Test void rejectsNumericEpochsAndNumericStringsWithoutIsoOffset() throws Exception {
+        for(String value:new String[]{"1893459600","\"1893459600\""}) {
+            mvc.perform(post("/recruitment/rounds/{r}/slots",roundId).header("Authorization",hr()).contentType("application/json").content("[{\"startAt\":"+value+",\"endAt\":\"2030-01-01T03:00:00Z\"}]")).andExpect(status().isBadRequest());
+        }
+        assertEquals(0,count("interview_slots"));
+    }
+    @Test void rejectsRealSlotFromAnotherRoundAndEquivalentOffsetOverlap() throws Exception {
+        UUID foreignRound=UUID.randomUUID(),foreignSlot=UUID.randomUUID();
+        jdbc.update("insert into recruitment.interview_rounds(id,application_id,round_no,name,interviewer_email,result,created_at) values (?,?,2,'Other','other@test.local','PENDING',?)",foreignRound,applicationId,java.sql.Timestamp.from(NOW));
+        jdbc.update("insert into recruitment.interview_slots(id,round_id,proposal_id,start_at,end_at,status,created_at) values (?,?,?,?,?,'OPEN',?)",foreignSlot,foreignRound,UUID.randomUUID(),java.sql.Timestamp.from(NOW.plusSeconds(7200)),java.sql.Timestamp.from(NOW.plusSeconds(9000)),java.sql.Timestamp.from(NOW));
+        propose(7200);pick(foreignSlot).andExpect(status().isNotFound());assertEquals(0,count("interview_schedules"));
+        mvc.perform(post("/recruitment/rounds/{r}/reschedule",roundId).header("Authorization",hr()).contentType("application/json").content("[{\"startAt\":\"2030-01-01T09:00:00+07:00\",\"endAt\":\"2030-01-01T09:30:00+07:00\"},{\"startAt\":\"2030-01-01T02:00:00Z\",\"endAt\":\"2030-01-01T03:00:00Z\"}]")).andExpect(status().isBadRequest());
+    }
 }

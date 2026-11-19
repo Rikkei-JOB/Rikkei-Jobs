@@ -54,21 +54,38 @@ test("HR đề xuất 1–5 khung, validation và gửi giờ +07", async ({ pag
   await expect.poll(() => sent.length).toBe(1); expect(new Date(sent[0].startAt).toISOString()).toBe("2030-01-01T02:00:00.000Z");
   await page.screenshot({ path: "../docs/api/screenshots/ut06-hr-slots.png", fullPage: true });
 });
-test("Lịch HR lấy đủ các trang và đổi tuần không giữ buổi tuần cũ", async ({ page }) => {
+test("HR calendar ignores delayed old week and fetches all pages", async ({ page }) => {
   await auth(page, "HR");
-  await page.route("**/api/v1/**", route => {
+  let firstWeek: string | undefined;
+  let releaseOld!: () => void, oldArrived!: () => void, oldFinished!: () => void;
+  const hold = new Promise<void>(resolve => { releaseOld = resolve; });
+  const arrived = new Promise<void>(resolve => { oldArrived = resolve; });
+  const finished = new Promise<void>(resolve => { oldFinished = resolve; });
+  await page.route("**/api/v1/**", async route => {
     if (route.request().method() === "OPTIONS") return route.fulfill({ status: 204, headers: cors });
     const url = new URL(route.request().url());
     if (url.pathname.endsWith("/companies/me/interviews")) {
       const pageNo = Number(url.searchParams.get("page") || 1), from = url.searchParams.get("from")!;
+      if (!firstWeek) firstWeek = from;
+      const old = from === firstWeek;
+      if (old) { oldArrived(); await hold; }
       const startAt = new Date(new Date(from).getTime() + 9 * 3600000).toISOString();
-      const items = Array.from({ length: pageNo === 1 ? 100 : 1 }, (_, i) => ({ schedule: { ...schedule, id: `${from}-${pageNo}-${i}`, startAt, endAt: new Date(new Date(startAt).getTime() + 1800000).toISOString() }, candidateId: `c${i}`, candidateName: pageNo === 2 ? "Ứng viên cuối" : `Ứng viên ${i}`, jobTitle: "Java", roundName: `Tuần ${from}`, interviewerEmail: "hr@test.local" }));
-      return route.fulfill({ headers: cors, json: { items, total: 101, page: pageNo, size: 100 } });
+      const items = Array.from({ length: pageNo === 1 ? 100 : 1 }, (_, i) => ({ schedule: { ...schedule, id: `${from}-${pageNo}-${i}`, startAt, endAt: new Date(new Date(startAt).getTime() + 1800000).toISOString() }, candidateId: `c${i}`, candidateName: old ? `Old week ${i}` : pageNo === 2 ? "Last candidate" : `New week ${i}`, jobTitle: "Java", roundName: "Technical", interviewerEmail: "hr@test.local" }));
+      try { await route.fulfill({ headers: cors, json: { items, total: 101, page: pageNo, size: 100 } }); }
+      catch (error) { if (!old) throw error; } // The old request may have been aborted.
+      finally { if (old) oldFinished(); }
+      return;
     }
     return url.pathname.endsWith("/auth/me") ? route.fallback() : route.fulfill({ headers: cors, json: {} });
   });
-  await page.goto("/hr/interviews"); await expect(page.getByText("Ứng viên cuối", { exact: true })).toBeVisible();
-  const old = await page.getByTestId("calendar-range").innerText(); await page.getByRole("button", { name: "Tuần sau" }).click();
-  await expect(page.getByTestId("calendar-range")).not.toHaveText(old); await expect(page.getByText("Ứng viên cuối", { exact: true })).toBeVisible();
+  await page.goto("/hr/interviews"); await arrived;
+  const oldRange = await page.getByTestId("calendar-range").innerText();
+  await page.getByRole("button", { name: "Tuần sau" }).click();
+  await expect(page.getByText("Last candidate", { exact: true })).toBeVisible();
+  await expect(page.getByTestId("calendar-range")).not.toHaveText(oldRange);
+  releaseOld(); await finished;
+  await expect(page.getByText("Old week 0", { exact: true })).toHaveCount(0);
+  await expect(page.getByText("New week 0", { exact: true })).toBeVisible();
+  await expect(page.getByText("Last candidate", { exact: true })).toBeVisible();
   await page.screenshot({ path: "../docs/api/screenshots/ut06-hr-calendar.png", fullPage: false });
 });
