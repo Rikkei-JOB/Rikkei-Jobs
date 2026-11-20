@@ -106,12 +106,15 @@ class AdminLockAuthTest {
         assertThat(after.getLockedAt()).isNotNull();
     }
 
+    /** Sai mật khẩu trả lỗi như mọi tài khoản khác, để không ai dò được email nào đang bị cán bộ khoá. */
     @Test
-    void adminLockedWrongPasswordStillAccountDisabled() throws Exception {
+    void adminLockedWrongPasswordIsInvalidCredentials() throws Exception {
         User u = hr(false);
         adminLock(u);
-        login("wrong-pass-1").andExpect(status().isForbidden()).andExpect(jsonPath("$.code").value("ACCOUNT_DISABLED"));
-        assertThat(users.findById(u.getId()).orElseThrow().getFailedLoginCount()).isZero();
+        login("wrong-pass-1")
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.code").value("INVALID_CREDENTIALS"));
+        assertThat(users.findById(u.getId()).orElseThrow().getFailedLoginCount()).isEqualTo(1);
     }
 
     @Test

@@ -60,7 +60,7 @@ paths:
             application/json:
               schema: { $ref: '#/components/schemas/Error' }
         '403':
-          description: ACCOUNT_DISABLED - tài khoản đã bị cán bộ khoá (kể cả khi nhập sai mật khẩu)
+          description: ACCOUNT_DISABLED - tài khoản đã bị cán bộ khoá (chỉ báo khi mật khẩu đúng; sai mật khẩu trả 401 INVALID_CREDENTIALS)
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Error' }
