@@ -28,6 +28,13 @@ public interface CompanyService {
     CompanyResponse updateMine(UUID userId, UpdateCompanyRequest request);
 
     /**
+     * Sửa công ty theo id (DN-01): HR chỉ sửa được công ty mình (theo company_hr, không tin companyId trong token),
+     * rồi xử lý y như {@link #updateMine}. Công ty của người khác và công ty không tồn tại đều ném
+     * ResourceNotFoundException (404) cùng thông báo.
+     */
+    CompanyResponse updateCompany(UUID hrUserId, UUID companyId, UpdateCompanyRequest request);
+
+    /**
      * Đổi logo (JPG/PNG tối đa 2MB, kiểm tra theo chữ ký tệp). LOCKED thì COMPANY_LOCKED, quá cỡ thì FILE_TOO_LARGE,
      * rỗng hoặc sai định dạng thì INVALID_FILE_TYPE.
      */
