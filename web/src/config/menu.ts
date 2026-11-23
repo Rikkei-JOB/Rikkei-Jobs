@@ -50,7 +50,7 @@ export const ROLE_MENU: Record<Role, MenuItem[]> = {
   ],
   MENTOR: [{ label: "Cần đánh giá", href: "/mentor/reviews", icon: ClipboardCheck }],
   STAFF: [
-    { label: "Duyệt hồ sơ", href: "/staff/profiles", icon: Users },
+    { label: "Duyệt hồ sơ", href: "/staff/profile-reviews", icon: Users },
     { label: "Duyệt JD", href: "/staff/jobs", icon: FileCheck2 },
     { label: "Đơn ứng tuyển", href: "/staff/applications", icon: UserSearch },
     { label: "Doanh nghiệp", href: "/staff/companies", icon: Building2 },

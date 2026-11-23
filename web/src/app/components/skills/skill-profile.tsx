@@ -72,14 +72,16 @@ const SOURCE_LABEL: Record<SkillSource, { label: string; badgeClass: string }> =
 interface SkillProfileProps {
   userId?: string; // If provided, fetches public profile by userId. If omitted, fetches own skills.
   readOnly?: boolean;
+  previewSkills?: SkillProfileItem[];
 }
 
 export function SkillProfile(props: SkillProfileProps) {
   return <SkillProfileContent key={props.userId ?? "me"} {...props} />;
 }
 
-function SkillProfileContent({ userId, readOnly = false }: SkillProfileProps) {
-  const [skills, setSkills] = React.useState<SkillProfileItem[]>([]);
+function SkillProfileContent({ userId, readOnly = false, previewSkills }: SkillProfileProps) {
+  const [loadedSkills, setSkills] = React.useState<SkillProfileItem[]>([]);
+  const skills = previewSkills ?? loadedSkills;
   const [loading, setLoading] = React.useState(true);
   const [recomputing, setRecomputing] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
@@ -88,6 +90,7 @@ function SkillProfileContent({ userId, readOnly = false }: SkillProfileProps) {
   const [reloadKey, setReloadKey] = React.useState(0);
 
   React.useEffect(() => {
+    if (previewSkills) return;
     let ignore = false;
     async function load() {
       try {
@@ -112,7 +115,7 @@ function SkillProfileContent({ userId, readOnly = false }: SkillProfileProps) {
     return () => {
       ignore = true;
     };
-  }, [userId, reloadKey]);
+  }, [userId, reloadKey, previewSkills]);
 
   const handleRecompute = async () => {
     setRecomputing(true);
@@ -168,7 +171,7 @@ function SkillProfileContent({ userId, readOnly = false }: SkillProfileProps) {
     return { total, verifiedCount, selfCount, totalEvidences };
   }, [skills]);
 
-  if (loading) {
+  if (loading && !previewSkills) {
     return (
       <div className="space-y-4 py-8">
         <div className="flex items-center justify-between">
