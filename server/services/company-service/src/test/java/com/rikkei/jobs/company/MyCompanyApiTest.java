@@ -82,17 +82,54 @@ class MyCompanyApiTest extends CompanyApiTestSupport {
                 .andExpect(jsonPath("$.name").value(bName));
     }
 
+    private ResultActions putById(String token, UUID id, Map<String, Object> body) throws Exception {
+        return mvc.perform(put("/companies/" + id)
+                .header("Authorization", "Bearer " + token)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(JSON.writeValueAsString(body)));
+    }
+
+    /** Tiêu chí DN-01: HR công ty A sửa công ty B → 404, công ty B không đổi. */
     @Test
-    void putByIdIsNotAllowed() throws Exception {
-        // Không có API sửa công ty theo id; NT-02 thêm GET /companies/{id} nên PUT cùng đường dẫn trả 405
-        // (cho mọi id, không lộ id có thật). Điều cần giữ: HR không sửa được công ty khác.
-        mvc.perform(put("/companies/" + b.getId())
-                        .header("Authorization", "Bearer " + hr1Token())
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(JSON.writeValueAsString(Map.of("name", "Hack"))))
-                .andExpect(status().isMethodNotAllowed())
-                .andExpect(jsonPath("$.code").value("METHOD_NOT_ALLOWED"));
-        assertThat(companies.findById(b.getId()).orElseThrow().getName()).isNotEqualTo("Hack");
+    void putOtherCompanyByIdIs404() throws Exception {
+        String bName = b.getName();
+        putById(hr1Token(), b.getId(), Map.of("name", "Hack"))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value("NOT_FOUND"));
+        assertThat(companies.findById(b.getId()).orElseThrow().getName()).isEqualTo(bName);
+    }
+
+    /** Công ty không tồn tại cho cùng lỗi với công ty của người khác, để không lộ id có thật. */
+    @Test
+    void putUnknownCompanyByIdIs404() throws Exception {
+        putById(hr1Token(), UUID.randomUUID(), Map.of("name", "Hack"))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value("NOT_FOUND"));
+    }
+
+    @Test
+    void putOwnCompanyByIdUpdatesLikeMe() throws Exception {
+        putById(hr1Token(), a.getId(), Map.of("name", "Tên theo id", "taxCode", "9999999999"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(a.getId().toString()))
+                .andExpect(jsonPath("$.name").value("Tên theo id"));
+        Company saved = companies.findById(a.getId()).orElseThrow();
+        assertThat(saved.getName()).isEqualTo("Tên theo id");
+        assertThat(saved.getTaxCode()).isEqualTo("1111111111");
+    }
+
+    @Test
+    void putOwnLockedCompanyByIdIs403() throws Exception {
+        a.setStatus(CompanyStatus.LOCKED);
+        companies.save(a);
+        putById(hr1Token(), a.getId(), Map.of("name", "Tên mới"))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.code").value("COMPANY_LOCKED"));
+    }
+
+    @Test
+    void putByIdNonHrIs403() throws Exception {
+        putById(token(Role.STAFF), a.getId(), Map.of("name", "Tên mới")).andExpect(status().isForbidden());
     }
 
     @Test
