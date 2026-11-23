@@ -2,17 +2,21 @@
 
 import { Dialog } from "@base-ui/react/dialog";
 import Link from "next/link";
-import { useEffect, useRef, useState, type FormEvent } from "react";
-import { X } from "lucide-react";
+import { useEffect, useRef, useState, type FormEvent, type RefObject } from "react";
+import { FileCheck2, X } from "lucide-react";
 import { Button } from "@/app/components/ui/button";
 import { applicationLinks } from "@/config/application-status";
 import type { ApplicationDetail, CvChoice } from "@/interface/application";
 import { applicationService } from "@/services/application.service";
 import { listApplicationCvs } from "@/services/application-cv.service";
 import { ApiError, getErrorMessage } from "@/services/api";
+import "./career.css";
 
-interface Props { jobId: string; open: boolean; onOpenChange(open: boolean): void; onApplied(application: ApplicationDetail): void }
-export function ApplyDialog({ jobId, open, onOpenChange, onApplied }: Props) {
+interface Props {
+  jobId: string; open: boolean; onOpenChange(open: boolean): void; onApplied(application: ApplicationDetail): void;
+  jobTitle?: string; companyName?: string; returnFocus?: RefObject<HTMLElement | null>;
+}
+export function ApplyDialog({ jobId, open, onOpenChange, onApplied, jobTitle, companyName, returnFocus }: Props) {
   const [choices, setChoices] = useState<CvChoice[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadFailed, setLoadFailed] = useState(false);
@@ -64,31 +68,36 @@ export function ApplyDialog({ jobId, open, onOpenChange, onApplied }: Props) {
   }
   return <Dialog.Root open={open} onOpenChange={value => { if (!busy) onOpenChange(value); }}>
     <Dialog.Portal>
-      <Dialog.Backdrop className="fixed inset-0 z-50 bg-black/45" />
-      <Dialog.Popup className="fixed left-1/2 top-1/2 z-50 max-h-[90dvh] w-[calc(100%-2rem)] max-w-xl -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-2xl border bg-background p-6 shadow-xl">
-        <div className="flex items-center justify-between gap-4">
-          <Dialog.Title className="text-xl font-semibold">Ứng tuyển vị trí này</Dialog.Title>
-          <Dialog.Close disabled={busy} aria-label="Đóng hộp ứng tuyển" className="rounded-md p-2 hover:bg-muted"><X className="h-4 w-4" /></Dialog.Close>
-        </div>
-        <Dialog.Description className="mb-6 mt-2 text-sm text-muted-foreground">Chọn CV phù hợp và gửi lời giới thiệu đến nhà tuyển dụng.</Dialog.Description>
-        <form onSubmit={submit} className="space-y-5">
-          {loading ? <p role="status">Đang tải CV…</p> : loadFailed ? <Button type="button" variant="outline" onClick={() => { setLoading(true); setLoadVersion(v => v + 1); }}>Tải lại CV</Button>
-            : choices.length === 0 ? <div className="rounded-lg bg-muted p-4 text-sm"><p>Bạn chưa có CV để ứng tuyển.</p><Link href={applicationLinks.cvs} className="mt-2 inline-block font-medium text-primary underline">Tạo CV</Link></div>
-            : <div className="space-y-2"><label htmlFor="application-cv" className="text-sm font-medium">Chọn CV</label>
-              <select id="application-cv" required value={cvId} onChange={e => setCvId(e.target.value)} disabled={busy} className="h-11 w-full rounded-lg border bg-background px-3 text-sm">
-                <option value="">Chọn một CV</option>{choices.map(cv => <option key={cv.id} value={cv.id}>{cv.name}{cv.targetPosition ? ` — ${cv.targetPosition}` : ""}</option>)}
-              </select><Link href={applicationLinks.cvs} className="text-xs text-primary underline">Quản lý CV của tôi</Link>
-            </div>}
-          <div className="space-y-2"><label htmlFor="application-letter" className="text-sm font-medium">Thư giới thiệu</label>
-            <textarea id="application-letter" rows={5} maxLength={5000} value={coverLetter} onChange={e => setCoverLetter(e.target.value)} disabled={busy} placeholder="Giới thiệu ngắn về bạn và lý do phù hợp với vị trí…" className="w-full rounded-lg border bg-background p-3 text-sm" />
-            <p className="text-right text-xs text-muted-foreground">{coverLetter.length}/5.000 ký tự · Không bắt buộc</p>
+      <Dialog.Backdrop className="career-dialog-backdrop" />
+      <Dialog.Popup className="career career-dialog" finalFocus={returnFocus}>
+        <div className="career-dialog-heading">
+          <div className="career-dialog-title-row">
+            <div><p className="career-eyebrow">HỒ SƠ ỨNG TUYỂN</p><Dialog.Title className="text-xl font-semibold">Ứng tuyển vị trí này</Dialog.Title></div>
+            <Dialog.Close disabled={busy} aria-label="Đóng hộp ứng tuyển" className="career-dialog-close"><X /></Dialog.Close>
           </div>
-          <p className="rounded-lg bg-muted/60 p-3 text-xs leading-relaxed text-muted-foreground">CV sẽ được lưu thành bản PDF tại thời điểm nộp. Các chỉnh sửa CV sau đó không thay đổi bản đã gửi.</p>
-          {error && <div role="alert" className="space-y-2 text-sm text-destructive"><p>{error}</p><Link href="/candidate/applications" className="underline">Xem ứng tuyển của tôi</Link></div>}
-          {uncertain && <div className="space-y-2 text-sm"><p>Chưa xác định được kết quả gửi. Kiểm tra kết quả trước khi gửi lại.</p><Button type="button" variant="outline" disabled={busy} onClick={reconcile}>Kiểm tra kết quả</Button></div>}
-          <div className="flex justify-end gap-3 border-t pt-4">
-            <Dialog.Close disabled={busy} className="rounded-lg border px-4 py-2 text-sm">Huỷ</Dialog.Close>
-            <Button type="submit" disabled={busy || loading || loadFailed || !cvId || uncertain} className="h-10 px-5">{busy ? "Đang xử lý…" : "Gửi ứng tuyển"}</Button>
+          <Dialog.Description className="career-description">Chọn CV phù hợp và gửi lời giới thiệu đến nhà tuyển dụng.</Dialog.Description>
+          {jobTitle && <div className="career-dialog-context"><strong>{jobTitle}</strong>{companyName && <span>{companyName}</span>}</div>}
+        </div>
+        <form onSubmit={submit}>
+          <div className="career-dialog-body">
+          {loading ? <p role="status">Đang tải CV…</p> : loadFailed ? <Button className="career-secondary" type="button" variant="outline" onClick={() => { setLoading(true); setLoadVersion(v => v + 1); }}>Tải lại CV</Button>
+            : choices.length === 0 ? <div className="career-dialog-empty"><p>Bạn chưa có CV để ứng tuyển.</p><Link href={applicationLinks.cvs} className="career-text-link">Tạo CV</Link></div>
+            : <div><label htmlFor="application-cv">Chọn CV</label>
+              <select id="application-cv" required value={cvId} onChange={e => setCvId(e.target.value)} disabled={busy}>
+                <option value="">Chọn một CV</option>{choices.map(cv => <option key={cv.id} value={cv.id}>{cv.name}{cv.targetPosition ? ` — ${cv.targetPosition}` : ""}</option>)}
+              </select><Link href={applicationLinks.cvs} className="career-text-link">Quản lý CV của tôi</Link>
+            </div>}
+          <div><label htmlFor="application-letter">Thư giới thiệu</label>
+            <textarea id="application-letter" rows={5} maxLength={5000} value={coverLetter} onChange={e => setCoverLetter(e.target.value)} disabled={busy} aria-describedby="application-letter-help" placeholder="Giới thiệu ngắn về bạn và lý do phù hợp với vị trí…" />
+            <p id="application-letter-help" className="career-field-help text-right">{coverLetter.length}/5.000 ký tự · Không bắt buộc</p>
+          </div>
+          <p className="career-snapshot-note"><FileCheck2 aria-hidden="true" /><span>CV sẽ được lưu thành bản PDF tại thời điểm nộp. Các chỉnh sửa CV sau đó không thay đổi bản đã gửi.</span></p>
+          {error && <div role="alert" className="career-dialog-error"><p>{error}</p><Link href="/candidate/applications" className="career-text-link">Xem ứng tuyển của tôi</Link></div>}
+          {uncertain && <div className="space-y-2"><p>Chưa xác định được kết quả gửi. Kiểm tra kết quả trước khi gửi lại.</p><Button className="career-secondary" type="button" variant="outline" disabled={busy} onClick={reconcile}>Kiểm tra kết quả</Button></div>}
+          </div>
+          <div className="career-dialog-footer">
+            <Dialog.Close disabled={busy} className="career-secondary">Huỷ</Dialog.Close>
+            <Button type="submit" disabled={busy || loading || loadFailed || !cvId || uncertain} className="career-primary">{busy ? "Đang xử lý…" : "Gửi ứng tuyển"}</Button>
           </div>
         </form>
       </Dialog.Popup>

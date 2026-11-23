@@ -1,5 +1,11 @@
 import { defineConfig, devices } from "@playwright/test";
 
+// Keep browser fixtures independent of a developer's local mock server addresses.
+// Explicit environment overrides still take precedence, as in the existing route tests.
+process.env.NEXT_PUBLIC_JOB_API_PATH ??= "/candidate-career-fixture/jobs";
+process.env.NEXT_PUBLIC_JOB_PAGE_PATH ??= "/candidate/jobs";
+process.env.NEXT_PUBLIC_CV_API_PATH ??= "/profile/cvs";
+
 export default defineConfig({
   testDir: "./e2e",
   fullyParallel: true,
