@@ -8,6 +8,7 @@ import { Button } from "@/app/components/ui/button";
 import { applicationLinks, formatApplicationDate } from "@/config/application-status";
 import type { CandidateJob } from "@/services/candidate-job.service";
 import { ApplyButton } from "./apply-button";
+import { CareerBanner } from "./career-banner";
 
 function normalize(text: string) {
   return text.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[đĐ]/g, "d").toLowerCase();
@@ -33,15 +34,12 @@ export function CandidateJobList({ jobs, feedback }: { jobs: CandidateJob[]; fee
   }
 
   return <>
-    <header className="career-page-heading">
-      <div><p className="career-eyebrow">CƠ HỘI NGHỀ NGHIỆP</p><h1>Tìm công việc phù hợp</h1>
-        <p className="career-description">Khám phá cơ hội mới và bắt đầu hành trình nghề nghiệp của bạn.</p></div>
-      <Link className="career-text-link" href="/candidate/applications">Ứng tuyển của tôi <ArrowRight aria-hidden="true" /></Link>
-    </header>
+    <CareerBanner />
     <SearchForm key={`${query}:${receiving}`} query={query} receiving={receiving} onSearch={search} />
     {feedback ?? <>
       <div className="career-results"><h2>{filtered.length} vị trí <span>trong danh sách đã tải</span></h2>
-        {hasFilters && <button className="career-text-link" onClick={() => search("", "all")}>Xoá bộ lọc</button>}</div>
+        <div className="career-result-tools"><Link className="career-text-link" href="/candidate/applications">Ứng tuyển của tôi <ArrowRight aria-hidden="true" /></Link>
+          {hasFilters && <button className="career-text-link" onClick={() => search("", "all")}>Xoá bộ lọc</button>}</div></div>
       {filtered.length ? <div className="career-job-list">{filtered.map(job => <JobCard key={job.jobId} job={job} />)}</div>
         : <div className="career-feedback"><Search aria-hidden="true" /><h2>{hasFilters ? "Không tìm thấy vị trí phù hợp" : "Chưa có vị trí tuyển dụng"}</h2>
           <p>{hasFilters ? "Thử từ khoá khác hoặc xoá bộ lọc để khám phá thêm cơ hội." : "Hãy quay lại sau để cập nhật những cơ hội mới."}</p></div>}

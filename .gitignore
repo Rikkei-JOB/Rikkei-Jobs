@@ -41,7 +41,8 @@ mock/node_modules/
 web/.pnp
 web/.pnp.js
 web/coverage/
-web/.next/
+web/**/.next/
+web/.next-playwright/
 web/out/
 web/build/
 web/.turbo/

@@ -10,9 +10,13 @@ import org.springframework.stereotype.Component;
 public class InterviewReminderJob {
     private final JdbcTemplate jdbc;
     private final Clock clock;
+    private final CandidateNotificationService candidateNotifications;
     @Value("${app.recruitment.interview-jobs-enabled:true}") private boolean enabled;
+    @org.springframework.transaction.annotation.Transactional
     @Scheduled(cron="0 */15 * * * *") public void scheduled(){if(enabled)enqueueDue();}
+    @org.springframework.transaction.annotation.Transactional
     public int enqueueDue() {
+        candidateNotifications.remindInterviews(clock.instant());
         var now=Timestamp.from(clock.instant());
         return jdbc.update("""
             insert into recruitment.interview_notification_outbox

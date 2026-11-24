@@ -1,0 +1,41 @@
+.career-banner {
+  position: relative;
+  isolation: isolate;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  min-height: 220px;
+  padding: 22px 32px;
+  margin-bottom: 24px;
+  border-radius: 16px;
+  overflow: hidden;
+  background: radial-gradient(ellipse at 86% 16%, #e5757f55, transparent 48%), linear-gradient(110deg, #8f1d2b, #b4232d 65%, #c44c5c);
+}
+.career-banner::after { content: ''; position: absolute; z-index: -1; right: -140px; bottom: -290px; width: 600px; height: 600px; border: 1px solid #ffffff0d; border-radius: 50%; }
+.career-banner-copy { position: relative; z-index: 1; min-width: 0; }
+.career-banner-eyebrow { color: #f6dadd; font-size: 10px; line-height: 16px; font-weight: 600; letter-spacing: .16em; margin-bottom: 6px; }
+.career .career-banner h1 { color: white; font-size: 30px; line-height: 36px; letter-spacing: -.035em; font-weight: 700; }
+.career-banner h1 span { display: block; }
+.career-banner-description { color: #ffe8eb; font-size: 14px; line-height: 22px; margin-top: 8px; }
+.career-banner-profile { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; color: white; font-size: 13px; font-weight: 600; margin-top: 4px; text-underline-offset: 4px; }
+.career-banner-profile:hover { text-decoration: underline; }
+.career .career-banner-profile:focus-visible { outline-color: white; outline-offset: 4px; border-radius: 3px; }
+.career .career-banner-profile svg { width: 16px; height: 16px; }
+.career .career-banner-art { width: 340px; height: auto; flex-shrink: 0; margin: -18px -8px -18px 0; }
+.career-result-tools { display: flex; gap: 8px 20px; align-items: center; flex-wrap: wrap; }
+.career-results { flex-wrap: wrap; }
+@media (min-width: 768px) and (max-width: 1199px) {
+  .career-banner { padding: 22px 28px; }
+  .career .career-banner-art { width: 260px; margin-right: -20px; }
+  .career .career-banner h1 { font-size: 28px; line-height: 34px; }
+}
+@media (max-width: 767px) {
+  .career-banner { min-height: 180px; padding: 18px 20px; margin-bottom: 16px; border-radius: 12px; }
+  .career .career-banner h1 { font-size: 24px; line-height: 30px; }
+  .career-banner-description { display: none; }
+  .career .career-banner-art { position: absolute; right: -48px; bottom: -38px; width: 230px; opacity: .12; z-index: 0; margin: 0; }
+  .career-banner-profile { margin-top: 8px; }
+  .career-result-tools { gap: 8px 16px; }
+  .career-result-tools .career-text-link { font-size: 12px; }
+}

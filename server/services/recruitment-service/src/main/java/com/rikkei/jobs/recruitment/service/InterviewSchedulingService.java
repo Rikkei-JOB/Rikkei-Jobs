@@ -25,6 +25,7 @@ public class InterviewSchedulingService {
     private final IdentityCandidateClient identities;
     private final MeetRoomClient meet;
     private final InterviewNotifications notifications;
+    private final CandidateNotificationService candidateNotifications;
     private final JdbcTemplate jdbc;
     private final Clock clock;
     private final InterviewLifecycleService lifecycle;
@@ -59,6 +60,8 @@ public class InterviewSchedulingService {
         var list=new ArrayList<InterviewSlotResponse>();
         for(var r:requests) {var s=new InterviewSlot();s.setId(UUID.randomUUID());s.setRoundId(c.round().getId());s.setProposalId(proposal);s.setStartAt(r.startAt().toInstant());s.setEndAt(r.endAt().toInstant());s.setStatus("OPEN");s.setCreatedAt(now);slots.save(s);list.add(slotResponse(s));}
         var candidate=identities.get(c.application().getUserId());
+        candidateNotifications.publish(c.application().getUserId(), c.application().getId(), "proposal:"+proposal,
+            "INTERVIEW_INVITATION", "Bạn có lời mời phỏng vấn", c.round().getName()+" tại "+c.application().getCompanyName()+" — chọn khung giờ phù hợp.", "/candidate/interviews", now);
         notifications.enqueue("proposal:"+proposal,"INVITATION",new InterviewNotificationPayload(null,c.round().getId(),c.round().getName(),c.application().getCompanyName(),candidate.fullName(),candidate.email(),c.round().getInterviewerEmail(),null,null,null),List.of(candidate.email()),now);
         return new InterviewProposalResponse(proposal,c.round().getId(),list);
     }
@@ -88,6 +91,8 @@ public class InterviewSchedulingService {
         var s=new InterviewSchedule();s.setId(UUID.randomUUID());s.setRoundId(roundId);s.setSlotId(slotId);s.setMeetUrl(url);s.setStatus("SCHEDULED");s.setCandidateId(c.application().getUserId());s.setCandidateEmail(InterviewResourceLock.email(candidate.email()));s.setInterviewerEmail(InterviewResourceLock.email(c.round().getInterviewerEmail()));s.setCreatedAt(clock.instant());s.setReminder1hSuppressed(!slot.getStartAt().isAfter(clock.instant().plusSeconds(3600)));schedules.saveAndFlush(s);
         for(var other:slots.findByRoundIdOrderByStartAtAsc(roundId)) {if("OPEN".equals(other.getStatus())) {other.setStatus(other.getId().equals(slotId)?"PICKED":"CANCELLED");slots.save(other);}}
         c.round().setScheduledAt(slot.getStartAt());rounds.save(c.round());
+        candidateNotifications.publish(c.application().getUserId(), c.application().getId(), "schedule:"+s.getId()+":confirmed",
+            "INTERVIEW_CONFIRMED", "Lịch phỏng vấn đã được xác nhận", c.round().getName()+" tại "+c.application().getCompanyName()+" — xem thời gian và phòng phỏng vấn.", "/candidate/interviews", clock.instant());
         notifications.cancelPending(roundId);
         notifications.enqueue("schedule:"+s.getId(),"CONFIRMATION",new InterviewNotificationPayload(s.getId(),roundId,c.round().getName(),c.application().getCompanyName(),candidate.fullName(),candidate.email(),s.getInterviewerEmail(),slot.getStartAt(),slot.getEndAt(),url),List.of(s.getCandidateEmail(),s.getInterviewerEmail()),clock.instant());
         return scheduleResponse(s,slot);
