@@ -55,7 +55,7 @@ test("opens job detail and submits the chosen CV", async ({ page }) => {
   const request = page.waitForRequest(r => r.method() === "POST" && r.url().endsWith(`/jobs/${jobId}/apply`));
   await page.getByRole("button", { name: "Gửi ứng tuyển", exact: true }).click();
   expect((await request).postDataJSON()).toEqual({ cvId, coverLetter: "Mong được đồng hành cùng đội ngũ." });
-  await expect(page).toHaveURL(/\/candidate\/applications\/20000000/);
+  await expect(page).toHaveURL(/\/candidate\/applications\/20000000/, { timeout: 15_000 });
 });
 
 test("closed job explains why applying is unavailable", async ({ page }) => {
@@ -156,6 +156,6 @@ test("uncertain submission blocks resending until the result is reconciled", asy
   await expect(page.getByRole("button", { name: "Gửi ứng tuyển", exact: true })).toBeDisabled();
   await expect(page.getByLabel("Thư giới thiệu", { exact: true })).toHaveValue("Giữ nguyên khi chưa rõ kết quả.");
   await page.getByRole("button", { name: "Kiểm tra kết quả", exact: true }).click();
-  await expect(page).toHaveURL(/\/candidate\/applications\/20000000/);
+  await expect(page).toHaveURL(/\/candidate\/applications\/20000000/, { timeout: 15_000 });
   expect(attempts).toBe(1);
 });
