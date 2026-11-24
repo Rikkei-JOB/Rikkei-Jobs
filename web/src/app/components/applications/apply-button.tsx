@@ -20,7 +20,7 @@ export function ApplyButton({ jobId, acceptingApplications, jobTitle, companyNam
     <Button ref={triggerRef} data-application-open={open ? "" : undefined} aria-haspopup="dialog" aria-expanded={open}
       disabled={!hydrated || !acceptingApplications || user?.role !== "CANDIDATE" || user.mustChangePassword}
       onClick={() => setOpen(true)} className={`career-primary h-11 px-5 ${className}`}>{acceptingApplications ? "Ứng tuyển" : "Đã đóng nhận hồ sơ"}</Button>
-    {open && <ApplyDialog jobId={jobId} jobTitle={jobTitle} companyName={companyName} returnFocus={triggerRef}
-      open={open} onOpenChange={setOpen} onApplied={a => router.push(`/candidate/applications/${a.id}`)} />}
+    <ApplyDialog jobId={jobId} jobTitle={jobTitle} companyName={companyName} returnFocus={triggerRef}
+      open={open} onOpenChange={setOpen} onApplied={a => router.push(`/candidate/applications/${a.id}`)} />
   </>;
 }

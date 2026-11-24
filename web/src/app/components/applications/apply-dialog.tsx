@@ -66,10 +66,17 @@ export function ApplyDialog({ jobId, open, onOpenChange, onApplied, jobTitle, co
     } catch (err) { setError(getErrorMessage(err)); }
     finally { submitting.current = false; setBusy(false); }
   }
-  return <Dialog.Root open={open} onOpenChange={value => { if (!busy) onOpenChange(value); }}>
+  return <Dialog.Root open={open} onOpenChange={value => {
+    if (busy) return;
+    if (!value) { setLoading(true); setCvId(""); }
+    onOpenChange(value);
+  }} onOpenChangeComplete={value => {
+    // The mobile action bar must be visible before restoring keyboard focus.
+    if (!value && returnFocus) requestAnimationFrame(() => returnFocus.current?.focus({ preventScroll: true }));
+  }}>
     <Dialog.Portal>
       <Dialog.Backdrop className="career-dialog-backdrop" />
-      <Dialog.Popup className="career career-dialog" finalFocus={returnFocus}>
+      <Dialog.Popup className="career career-dialog" finalFocus={returnFocus ? false : undefined}>
         <div className="career-dialog-heading">
           <div className="career-dialog-title-row">
             <div><p className="career-eyebrow">HỒ SƠ ỨNG TUYỂN</p><Dialog.Title className="text-xl font-semibold">Ứng tuyển vị trí này</Dialog.Title></div>

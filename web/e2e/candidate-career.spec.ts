@@ -117,6 +117,34 @@ test("CV loading can be retried while preserving the introduction", async ({ pag
   await expect(dialog.getByRole("button", { name: "Gửi ứng tuyển", exact: true })).toBeEnabled();
 });
 
+test("reopening refreshes CVs before allowing submission with a new selection", async ({ page }) => {
+  let reads = 0, release!: () => void, started!: () => void;
+  const pending = new Promise<void>(resolve => { release = resolve; });
+  const refreshing = new Promise<void>(resolve => { started = resolve; });
+  await page.route("**/profile/cvs", async route => {
+    if (route.request().method() === "OPTIONS") return route.fulfill({ status: 204, headers: cors });
+    if (++reads === 1) return route.fallback();
+    started(); await pending;
+    await route.fulfill({ headers: cors, json: [{ id: "40000000-0000-0000-0000-000000000002", name: "CV mới", targetPosition: "React Developer" }] });
+  });
+  try {
+    await page.goto(`/candidate/jobs/${jobId}`);
+    const trigger = page.getByRole("button", { name: "Ứng tuyển", exact: true });
+    await trigger.click();
+    await page.getByLabel("Chọn CV").selectOption(cvId);
+    await page.keyboard.press("Escape");
+    await trigger.click();
+    await refreshing;
+    const send = page.getByRole("button", { name: "Gửi ứng tuyển", exact: true });
+    await expect(send).toBeDisabled();
+    release();
+    await expect(page.getByLabel("Chọn CV")).toHaveValue("");
+    await expect(send).toBeDisabled();
+    await page.getByLabel("Chọn CV").selectOption("40000000-0000-0000-0000-000000000002");
+    await expect(send).toBeEnabled();
+  } finally { release(); }
+});
+
 test("uncertain submission blocks resending until the result is reconciled", async ({ page }) => {
   let attempts = 0;
   await page.route(`**/recruitment/jobs/${jobId}/apply`, route => { attempts++; return route.abort("failed"); });
