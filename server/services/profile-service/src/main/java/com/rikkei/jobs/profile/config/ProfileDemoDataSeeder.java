@@ -35,6 +35,10 @@ public class ProfileDemoDataSeeder implements ApplicationRunner {
     private final SkillScoreRepository scores;
     private final SkillProfileService core;
     private final SkillProfileStateRepository states;
+    private final PortfolioProjectRepository portfolio;
+    private final PortfolioMediaRepository portfolioMedia;
+    /** HS-03: mã kỳ thực tập giả cho dự án IOC mẫu, tới khi TT-01 đồng bộ dữ liệu thật. */
+    static final UUID DEMO_INTERNSHIP_ID = UUID.fromString("30000000-0000-0000-0000-000000000001");
 
     @Override
     @Transactional
@@ -70,6 +74,7 @@ public class ProfileDemoDataSeeder implements ApplicationRunner {
             }
             if (candidate.lmsUserId().equals("lms-sv-001")) {
                 seedSelfOnlySkill(userId);
+                seedIocProject(userId);
             }
             core.recomputeSkills(userId);
         }
@@ -102,6 +107,31 @@ public class ProfileDemoDataSeeder implements ApplicationRunner {
         }
         score.setUpdatedAt(Instant.now());
         scores.save(score);
+    }
+
+    private void seedIocProject(UUID userId) {
+        if (portfolio.existsByUserIdAndInternshipId(userId, DEMO_INTERNSHIP_ID)) return;
+        PortfolioProject project = new PortfolioProject();
+        project.setUserId(userId);
+        project.setSource(PortfolioProject.IOC);
+        project.setInternshipId(DEMO_INTERNSHIP_ID);
+        project.setName("Rikkei Jobs – Cổng tuyển dụng nội bộ (IOC mẫu)");
+        project.setRole("Backend Developer");
+        project.setDescription("Dự án thực tập IOC mẫu (seed HS-03, thay bằng dữ liệu TT-01 khi có).");
+        project.setTechStack("Java,Spring Boot,PostgreSQL,Next.js");
+        project.setRepoUrl("https://github.com/Rikkei-JOB/Rikkei-Jobs");
+        project.setStartDate(java.time.LocalDate.parse("2026-06-01"));
+        project.setEndDate(java.time.LocalDate.parse("2026-08-31"));
+        project.setVisible(true);
+        project.setSortOrder(portfolio.maxSortOrder(userId) + 1);
+        portfolio.save(project);
+        PortfolioMedia evidence = new PortfolioMedia();
+        evidence.setProjectId(project.getId());
+        evidence.setType(PortfolioMedia.EVIDENCE);
+        evidence.setUrl("https://github.com/Rikkei-JOB/Rikkei-Jobs/pulls");
+        evidence.setCaption("Biên bản nghiệm thu thực tập (mẫu)");
+        evidence.setCreatedAt(Instant.parse("2026-08-31T00:00:00Z"));
+        portfolioMedia.save(evidence);
     }
 
     // fixtureUserId is deliberately ignored: actual UUIDs are resolved from NT-01's LMS identity mapping.
