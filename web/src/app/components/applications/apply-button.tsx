@@ -21,6 +21,6 @@ export function ApplyButton({ jobId, acceptingApplications, jobTitle, companyNam
       disabled={!hydrated || !acceptingApplications || user?.role !== "CANDIDATE" || user.mustChangePassword}
       onClick={() => setOpen(true)} className={`career-primary h-11 px-5 ${className}`}>{acceptingApplications ? "Ứng tuyển" : "Đã đóng nhận hồ sơ"}</Button>
     <ApplyDialog jobId={jobId} jobTitle={jobTitle} companyName={companyName} returnFocus={triggerRef}
-      open={open} onOpenChange={setOpen} onApplied={a => router.push(`/candidate/applications/${a.id}`)} />
+      open={open} onOpenChange={setOpen} onApplied={a => { setOpen(false); router.push(`/candidate/applications/${a.id}`); }} />
   </>;
 }

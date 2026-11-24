@@ -10,6 +10,7 @@ import { ROLE_MENU, type MenuItem } from "@/config/menu"
 import { ROLE_HOME, ROLE_LABEL } from "@/config/roles"
 import { useLogout } from "@/hooks/use-logout"
 import type { User } from "@/interface/auth"
+import { CandidateShell } from "./candidate-shell"
 
 /** Khung chung sau đăng nhập: thanh trên (tên, vai trò, đăng xuất) và menu theo vai trò. */
 export function AppShell({ user, children }: { user: User; children: React.ReactNode }) {
@@ -20,6 +21,8 @@ export function AppShell({ user, children }: { user: User; children: React.React
   const [menuOpenOn, setMenuOpenOn] = React.useState<string | null>(null)
   const menuOpen = menuOpenOn === pathname
   const items = ROLE_MENU[user.role]
+
+  if (user.role === "CANDIDATE") return <CandidateShell user={user} onLogout={logout}>{children}</CandidateShell>
 
   return (
     <div className="flex min-h-screen flex-col bg-muted/30">

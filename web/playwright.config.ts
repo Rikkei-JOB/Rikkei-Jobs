@@ -12,9 +12,11 @@ export default defineConfig({
   forbidOnly: Boolean(process.env.CI),
   retries: process.env.CI ? 1 : 0,
   reporter: "list",
+  expect: { timeout: 10_000 },
   use: { baseURL: "http://127.0.0.1:3101", trace: "retain-on-failure" },
   projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"], channel: process.env.UT01_BROWSER_CHANNEL } }],
   webServer: {
+    env: { PLAYWRIGHT_TEST: "1" },
     command: "npm run dev -- --hostname 127.0.0.1 --port 3101",
     url: "http://127.0.0.1:3101",
     reuseExistingServer: !process.env.CI,

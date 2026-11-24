@@ -16,6 +16,7 @@ public class ApplicationTransitionServiceImpl implements ApplicationTransitionSe
     private final com.rikkei.jobs.recruitment.service.InterviewLifecycleService interviewLifecycle;
     private final ApplicationStatusHistoryRepository histories;
     private final ApplicationStatusNotificationRepository statusNotifications;
+    private final CandidateNotificationService candidateNotifications;
     private final InterviewRoundRepository rounds;
     private final ApplicationStatusPolicy policy;
     private final OfferEligibilityPolicy offerEligibility;
@@ -58,6 +59,7 @@ public class ApplicationTransitionServiceImpl implements ApplicationTransitionSe
         notification.setApplicationId(a.getId()); notification.setUserId(a.getUserId());
         notification.setStatus("PENDING"); notification.setCreatedAt(now); notification.setNextAttemptAt(now);
         statusNotifications.save(notification);
+        candidateNotifications.statusChanged(a, history.getId(), target, now);
         return applications.saveAndFlush(a);
     }
 }

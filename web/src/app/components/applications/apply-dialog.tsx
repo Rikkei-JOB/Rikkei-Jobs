@@ -70,10 +70,11 @@ export function ApplyDialog({ jobId, open, onOpenChange, onApplied, jobTitle, co
     if (busy) return;
     if (!value) { setLoading(true); setCvId(""); }
     onOpenChange(value);
-  }} onOpenChangeComplete={value => {
-    // The mobile action bar must be visible before restoring keyboard focus.
-    if (!value && returnFocus) requestAnimationFrame(() => returnFocus.current?.focus({ preventScroll: true }));
-  }}>
+  }}
+    onOpenChangeComplete={value => {
+      // Restore after the popup releases focus and the mobile action bar is visible.
+      if (!value && returnFocus) requestAnimationFrame(() => returnFocus.current?.focus({ preventScroll: true }));
+    }}>
     <Dialog.Portal>
       <Dialog.Backdrop className="career-dialog-backdrop" />
       <Dialog.Popup className="career career-dialog" finalFocus={returnFocus ? false : undefined}>

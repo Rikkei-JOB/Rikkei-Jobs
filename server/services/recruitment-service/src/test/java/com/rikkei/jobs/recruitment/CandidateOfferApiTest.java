@@ -30,6 +30,13 @@ class CandidateOfferApiTest extends ApplicationIntegrationSupport {
     @Autowired InterviewRoundService rounds;
     @Autowired OfferCommandService offers;
 
+    @Test void offerNotificationLinksToTheActualOfferAndHidesPrivateNotes() throws Exception {
+        OfferResponse offer = readyOffer();
+        mvc.perform(get("/recruitment/me/notifications").header("Authorization", candidate()))
+            .andExpect(status().isOk()).andExpect(jsonPath("$.items[0].type").value("OFFER"))
+            .andExpect(jsonPath("$.items[0].href").value("/candidate/offers/" + offer.id()));
+    }
+
     @Test void onlyOwnerCanReadOrAcceptAndAcceptanceCreatesEmployment() throws Exception {
         OfferResponse offer = readyOffer();
         var outsider = token(UUID.randomUUID(), Role.CANDIDATE, null);
