@@ -34,7 +34,8 @@ export function CompanyHeader({ company, subline, actions, tabs, titleAs: Title 
         </div>
         {actions ? <div className="flex flex-wrap gap-2">{actions}</div> : null}
       </div>
-      {tabs ? <div className="flex gap-1 overflow-x-auto border-t border-border px-2">{tabs}</div> : null}
+      {/* overflow-y-hidden: gạch chân tab đang chọn cao hơn khung 1px, không chặn thì trình duyệt có thanh cuộn cổ điển (Windows) hiện thanh cuộn dọc. */}
+      {tabs ? <div className="flex gap-1 overflow-x-auto overflow-y-hidden border-t border-border px-2">{tabs}</div> : null}
     </div>
   );
 }
