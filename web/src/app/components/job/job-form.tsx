@@ -298,7 +298,7 @@ export function JobForm({ job, companyLocked }: JobFormProps) {
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="flex items-center gap-2">
-          <h1 className="font-heading text-lg font-semibold">{!job ? "Tạo JD" : readOnly ? "Xem JD" : "Sửa JD"}</h1>
+          <h1 className="text-xl font-semibold text-[#18233a]">{!job ? "Tạo JD" : readOnly ? "Xem JD" : "Sửa JD"}</h1>
           {status ? <JobStatusBadge status={status} /> : null}
         </div>
         <div className="flex gap-2">
@@ -322,7 +322,7 @@ export function JobForm({ job, companyLocked }: JobFormProps) {
               aria-current={step === n ? "step" : undefined}
               onClick={() => setStep(n)}
               className={`rounded-full border px-3 py-1 font-medium transition-colors focus-visible:ring-2 focus-visible:ring-ring/30 focus-visible:outline-none ${
-                step === n ? "border-blue-600 bg-blue-600 text-white" : "border-border hover:bg-muted"
+                step === n ? "border-primary bg-primary text-primary-foreground" : "border-border hover:bg-muted"
               }`}
             >
               {n}. {label}

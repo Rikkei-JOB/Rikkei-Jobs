@@ -58,7 +58,7 @@ function HrJobsView() {
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h1 className="font-heading text-lg font-semibold">JD của {company?.name ?? "công ty"}</h1>
+        <h1 className="text-xl font-semibold text-[#18233a]">JD của {company?.name ?? "công ty"}</h1>
         {locked ? null : (
           <Button size="sm" render={<Link href="/hr/jobs/new" />} nativeButton={false}>
             + Tạo JD
@@ -78,7 +78,7 @@ function HrJobsView() {
               Mở để sửa
             </Link>
           ) : null}
-            <button type="button" aria-label="Đóng thông báo" onClick={() => setFeedback(null)} className="text-base leading-none">
+            <button type="button" aria-label="Đóng thông báo" onClick={() => setFeedback(null)} className="text-base leading-none focus-visible:outline-2 focus-visible:outline-primary">
               ×
             </button>
           </span>

@@ -53,7 +53,7 @@ export default function StaffCompanyDetailPage() {
             subline={
               <>
                 MST {company.taxCode} ·{" "}
-                <span className={company.status === "LOCKED" ? "text-destructive" : "text-primary"}>
+                <span className={company.status === "LOCKED" ? "text-destructive" : "text-green-700"}>
                   {company.status === "LOCKED" ? "Đã khoá" : "Hoạt động"}
                 </span>
               </>

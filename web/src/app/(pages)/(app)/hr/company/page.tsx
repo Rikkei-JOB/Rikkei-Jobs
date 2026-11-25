@@ -2,10 +2,12 @@
 
 import * as React from "react"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 import { Alert } from "@/app/components/ui/alert"
 import { Button } from "@/app/components/ui/button"
 import { CompanyHeader } from "@/app/components/company/company-header"
 import { CompanyOpenJobs } from "@/app/components/company/company-open-jobs"
+import { ConfirmDialog } from "@/app/components/job/confirm-dialog"
 import { CompanyProfileForm, type CompanyTab } from "@/app/components/company/company-profile-form"
 import { useAuthGuard } from "@/hooks/use-auth-guard"
 import { useMyCompany } from "@/hooks/use-my-company"
@@ -16,7 +18,10 @@ import { getErrorMessage } from "@/services/api"
 export default function HrCompanyPage() {
   const allowed = useAuthGuard({ roles: ["HR"] })
   const { data: company, error, isPending, refetch } = useMyCompany(allowed)
-  const { data: openJobs = [] } = useOpenJobs(allowed)
+  const { data: openJobs = [], error: jobsError, isPending: jobsPending, refetch: refetchJobs } = useOpenJobs(allowed)
+  const router = useRouter()
+  const [dirty, setDirty] = React.useState(false)
+  const [confirmLeave, setConfirmLeave] = React.useState(false)
   const [tab, setTab] = React.useState<CompanyTab>("intro")
 
   if (!allowed) return null
@@ -25,7 +30,7 @@ export default function HrCompanyPage() {
   const tabs: { id: CompanyTab; label: string }[] = [
     { id: "intro", label: "Giới thiệu" },
     { id: "contact", label: "Thông tin liên hệ" },
-    { id: "jobs", label: `Việc làm đang tuyển (${openJobs.length})` },
+    { id: "jobs", label: jobsPending || jobsError ? "Việc làm đang tuyển" : `Việc làm đang tuyển (${openJobs.length})` },
   ]
 
   return (
@@ -47,9 +52,15 @@ export default function HrCompanyPage() {
             company={company}
             subline={`MST ${company.taxCode} · ${company.status === "ACTIVE" ? "Đang hoạt động" : "Đang bị khoá"} · Liên hệ cán bộ để đổi`}
             actions={
-              <Button size="sm" render={<Link href="/hr/company/preview" />} nativeButton={false}>
-                Xem như ứng viên
-              </Button>
+              dirty ? (
+                <Button size="sm" onClick={() => setConfirmLeave(true)}>
+                  Xem như ứng viên
+                </Button>
+              ) : (
+                <Button size="sm" render={<Link href="/hr/company/preview" />} nativeButton={false}>
+                  Xem như ứng viên
+                </Button>
+              )
             }
             tabs={
               <div role="tablist" aria-label="Hồ sơ công ty" className="flex gap-1">
@@ -73,8 +84,31 @@ export default function HrCompanyPage() {
             }
           />
           {locked ? <Alert>Công ty đang bị khoá, bạn chỉ xem được hồ sơ.</Alert> : null}
-          <CompanyProfileForm company={company} disabled={locked} tab={tab} onTabChange={setTab} />
-          {tab === "jobs" ? <CompanyOpenJobs jobs={openJobs} locked={locked} /> : null}
+          <CompanyProfileForm company={company} disabled={locked} tab={tab} onTabChange={setTab} onDirtyChange={setDirty} />
+          {tab === "jobs" ? (
+            jobsError ? (
+              <Alert variant="destructive" className="flex items-center justify-between gap-2">
+                <span>{getErrorMessage(jobsError)}</span>
+                <Button variant="outline" size="sm" onClick={() => refetchJobs()}>
+                  Thử lại
+                </Button>
+              </Alert>
+            ) : jobsPending ? (
+              <p className="text-xs text-muted-foreground">Đang tải...</p>
+            ) : (
+              <CompanyOpenJobs jobs={openJobs} locked={locked} />
+            )
+          ) : null}
+          {confirmLeave ? (
+            <ConfirmDialog
+              title="Rời trang khi chưa lưu?"
+              description="Trang xem trước chỉ hiện bản đã lưu. Thay đổi chưa lưu sẽ mất."
+              confirmLabel="Vẫn xem trước"
+              cancelLabel="Ở lại"
+              onConfirm={() => router.push("/hr/company/preview")}
+              onCancel={() => setConfirmLeave(false)}
+            />
+          ) : null}
         </>
       ) : null}
     </div>

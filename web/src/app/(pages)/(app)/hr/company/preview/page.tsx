@@ -14,7 +14,7 @@ import { getErrorMessage } from "@/services/api"
 export default function HrCompanyPreviewPage() {
   const allowed = useAuthGuard({ roles: ["HR"] })
   const { data: company, error, isFetching, refetch } = useMyCompany(allowed, { refetchOnMount: "always" })
-  const { data: openJobs = [], isFetching: jobsFetching } = useOpenJobs(allowed)
+  const { data: openJobs = [], error: jobsError, isPending: jobsPending, refetch: refetchJobs } = useOpenJobs(allowed)
 
   if (!allowed) return null
 
@@ -45,7 +45,22 @@ export default function HrCompanyPreviewPage() {
               </Button>
             }
           />
-          <CompanyPublicView company={company} jobs={jobsFetching ? [] : openJobs} />
+          <CompanyPublicView
+            company={company}
+            jobs={openJobs}
+            jobsState={
+              jobsError ? (
+                <Alert variant="destructive" className="flex items-center justify-between gap-2">
+                  <span>{getErrorMessage(jobsError)}</span>
+                  <Button variant="outline" size="sm" onClick={() => refetchJobs()}>
+                    Thử lại
+                  </Button>
+                </Alert>
+              ) : jobsPending ? (
+                <p className="text-xs text-muted-foreground">Đang tải...</p>
+              ) : null
+            }
+          />
         </>
       ) : null}
     </div>

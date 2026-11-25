@@ -19,6 +19,8 @@ interface CompanyProfileFormProps {
   tab: CompanyTab;
   /** Yêu cầu trang cha chuyển sang tab có ô bị lỗi. */
   onTabChange: (tab: CompanyTab) => void;
+  /** Báo cho trang cha khi form có thay đổi chưa lưu. */
+  onDirtyChange?: (dirty: boolean) => void;
 }
 
 export type CompanyTab = "intro" | "contact" | "jobs";
@@ -41,7 +43,7 @@ function toFormValues(company: Company): CompanyProfileValues {
 const FIELDS = ["name", "industry", "size", "address", "city", "website", "description"] as const;
 const CONTACT_FIELDS: readonly string[] = ["address", "city", "website"];
 
-export function CompanyProfileForm({ company, disabled, tab, onTabChange }: CompanyProfileFormProps) {
+export function CompanyProfileForm({ company, disabled, tab, onTabChange, onDirtyChange }: CompanyProfileFormProps) {
   const {
     register,
     handleSubmit,
@@ -53,6 +55,9 @@ export function CompanyProfileForm({ company, disabled, tab, onTabChange }: Comp
     defaultValues: toFormValues(company),
   });
   const update = useUpdateMyCompany();
+  React.useEffect(() => {
+    onDirtyChange?.(isDirty);
+  }, [isDirty, onDirtyChange]);
   const [savedAt, setSavedAt] = React.useState<Date | null>(null);
   const [formError, setFormError] = React.useState<string | null>(null);
 

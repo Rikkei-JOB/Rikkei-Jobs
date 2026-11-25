@@ -57,7 +57,7 @@ function StaffCompaniesView() {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between gap-2">
-        <h1 className="font-heading text-lg font-semibold">Doanh nghiệp</h1>
+        <h1 className="text-xl font-semibold text-[#18233a]">Doanh nghiệp</h1>
         <Button onClick={() => setCreating(true)}>+ Tạo công ty</Button>
       </div>
 

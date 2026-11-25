@@ -6,12 +6,12 @@ import { CompanyMark } from "@/app/components/company/company-mark"
 import { formatDate, WORK_MODE_LABEL } from "@/app/components/job/job-labels"
 import type { JobFormValues } from "@/schemas/job.schema"
 
-/** VND -> triệu: nguyên thì không lẻ, ngược lại một chữ số thập phân. */
+/** VND -> triệu: nguyên thì không lẻ, ngược lại một chữ số thập phân (dấu phẩy kiểu Việt). */
 function millions(value: string): string | null {
   const n = Number(value.trim())
   if (value.trim() === "" || !Number.isFinite(n)) return null
   const m = n / 1_000_000
-  return Number.isInteger(m) ? String(m) : m.toFixed(1)
+  return m.toLocaleString("vi-VN", { maximumFractionDigits: 1 })
 }
 
 export function formatSalaryText(min: string, max: string): string | null {
@@ -39,8 +39,9 @@ export function JobPreviewCard({ values, companyName, companyLogoUrl, skillNames
     values.workMode ? WORK_MODE_LABEL[values.workMode] : null,
     values.deadline ? `Hạn ${formatDate(values.deadline)}` : null,
   ].filter((item): item is string => Boolean(item))
-  const required = values.skills.filter((s) => s.required)
-  const optional = values.skills.filter((s) => !s.required)
+  const skills = values.skills.filter((s) => s.skillId)
+  const required = skills.filter((s) => s.required)
+  const optional = skills.filter((s) => !s.required)
   const description = values.description.trim()
 
   return (
@@ -54,7 +55,7 @@ export function JobPreviewCard({ values, companyName, companyLogoUrl, skillNames
         {title || "Tiêu đề JD"}
       </h2>
       {meta.length > 0 ? <p className="text-xs text-slate-500">{meta.join(" · ")}</p> : null}
-      {values.skills.length > 0 ? (
+      {skills.length > 0 ? (
         <ul className="mt-3 flex flex-wrap gap-1.5" aria-label="Kỹ năng">
           {required.map((s) => (
             <li key={s.skillId} className="rounded-md bg-[#fff1f2] px-2 py-0.5 text-xs font-medium text-[#b4232d]">

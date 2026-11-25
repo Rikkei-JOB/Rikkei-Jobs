@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { CompanyMark } from "@/app/components/company/company-mark";
 import { LOCKED_JOBS_NOTICE } from "@/app/components/company/company-open-jobs";
 import { LEVEL_LABEL, formatDate } from "@/app/components/job/job-labels";
@@ -16,7 +17,7 @@ const SECTION_CLASS = "space-y-2 rounded-xl border border-border bg-white p-4";
  * Phần thân trang công ty như ứng viên thấy (phần đầu trang do CompanyHeader hiển thị).
  * Không hiện thông tin nội bộ (mã số thuế, trạng thái, ngày tạo).
  */
-export function CompanyPublicView({ company, jobs }: { company: Company; jobs: JobSummary[] }) {
+export function CompanyPublicView({ company, jobs, jobsState = null }: { company: Company; jobs: JobSummary[]; jobsState?: ReactNode }) {
   const locked = company.status === "LOCKED";
   return (
     <div className="space-y-4">
@@ -67,12 +68,13 @@ export function CompanyPublicView({ company, jobs }: { company: Company; jobs: J
       </section>
 
       <section className={SECTION_CLASS}>
-        <h2 className="font-heading text-sm font-semibold">Việc làm đang tuyển ({jobs.length})</h2>
+        <h2 className="font-heading text-sm font-semibold">Việc làm đang tuyển{jobsState ? "" : ` (${jobs.length})`}</h2>
         {locked ? <p className="text-xs text-muted-foreground">{LOCKED_JOBS_NOTICE}</p> : null}
-        {jobs.length === 0 ? (
+        {jobsState}
+        {!jobsState && jobs.length === 0 ? (
           <p className="text-xs text-muted-foreground">Hiện chưa có vị trí nào đang tuyển.</p>
         ) : null}
-        {jobs.length > 0 ? (
+        {!jobsState && jobs.length > 0 ? (
           <ul className="grid gap-3 sm:grid-cols-2">
             {jobs.map((job) => {
               const hint = deadlineHint(job.deadline);

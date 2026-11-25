@@ -56,7 +56,7 @@ export function HrAccountTable({ accounts, onLock, onUnlock }: HrAccountTablePro
                   </div>
                 ) : (
                   <div className="space-y-0.5">
-                    <span className="inline-block rounded-full bg-primary/10 px-2 py-0.5 text-primary">Hoạt động</span>
+                    <span className="inline-block rounded-full bg-green-100 px-2 py-0.5 text-green-700">Hoạt động</span>
                     {account.tempLockedUntil ? (
                       <div className="text-muted-foreground">Tạm khoá do sai mật khẩu đến {formatTime(account.tempLockedUntil)}</div>
                     ) : null}

@@ -12,10 +12,15 @@ export function CompanyOpenJobs({ jobs, locked }: { jobs: JobSummary[]; locked: 
       {locked ? <p className="text-xs text-muted-foreground">{LOCKED_JOBS_NOTICE}</p> : null}
       {jobs.length === 0 ? (
         <p className="text-xs text-muted-foreground">
-          Chưa có vị trí đang tuyển.{" "}
-          <Link href="/hr/jobs/new" className="text-primary underline underline-offset-2">
-            Tạo JD
-          </Link>
+          Chưa có vị trí đang tuyển.
+          {locked ? null : (
+            <>
+              {" "}
+              <Link href="/hr/jobs/new" className="text-primary underline underline-offset-2">
+                Tạo JD
+              </Link>
+            </>
+          )}
         </p>
       ) : (
         <ul className="divide-y divide-border rounded-lg border border-border bg-white">

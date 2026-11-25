@@ -55,7 +55,7 @@ export function CompanyTable({ items }: { items: StaffCompanyItem[] }) {
                     className={
                       company.status === "LOCKED"
                         ? "rounded-full bg-destructive/10 px-2 py-0.5 text-destructive"
-                        : "rounded-full bg-primary/10 px-2 py-0.5 text-primary"
+                        : "rounded-full bg-green-100 px-2 py-0.5 text-green-700"
                     }
                   >
                     {STATUS_LABEL[company.status]}
