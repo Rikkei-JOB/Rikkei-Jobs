@@ -12,10 +12,11 @@ import { ConfirmDialog } from "@/app/components/job/confirm-dialog"
 import { clearJobFormHandoff, peekJobFormHandoff, setJobFormHandoff, setJobListNotice } from "@/app/components/job/job-flash"
 import { JobGeneralStep } from "@/app/components/job/job-general-step"
 import { JobSkillsStep } from "@/app/components/job/job-skills-step"
+import { JobPreviewPane } from "@/app/components/job/job-preview-card"
 import { JobStatusBadge } from "@/app/components/job/job-status-badge"
 import { zodResolver } from "@/helper/zod-resolver"
 import { useAuthStore } from "@/hooks/use-auth-store"
-import { companyKeys } from "@/hooks/use-my-company"
+import { companyKeys, useMyCompany } from "@/hooks/use-my-company"
 import { jobKeys, useCloseJob, useSaveJob, useSubmitJob } from "@/hooks/use-my-jobs"
 import { useSkillCatalog } from "@/hooks/use-skill-catalog"
 import type { Job } from "@/interface/job"
@@ -77,6 +78,9 @@ export function JobForm({ job, companyLocked }: JobFormProps) {
   const queryClient = useQueryClient()
   const userId = useAuthStore((state) => state.user?.id)
   const { data: catalog = [] } = useSkillCatalog()
+  const { data: company } = useMyCompany(true)
+  const skillNames = React.useMemo(() => Object.fromEntries(catalog.map((skill) => [skill.id, skill.name])), [catalog])
+  const [previewOpen, setPreviewOpen] = React.useState(false)
 
   const form = useForm<JobFormValues>({
     resolver: zodResolver(jobFormSchema),
@@ -291,18 +295,13 @@ export function JobForm({ job, companyLocked }: JobFormProps) {
   const onSave = approved ? requestResubmit : saveDraft
 
   return (
-    <div className="mx-auto max-w-3xl space-y-4">
+    <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="flex items-center gap-2">
           <h1 className="font-heading text-lg font-semibold">{!job ? "Tạo JD" : readOnly ? "Xem JD" : "Sửa JD"}</h1>
           {status ? <JobStatusBadge status={status} /> : null}
         </div>
         <div className="flex gap-2">
-          {approved && !companyLocked ? (
-            <Button variant="destructive" size="sm" disabled={busy} onClick={() => setDialog("close")}>
-              Đóng JD
-            </Button>
-          ) : null}
           <Button variant="outline" size="sm" render={<Link href="/hr/jobs" />} nativeButton={false}>
             Quay lại danh sách
           </Button>
@@ -337,68 +336,106 @@ export function JobForm({ job, companyLocked }: JobFormProps) {
         ))}
       </ol>
 
-      <Card>
-        <CardContent>
-          <form noValidate onSubmit={(e) => e.preventDefault()} className="space-y-4">
-            {/* Khoá mọi ô khi đang lưu/gửi: thay đổi lúc đó sẽ không được gửi và bị reset() ghi đè. */}
-            <fieldset disabled={readOnly || busy} className="min-w-0">
-              {/* Giữ cả hai bước trong DOM để chuyển bước không mất trạng thái ô nhập. */}
-              <div hidden={step !== 1}>
-                <JobGeneralStep form={form} />
-              </div>
-              <div hidden={step !== 2}>
-                <JobSkillsStep form={form} catalog={catalog} readOnly={readOnly} disabled={busy} />
-              </div>
-            </fieldset>
+      <div className="grid gap-6 xl:grid-cols-[minmax(0,3fr)_minmax(0,2fr)] xl:items-start">
+        <Card>
+          <CardContent>
+            <form noValidate onSubmit={(e) => e.preventDefault()} className="space-y-4">
+              {/* Khoá mọi ô khi đang lưu/gửi: thay đổi lúc đó sẽ không được gửi và bị reset() ghi đè. */}
+              <fieldset disabled={readOnly || busy} className="min-w-0">
+                {/* Giữ cả hai bước trong DOM để chuyển bước không mất trạng thái ô nhập. */}
+                <div hidden={step !== 1}>
+                  <JobGeneralStep form={form} />
+                </div>
+                <div hidden={step !== 2}>
+                  <JobSkillsStep form={form} catalog={catalog} readOnly={readOnly} disabled={busy} />
+                </div>
+              </fieldset>
 
-            <div className="flex flex-wrap items-center justify-between gap-2 border-t pt-4">
-              {step === 1 ? (
-                <>
-                  <div>
-                    {readOnly ? null : (
-                      <Button type="button" variant="outline" disabled={busy} onClick={onSave}>
-                        {action === "save" ? "Đang lưu..." : saveLabel}
-                      </Button>
-                    )}
-                  </div>
-                  <Button type="button" onClick={() => setStep(2)}>
-                    Tiếp: Kỹ năng →
-                  </Button>
-                </>
-              ) : (
-                <>
+              <div className="flex flex-wrap items-center justify-between gap-2 border-t pt-4">
+                {step === 1 ? (
+                  <>
+                    <div />
+                    <Button type="button" onClick={() => setStep(2)}>
+                      Tiếp: Kỹ năng →
+                    </Button>
+                  </>
+                ) : (
                   <Button type="button" variant="outline" onClick={() => setStep(1)}>
                     ← Quay lại
                   </Button>
-                  {readOnly ? null : (
-                    <div className="flex gap-2">
-                      <Button type="button" variant={canSubmit ? "outline" : "default"} disabled={busy} onClick={onSave}>
-                        {action === "save" ? "Đang lưu..." : saveLabel}
-                      </Button>
-                      {canSubmit ? (
-                        <Button type="button" disabled={busy} onClick={sendForReview}>
-                          {action === "submit" ? "Đang gửi..." : "Gửi duyệt"}
-                        </Button>
-                      ) : null}
-                    </div>
-                  )}
-                </>
-              )}
-            </div>
+                )}
+              </div>
 
-            {savedAt && !isDirty && !busy ? (
-              <p role="status" className="text-xs text-emerald-700 dark:text-emerald-400">
-                ✓ Đã lưu lúc {savedAt.toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" })}
-              </p>
+              {formError ? (
+                <p role="alert" className="text-xs/relaxed text-destructive">
+                  {formError}
+                </p>
+              ) : null}
+            </form>
+          </CardContent>
+        </Card>
+
+        <aside className="hidden xl:sticky xl:top-[88px] xl:block" aria-label="Xem trước như ứng viên">
+          <JobPreviewPane
+            control={form.control}
+            companyName={company?.name ?? ""}
+            companyLogoUrl={company?.logoUrl}
+            skillNames={skillNames}
+          />
+        </aside>
+      </div>
+
+      <div className="xl:hidden">
+        <button
+          type="button"
+          aria-expanded={previewOpen}
+          aria-controls="job-preview-panel"
+          onClick={() => setPreviewOpen((open) => !open)}
+          className="flex w-full items-center justify-between rounded-lg border bg-card px-4 py-2 text-sm font-medium focus-visible:ring-2 focus-visible:ring-ring/30 focus-visible:outline-none"
+        >
+          Xem trước như ứng viên
+          <span aria-hidden="true">{previewOpen ? "▲" : "▼"}</span>
+        </button>
+        {previewOpen ? (
+          <div id="job-preview-panel" className="mt-2">
+            <JobPreviewPane
+              control={form.control}
+              companyName={company?.name ?? ""}
+              companyLogoUrl={company?.logoUrl}
+              skillNames={skillNames}
+            />
+          </div>
+        ) : null}
+      </div>
+
+      {readOnly ? null : (
+        <div className="sticky bottom-0 z-20 flex flex-wrap items-center justify-between gap-2 border-t bg-background/95 py-3 backdrop-blur">
+          <p role="status" className="text-xs text-muted-foreground">
+            {isDirty ? (
+              "Có thay đổi chưa lưu"
+            ) : savedAt && !busy ? (
+              <span className="text-emerald-700 dark:text-emerald-400">
+                Đã lưu nháp lúc {savedAt.toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit", hour12: false })}
+              </span>
             ) : null}
-            {formError ? (
-              <p role="alert" className="text-xs/relaxed text-destructive">
-                {formError}
-              </p>
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {approved ? (
+              <Button type="button" variant="destructive" disabled={busy} onClick={() => setDialog("close")}>
+                Đóng JD
+              </Button>
             ) : null}
-          </form>
-        </CardContent>
-      </Card>
+            <Button type="button" variant={step === 2 && !canSubmit ? "default" : "outline"} disabled={busy} onClick={onSave}>
+              {action === "save" ? "Đang lưu..." : saveLabel}
+            </Button>
+            {step === 2 && canSubmit ? (
+              <Button type="button" disabled={busy} onClick={sendForReview}>
+                {action === "submit" ? "Đang gửi..." : "Gửi duyệt"}
+              </Button>
+            ) : null}
+          </div>
+        </div>
+      )}
 
       {dialog === "resubmit" ? (
         <ConfirmDialog
