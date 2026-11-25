@@ -18,7 +18,7 @@ export class ApiError extends Error {
 }
 
 /** Các endpoint này tự xử lý 401 (sai mật khẩu, vé hết hạn...), không được coi là "phiên hết hạn". */
-const PUBLIC_AUTH_PATHS = ["/auth/login", "/auth/sso", "/auth/forgot-password", "/auth/reset-password"];
+const PUBLIC_AUTH_PATHS = ["/auth/login", "/auth/sso", "/auth/forgot-password", "/auth/reset-password", "/profile/public/"];
 
 export const api = axios.create({
   baseURL: env.apiUrl,
