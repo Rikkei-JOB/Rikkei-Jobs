@@ -83,7 +83,7 @@ Quên mật khẩu với tài khoản bị khoá vẫn trả 200 nhưng **không
 
 **Khung điều hướng (làm lại)**: HR và STAFF dùng chung `ManagerShell`, thanh ngang màu đỏ Rikkei thay cho menu dọc. HR có 5 mục phẳng. STAFF gom nhóm: "Duyệt ▾" (Duyệt hồ sơ, Duyệt JD) · Đơn ứng tuyển · Doanh nghiệp · Ghép thực tập · "Hệ thống ▾" (Đồng bộ dữ liệu, Báo cáo). Menu tài khoản có "Đổi mật khẩu" (chỉ HR) và "Đăng xuất". Từ 768px trở xuống thanh thu thành nút ☰. Màu của khung nằm trong token `.admin-theme`; mentor, admin và ứng viên giữ giao diện cũ.
 
-**Đầu trang công ty (`CompanyHeader`)**: viền đỏ 4px phía trên, logo, tên và dòng thông tin (ngành, quy mô, thành phố); dùng chung ở `/hr/company`, trang xem trước và chi tiết công ty của STAFF.
+**Đầu trang công ty (`CompanyHeader`)**: viền đỏ 4px phía trên, logo, tên và dòng thông tin (ngành • quy mô • thành phố • website); dùng chung ở `/hr/company`, trang xem trước và chi tiết công ty của STAFF.
 
 | Trang | Vai trò | Nội dung |
 | --- | --- | --- |
