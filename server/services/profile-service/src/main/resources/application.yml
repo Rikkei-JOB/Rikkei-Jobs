@@ -31,6 +31,8 @@ app:
   profile:
     demo-data-enabled: false
     files-dir: ${PROFILE_FILES_DIR:.runtime/profile-files}
+    # HS-04: QR trên CV trỏ tới ${web-base-url}/p/{public_token}.
+    web-base-url: ${WEB_BASE_URL:http://localhost:3000}
     identity-base-url: ${IDENTITY_SERVICE_URL:http://localhost:8081}
     identity-service-key: ${INTERNAL_SERVICE_KEY:dev-internal-key}
     internal-service-key: ${INTERNAL_SERVICE_KEY:dev-internal-key}

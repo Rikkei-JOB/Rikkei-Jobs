@@ -34,6 +34,7 @@ export interface MenuItem {
 export const ROLE_MENU: Record<Role, MenuItem[]> = {
   CANDIDATE: [
     { label: "Hồ sơ", href: "/candidate/profile", icon: UserRound },
+    { label: "CV của tôi", href: "/candidate/cvs", icon: FileText },
     { label: "Việc làm", href: "/candidate/jobs", icon: Briefcase },
     { label: "Ứng tuyển", href: "/candidate/applications", icon: Send },
     { label: "Offer", href: "/candidate/offers", icon: Handshake },
