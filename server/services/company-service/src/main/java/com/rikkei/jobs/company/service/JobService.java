@@ -4,6 +4,7 @@ import com.rikkei.jobs.common.dto.response.PageResponse;
 import com.rikkei.jobs.company.dto.request.JobRequest;
 import com.rikkei.jobs.company.dto.request.JobSkillRequest;
 import com.rikkei.jobs.company.dto.response.JobResponse;
+import com.rikkei.jobs.company.dto.response.JobStatusSummary;
 import com.rikkei.jobs.company.dto.response.JobSummary;
 import com.rikkei.jobs.company.entity.JobStatus;
 import java.util.List;
@@ -34,4 +35,7 @@ public interface JobService {
 
     /** page từ 1, size 1–100; {@code status} null = mọi trạng thái; mới cập nhật trước. */
     PageResponse<JobSummary> listMine(UUID hrUserId, JobStatus status, int page, int size);
+
+    /** Số JD theo từng trạng thái (đủ 5 khoá) và số JD APPROVED hết hạn trong 7 ngày; công ty LOCKED vẫn xem được. */
+    JobStatusSummary summaryMine(UUID hrUserId);
 }

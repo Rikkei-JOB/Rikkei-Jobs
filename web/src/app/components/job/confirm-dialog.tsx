@@ -12,10 +12,12 @@ interface ConfirmDialogProps {
   /** Đang xử lý: khoá cả hai nút và không cho đóng hộp. */
   pending?: boolean
   destructive?: boolean
+  /** Nhãn nút huỷ; mặc định "Huỷ". */
+  cancelLabel?: string
 }
 
 /** Hộp xác nhận; chỉ render khi mở (theo mẫu add-hr-dialog). */
-export function ConfirmDialog({ title, description, confirmLabel, onConfirm, onCancel, pending = false, destructive = false }: ConfirmDialogProps) {
+export function ConfirmDialog({ title, description, confirmLabel, onConfirm, onCancel, pending = false, destructive = false, cancelLabel = "Huỷ" }: ConfirmDialogProps) {
   return (
     <Dialog.Root
       open
@@ -30,7 +32,7 @@ export function ConfirmDialog({ title, description, confirmLabel, onConfirm, onC
           <Dialog.Description className="mb-4 mt-2 text-xs/relaxed text-muted-foreground">{description}</Dialog.Description>
           <div className="flex justify-end gap-2">
             <Dialog.Close disabled={pending} render={<Button type="button" variant="outline" />}>
-              Huỷ
+              {cancelLabel}
             </Dialog.Close>
             <Button type="button" variant={destructive ? "destructive" : "default"} disabled={pending} onClick={onConfirm}>
               {pending ? "Đang xử lý..." : confirmLabel}

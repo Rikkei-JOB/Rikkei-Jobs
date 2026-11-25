@@ -50,6 +50,9 @@ export interface StaffCompanyItem {
   status: CompanyStatus;
   hrCount: number;
   jdCount: number;
+  logoUrl: string | null;
+  city: string | null;
+  size: string | null;
   createdAt: string;
 }
 

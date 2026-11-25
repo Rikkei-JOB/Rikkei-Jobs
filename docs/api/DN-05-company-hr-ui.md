@@ -38,7 +38,7 @@ Qua gateway `http://localhost:8080/api/v1` (gateway bỏ `/api/v1`). Route `comp
 
 | Endpoint | Vai trò | Thành công | Lỗi chính |
 | --- | --- | --- | --- |
-| `GET /staff/companies?q=&status=&page=&size=` | `STAFF` | 200 `PageResponse<StaffCompanyItem>` | 400 `BAD_REQUEST` (page/size/status sai) |
+| `GET /staff/companies?q=&status=&page=&size=` | `STAFF` | 200 `PageResponse<StaffCompanyItem>` (thêm `logoUrl`, `city`, `size` để hiện logo và dòng phụ) | 400 `BAD_REQUEST` (page/size/status sai) |
 | `GET /staff/companies/{id}` | `STAFF` | 200 `StaffCompanyDetail` (kèm `hrAccounts`) | 404 `NOT_FOUND`, 503 `EXTERNAL_UNAVAILABLE` |
 | `POST /staff/hr-accounts/{userId}/lock` body `{reason}` | `STAFF` | 200 `StaffHrAccount` | 400 `VALIDATION_ERROR` (lý do trống / > 500 ký tự), 404 `NOT_FOUND`, 503 |
 | `POST /staff/hr-accounts/{userId}/unlock` | `STAFF` | 200 `StaffHrAccount` | 404 `NOT_FOUND`, 503 |
@@ -81,12 +81,16 @@ Quên mật khẩu với tài khoản bị khoá vẫn trả 200 nhưng **không
 
 ## 4. Giao diện
 
+**Khung điều hướng (làm lại)**: STAFF dùng `ManagerShell`, thanh ngang màu đỏ Rikkei thay cho menu dọc, gom nhóm: "Duyệt ▾" (Duyệt hồ sơ, Duyệt JD) · Đơn ứng tuyển · Doanh nghiệp · Ghép thực tập · "Hệ thống ▾" (Đồng bộ dữ liệu, Báo cáo); menu tài khoản có "Đăng xuất"; từ 768px trở xuống thanh thu thành nút ☰. HR dùng thanh ngang `HrShell` của UT-02 (mục "Thông tin công ty" và "Đổi mật khẩu" nằm trong menu tài khoản); các trang DN của HR dùng đầu trang `hr-page-heading` của khung đó và cách gọi "Tin tuyển dụng". Màu của khung cán bộ nằm trong token `.admin-theme`; token này cũng áp lên `body` khi có `HrShell` để hộp thoại của trang HR có màu đỏ. Mentor, admin và ứng viên giữ giao diện cũ.
+
+**Đầu trang công ty (`CompanyHeader`)**: viền đỏ 4px phía trên, logo, tên và dòng thông tin (ngành • quy mô • thành phố • website); dùng chung ở `/hr/company`, trang xem trước và chi tiết công ty của STAFF.
+
 | Trang | Vai trò | Nội dung |
 | --- | --- | --- |
-| `/staff/companies` | STAFF | Bảng công ty (tên, MST, trạng thái, số HR, số JD); ô tìm debounce 300 ms, lọc trạng thái, phân trang 20 dòng; `q`, `status`, `page` nằm trên URL; nút **"+ Tạo công ty"** mở hộp thoại (Tên công ty *, Mã số thuế * 10 hoặc 13 chữ số, Ngành, Quy mô, Địa chỉ, Thành phố, Website, Giới thiệu) gọi `POST /staff/companies` của DN-01; trùng mã số thuế báo "Mã số thuế đã tồn tại" ngay trong hộp; tạo xong chuyển sang trang chi tiết để thêm HR |
-| `/staff/companies/[id]` | STAFF | Thông tin công ty, bảng HR với trạng thái; nút Khoá (hộp thoại bắt buộc lý do), Mở khoá, Thêm HR |
-| `/hr/company` | HR | Hai cột: form sửa hồ sơ + thẻ tóm tắt; logo xem trước ngay khi chọn, báo trạng thái lưu; nút "Xem như ứng viên" |
-| `/hr/company/preview` | HR | Trang công ty như ứng viên thấy, luôn tải lại bản đã lưu |
+| `/staff/companies` | STAFF | Danh sách gọn: mỗi dòng có logo, tên, dòng phụ (thành phố, quy mô), MST, trạng thái, số HR, số JD; ô tìm debounce 300 ms, lọc trạng thái, phân trang 20 dòng; `q`, `status`, `page` nằm trên URL; nút **"+ Tạo công ty"** mở hộp thoại (Tên công ty *, Mã số thuế * 10 hoặc 13 chữ số, Ngành, Quy mô, Địa chỉ, Thành phố, Website, Giới thiệu) gọi `POST /staff/companies` của DN-01; trùng mã số thuế báo "Mã số thuế đã tồn tại" ngay trong hộp; tạo xong chuyển sang trang chi tiết để thêm HR |
+| `/staff/companies/[id]` | STAFF | `CompanyHeader`, thông tin công ty, mục "Tài khoản HR (n)" với trạng thái (tab "JD của công ty" làm ở DN-07); nút Khoá (hộp thoại bắt buộc lý do), Mở khoá, Thêm HR |
+| `/hr/company` | HR | `CompanyHeader` rồi ba tab Giới thiệu / Thông tin liên hệ / Việc làm đang tuyển (n), chung một form và một thanh lưu dính đáy; logo xem trước ngay khi chọn, báo trạng thái lưu; nút "Xem như ứng viên". Công ty bị khoá hiện "Công ty đang bị khoá, ứng viên hiện không thấy việc làm" |
+| `/hr/company/preview` | HR | Trang công ty như ứng viên thấy (cùng `CompanyHeader`, danh sách việc làm đang tuyển thật), luôn tải lại bản đã lưu |
 
 Khi token của HR đã bị khoá, request kế tiếp trả 401 và axios đưa về `/login`. Các endpoint đăng nhập công khai không gắn bearer cũ, để token của tài khoản bị khoá không làm hỏng việc đăng nhập bằng tài khoản khác.
 
@@ -151,17 +155,19 @@ Các lớp test nằm ở `server/services/company-service/src/test` và `server
 - mở khoá hr2 → hr2 đăng nhập lại được;
 - HR sửa hồ sơ, đổi logo (xem trước rồi "Dùng ảnh này"), lưu, "Xem như ứng viên" hiện đúng bản đã lưu.
 
-**Ảnh minh chứng** (chụp 2026-11-19 khi chạy lại toàn hệ thống; Công ty A đã được đổi tên thành "RikkeiSoft" trên DB dev):
+**Ảnh minh chứng** (giao diện sau khi làm lại — DN-05 UI refresh, chụp ngày 2026-11-25; riêng ảnh đăng nhập bị khoá giữ từ lần chạy 2026-11-17. Công ty A trên DB dev tên "RikkeiSoft"):
 
 | Tiêu chí | Ảnh | Nội dung |
 | --- | --- | --- |
-| 6 | ![Danh sách công ty](screenshots/DN-05/company-list.png) | `/staff/companies`: bảng công ty với mã số thuế, số HR, số JD, trạng thái; nút "+ Tạo công ty" |
-| 6 | ![Tìm theo mã số thuế](screenshots/DN-05/find-company-by-taxID.png) | Tìm `0101234567` ra đúng RikkeiSoft |
-| — | ![Tạo công ty trùng mã số thuế](screenshots/DN-05/create-company-dialog.png) | Hộp "Tạo công ty" báo "Mã số thuế đã tồn tại" ngay trong hộp |
-| 4 | ![Khoá không lý do](screenshots/DN-05/lock-reason-required.png) | Khoá `hr-new1` để trống lý do: "Vui lòng nhập lý do khoá", không gửi request |
-| 1 | ![Khoá thành công](screenshots/DN-05/account-locked-successful.png) | "Đã khoá tài khoản hr-new1@rikkeijobs.test"; dòng HR hiện "Đã khoá", thời điểm và lý do, nút "Mở khoá" |
+| — | ![Thanh ngang cán bộ](screenshots/DN-05/staff-topbar.png) | staff1: thanh ngang, nhóm "Duyệt ▾" đang mở (Duyệt hồ sơ, Duyệt JD), mục "Doanh nghiệp" đang chọn (chữ đỏ, gạch chân) |
+| 6 | ![Danh sách công ty](screenshots/DN-05/company-list.png) | `/staff/companies`: ô tìm + lọc trạng thái + "3 công ty" một hàng; mỗi dòng có logo hoặc chữ cái đầu, dòng phụ "thành phố · quy mô", nhãn "Hoạt động" xanh |
+| 6 | ![Tìm theo mã số thuế](screenshots/DN-05/find-company-by-taxID.png) | Tìm `0101234567` ra đúng RikkeiSoft ("1 công ty") |
+| — | ![Tạo công ty trùng mã số thuế](screenshots/DN-05/create-company-dialog.png) | Hộp "Tạo công ty" nhập mã số thuế `0101234567` đã có: báo "Mã số thuế đã tồn tại" ngay dưới ô, không tạo công ty |
+| 4 | ![Khoá không lý do](screenshots/DN-05/lock-reason-required.png) | Trang chi tiết RikkeiSoft (đầu trang công ty), khoá `hr-new1` để trống lý do: "Vui lòng nhập lý do khoá" |
+| 1 | ![Khoá thành công](screenshots/DN-05/account-locked-successful.png) | "Đã khoá tài khoản `hr-new1@rikkeijobs.test`"; dòng HR "Đã khoá" (đỏ) kèm thời điểm, lý do, nút "Mở khoá"; HR khác "Hoạt động" (xanh). Đã mở khoá lại sau khi chụp |
 | 2 | ![Đăng nhập bị khoá](screenshots/DN-05/login-account-locked.png) | hr-new1 đăng nhập: "Tài khoản đã bị khoá" |
-| 5 | ![Xem như ứng viên](screenshots/DN-05/hr-company-preview.png) | HR xem trang công ty như ứng viên thấy, đúng bản đã lưu (mục việc làm đang tuyển tạm thời luôn 0, theo thiết kế) |
+| 5 | ![Xem như ứng viên](screenshots/DN-05/hr-company-preview.png) | Trang xem trước: đầu trang công ty, Giới thiệu, Thông tin liên hệ, "Việc làm đang tuyển (2)" dạng thẻ với tin thật (JD6, JD7) |
+| 5 | ![Rời trang khi chưa lưu](screenshots/DN-05/hr-company-unsaved-confirm.png) | `/hr/company` đang sửa ô Ngành chưa lưu, bấm "Xem như ứng viên": hộp "Rời trang khi chưa lưu?" ("Ở lại" / "Vẫn xem trước") |
 
 Tiêu chí 3 (mở khoá rồi đăng nhập lại) không chụp lại; đã kiểm ở lần chạy 2026-11-17 phía trên và có test tự động ở mục 6.
 

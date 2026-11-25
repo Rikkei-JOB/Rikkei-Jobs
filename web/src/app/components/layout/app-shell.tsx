@@ -12,6 +12,7 @@ import { useLogout } from "@/hooks/use-logout"
 import type { User } from "@/interface/auth"
 import { CandidateShell } from "./candidate-shell"
 import { HrShell } from "./hr-shell"
+import { ManagerShell } from "./manager-shell"
 
 /** Khung chung sau đăng nhập: thanh trên (tên, vai trò, đăng xuất) và menu theo vai trò. */
 export function AppShell({ user, children }: { user: User; children: React.ReactNode }) {
@@ -24,7 +25,9 @@ export function AppShell({ user, children }: { user: User; children: React.React
   const items = ROLE_MENU[user.role]
 
   if (user.role === "CANDIDATE") return <CandidateShell user={user} onLogout={logout}>{children}</CandidateShell>
+  // HR dùng thanh ngang của UT-02 (HrShell); cán bộ dùng ManagerShell (DN-05).
   if (user.role === "HR") return <HrShell user={user} onLogout={logout}>{children}</HrShell>
+  if (user.role === "STAFF") return <ManagerShell user={user} onLogout={logout}>{children}</ManagerShell>
 
   return (
     <div className="flex min-h-screen flex-col bg-muted/30">
