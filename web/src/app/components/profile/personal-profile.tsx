@@ -95,8 +95,9 @@ export function PersonalProfile() {
   );
 }
 
-function initialsOf(name: string) {
-  const words = name.trim().split(/\s+/);
+function initialsOf(name: string | null | undefined) {
+  // Hồ sơ chưa có họ tên (hoặc API trả thiếu) không được làm sập cả trang.
+  const words = (name ?? "").trim().split(/\s+/);
   return ((words.at(-2)?.[0] ?? "") + (words.at(-1)?.[0] ?? "")).toUpperCase() || "?";
 }
 
@@ -118,7 +119,8 @@ const VISIBILITY = {
 function VisibilityBadge({ profile }: { profile: CandidateProfile }) {
   const { data } = useQuery({ queryKey: ["profile-publication", profile.userId], queryFn: candidateProfileService.getOwn,
     initialData: profile, staleTime: 0, refetchOnMount: false, refetchOnWindowFocus: true });
-  const visibility = VISIBILITY[data.visibility];
+  // Trạng thái lạ hoặc thiếu thì coi như riêng tư thay vì làm sập trang.
+  const visibility = VISIBILITY[data?.visibility as keyof typeof VISIBILITY] ?? VISIBILITY.PRIVATE;
   return <span className={`${BADGE} py-1 ${visibility.className}`}>
     <Globe className="size-3.5" aria-hidden />{visibility.label}</span>;
 }
