@@ -1,63 +1,61 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useSearchParams } from "next/navigation";
 import { ArrowLeft, Building2, Download } from "lucide-react";
 import { Button } from "@/app/components/ui/button";
 import { useAuthGuard } from "@/hooks/use-auth-guard";
+import { useAuthStore } from "@/hooks/use-auth-store";
 import { applicationLinks, formatApplicationDate } from "@/config/application-status";
-import type { ApplicationDetail } from "@/interface/application";
 import { applicationService } from "@/services/application.service";
 import { getErrorMessage } from "@/services/api";
 import { ApplicationStatusBadge } from "./application-status-badge";
 import { ApplicationProgress } from "./application-progress";
 import { ApplicationHistory } from "./application-history";
 import { WithdrawDialog } from "./withdraw-dialog";
+import { candidateListReturnUrl } from "./journey-navigation";
+import "./candidate-journey.css";
 
 export function ApplicationDetailView({ id }: { id: string }) {
   const allowed = useAuthGuard({ roles: ["CANDIDATE"] });
-  const [application, setApplication] = useState<ApplicationDetail | null>(null);
-  const [error, setError] = useState("");
-  const [version, setVersion] = useState(0);
-  const [downloading, setDownloading] = useState(false);
-  useEffect(() => {
-    if (!allowed) return;
-    let active = true;
-    applicationService.detail(id).then(value => { if (active) { setApplication(value); setError(""); } })
-      .catch(err => { if (active) setError(getErrorMessage(err)); });
-    return () => { active = false; };
-  }, [allowed, id, version]);
+  const user = useAuthStore(s => s.user), token = useAuthStore(s => s.token);
+  return allowed ? <ApplicationDetail key={`${user?.id}:${token}:${id}`} id={id} /> : null;
+}
+
+function ApplicationDetail({ id }: { id: string }) {
+  const params = useSearchParams();
+  const user = useAuthStore(s => s.user), token = useAuthStore(s => s.token);
+  const client = useQueryClient(), queryKey = ["candidate-application", user?.id, token, id];
+  const query = useQuery({ queryKey, queryFn: () => applicationService.detail(id), staleTime: 0, refetchOnMount: "always" });
+  const [downloadError, setDownloadError] = useState(""), [downloading, setDownloading] = useState(false);
   async function download() {
-    setDownloading(true);
+    if (downloading) return;
+    setDownloading(true); setDownloadError("");
     try {
-      const blob = await applicationService.downloadSnapshot(id);
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement("a");
+      const blob = await applicationService.downloadSnapshot(id), url = URL.createObjectURL(blob), link = document.createElement("a");
       link.href = url; link.download = `cv-da-nop-${id}.pdf`; link.click();
       setTimeout(() => URL.revokeObjectURL(url), 1000);
-    } catch (err) { setError(getErrorMessage(err)); }
+    } catch (err) { setDownloadError(getErrorMessage(err)); }
     finally { setDownloading(false); }
   }
-  if (!allowed) return null;
-  return <main className="min-h-screen bg-muted/20 px-4 py-8 sm:px-6"><div className="mx-auto max-w-5xl">
-    <Link href="/candidate/applications" className="mb-6 inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-primary"><ArrowLeft className="h-4 w-4" />Ứng tuyển của tôi</Link>
-    {error && <div role="alert" className="mb-5 rounded-lg border border-destructive/20 bg-destructive/5 p-4 text-sm"><p>{error}</p><Button variant="outline" className="mt-3" onClick={() => setVersion(v => v + 1)}>Tải lại</Button></div>}
-    {!application && !error && <p role="status">Đang tải chi tiết đơn…</p>}
-    {application && <div className="space-y-6">
-      <section className="rounded-xl border bg-background p-5 sm:p-7">
-        <div className="flex flex-wrap items-start justify-between gap-4"><div><h1 className="text-2xl font-semibold sm:text-3xl">{application.jobTitle}</h1><p className="mt-3 flex items-center gap-2 text-sm text-muted-foreground"><Building2 className="h-4 w-4" />{application.companyName}</p></div><ApplicationStatusBadge status={application.status} /></div>
-        <p className="mt-4 text-sm text-muted-foreground">Ngày nộp: {formatApplicationDate(application.createdAt)}</p>
-        <div className="mt-6 flex flex-wrap items-center gap-3">
-          <Button variant="outline" className="h-10 px-4" onClick={download} disabled={downloading}><Download className="mr-2 h-4 w-4" />{downloading ? "Đang tải…" : "Tải CV đã nộp"}</Button>
-          {application.canWithdraw && <WithdrawDialog id={id} onWithdrawn={setApplication} onConflict={() => setVersion(v => v + 1)} />}
-          {(application.status === "REJECTED" || application.status === "WITHDRAWN") && <Link href={applicationLinks.job(application.jobId)} className="rounded-lg bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground">Ứng tuyển lại</Link>}
-          <Link href={applicationLinks.job(application.jobId)} className="text-sm text-primary underline">Xem tin tuyển dụng</Link>
-        </div>
-        <p className="mt-4 text-xs text-muted-foreground">Bản CV đã nộp được giữ nguyên, kể cả khi bạn chỉnh sửa CV sau đó.</p>
-      </section>
-      <ApplicationProgress status={application.status} history={application.history} />
-      {application.coverLetter && <section className="rounded-xl border bg-background p-5 sm:p-6"><h2 className="mb-3 font-semibold">Thư giới thiệu đã gửi</h2><p className="whitespace-pre-wrap break-words text-sm leading-relaxed">{application.coverLetter}</p></section>}
-      <ApplicationHistory items={application.history} />
+  const application = !query.isError ? query.data : undefined;
+  return <div className="journey">
+    <Link href={candidateListReturnUrl(params.get("returnTo"), "/candidate/applications")} className="journey-back"><ArrowLeft aria-hidden="true" />Ứng tuyển của tôi</Link>
+    {query.isPending && <p role="status" aria-busy="true">Đang tải chi tiết đơn…</p>}
+    {query.isError && <div role="alert" className="journey-error"><p>{getErrorMessage(query.error)}</p><Button variant="outline" onClick={() => query.refetch()}>Tải lại</Button></div>}
+    {application && <div className="journey-stack">
+      <section className="journey-card"><div className="journey-card-top"><div><div className="journey-eyebrow">Hồ sơ ứng tuyển</div><h1>{application.jobTitle}</h1><p className="journey-company"><Building2 aria-hidden="true" />{application.companyName}</p><p className="journey-small journey-muted mt-4">Ngày nộp: {formatApplicationDate(application.createdAt)}</p></div><ApplicationStatusBadge status={application.status} /></div></section>
+      <div className="journey-detail-grid"><div className="journey-stack">
+        <ApplicationProgress status={application.status} history={application.history} />
+        {application.status === "INTERVIEW" && <div className="journey-info"><p>Theo dõi lời mời và chọn khung giờ tại trang phỏng vấn.</p><Link href="/candidate/interviews" className="journey-link">Xem lịch phỏng vấn →</Link></div>}
+        {application.status === "OFFER" && <div className="journey-info"><p>Bạn có thư mời nhận việc. Vui lòng kiểm tra email hoặc thông báo để xem và phản hồi.</p></div>}
+        {application.coverLetter && <section className="journey-card"><h2>Thư giới thiệu đã gửi</h2><p className="journey-note mt-4">{application.coverLetter}</p></section>}
+        <ApplicationHistory items={application.history} />
+      </div><aside className="journey-aside"><section className="journey-card"><h2>Tài liệu đã nộp</h2><div className="journey-actions"><Button variant="outline" onClick={download} disabled={downloading}><Download className="mr-2 h-4 w-4" />{downloading ? "Đang tải…" : "Tải CV đã nộp"}</Button><p className="journey-small journey-muted">Bản CV đã nộp được giữ nguyên, kể cả khi bạn chỉnh sửa CV sau đó.</p>{downloadError && <p role="alert" className="journey-error">{downloadError}</p>}<Link href={applicationLinks.job(application.jobId)} className="journey-link">Xem tin tuyển dụng →</Link></div></section>
+        {(application.canWithdraw || ["REJECTED", "WITHDRAWN"].includes(application.status)) && <section className="journey-card"><h2>Thao tác hồ sơ</h2><div className="journey-actions">{application.canWithdraw && <WithdrawDialog id={id} onWithdrawn={value => { client.setQueryData(queryKey, value); void client.invalidateQueries({ queryKey: ["candidate-applications"] }); }} onConflict={() => { void query.refetch(); }} />}{["REJECTED", "WITHDRAWN"].includes(application.status) && <Link href={applicationLinks.job(application.jobId)} className="journey-link">Ứng tuyển lại →</Link>}</div></section>}
+      </aside></div>
     </div>}
-  </div></main>;
+  </div>;
 }

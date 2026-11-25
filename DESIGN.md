@@ -123,12 +123,14 @@ Ví dụ dùng component và semantic utility sau khi theme đã được chuẩ
 Breakpoint desktop của sản phẩm là **1200px**. Tailwind `xl` mặc định là 1280px; dùng `min-[1200px]` hoặc media query 1200px khi cần đúng ngưỡng này.
 
 - **Ứng viên:** top bar sticky 64px; logo, menu, chuông, tài khoản. Dưới 1200px dùng menu thu gọn, chuông luôn tiếp cận được.
+- **Offer ứng viên:** phản hồi tại trang chi tiết mở từ email/thông báo, bắt buộc đăng nhập đúng tài khoản; không có menu hoặc danh sách Offer riêng. Trang chi tiết quay lại hồ sơ ứng tuyển. Đổi tài khoản phải đồng bộ các tab và xoá cache của phiên trước.
 - **HR:** top bar sticky 64px, menu Tin tuyển dụng / Hồ sơ ứng tuyển / Lịch phỏng vấn / Thực tập sinh; menu tài khoản chứa công ty, đổi mật khẩu, đăng xuất. Dưới 1200px thu gọn menu. Khung nội dung tối đa 1200px (padding ngoài 24px). Thông báo HR chờ API riêng; không dùng API thông báo ứng viên.
 - **Staff/Admin/Mentor:** giữ khung hiện có trong giai đoạn chuyển đổi; áp dụng tokens/component chung khi sửa màn.
 - **Trang chi tiết:** nội dung chính và aside 280px khi đủ rộng; tablet về một cột. Sticky aside lấy offset theo header, dùng `--app-sticky-offset` hiện có.
 - **CTA đáy mobile:** chừa padding nội dung cùng safe-area; modal mở thì CTA nền được ẩn; sau đóng trả focus khi control đã hiện lại.
 - **Lớp hiển thị:** nội dung thông thường; CTA đáy 15; header ứng viên 30; menu/popover 40; modal/backdrop 50. Kiểm tra stacking context trước khi tăng z-index.
 - **Banner tìm việc:** gradient `#8F1D2B → #B4232D`, minh hoạ SVG công nghệ; cao 220px desktop/tablet và 180px mobile. Banner đặt trên thanh tìm kiếm.
+- **Banner ứng tuyển/phỏng vấn:** dùng `ui/task-banner.tsx` và CSS module, gradient cùng phong cách banner tìm việc, SVG hồ sơ/lịch hẹn chỉ trang trí. Giữ tên trang làm H1 duy nhất; mô tả và CTA/thông tin múi giờ bên trái. Ứng viên min-height 200px, HR compact min-height 160px; chiều cao tự tăng khi nội dung dài. Mobile padding 20px, H1 24/30px, ẩn minh hoạ để ưu tiên chữ. Bộ lọc, tabs và chuyển Tuần/Danh sách đặt dưới banner trên surface sáng. Ảnh trước/sau tại `docs/design/task-banners/`.
 
 Trang không tràn ngang ở 360px. Tên vị trí/công ty và nội dung dài được wrap; phần chi tiết hiển thị đầy đủ. Giới hạn cuộn ngang trong vùng bảng khi thật sự cần, giữ các hành động chính có thể truy cập.
 
@@ -176,10 +178,12 @@ Các đường dẫn tính từ gốc repo:
 | `web/src/app/components/layout/hr-shell.tsx` | Top bar và điều hướng HR |
 | `web/src/app/components/layout/hr-shell.css` | Mapping token chung vào HR và responsive trong giai đoạn chuyển đổi |
 | `web/src/app/components/applications/career.css` | Theme ứng viên hiện có, cần hợp nhất dần với theme chung |
+| `web/src/app/components/applications/candidate-journey.css` | Mapping token chung và responsive cho đơn ứng tuyển, phỏng vấn, offer ứng viên |
 | `web/src/app/components/applications/career-banner.tsx` | Banner SVG theo phong cách được duyệt |
 | `web/src/config/application-status.ts` | Nhãn và màu trạng thái ứng tuyển |
 | `docs/design/candidate-banner/` | Ảnh tham khảo banner desktop/tablet/mobile |
 | `docs/design/candidate-topbar/` | Ảnh tham khảo top bar và thông báo |
+| `docs/design/candidate-journey/` | Ảnh Playwright đơn ứng tuyển, phỏng vấn và offer với fixture |
 
 Các bản đặc tả riêng trong `docs/superpowers/specs/` giải thích từng tính năng. Quy định nền tảng dùng tài liệu này; khi một đặc tả cũ khác chuẩn chung, ghi rõ phần đang chuyển đổi trong PR.
 

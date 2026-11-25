@@ -36,7 +36,6 @@ export const ROLE_MENU: Record<Role, MenuItem[]> = {
     { label: "Hồ sơ", href: "/candidate/profile", icon: UserRound },
     { label: "Việc làm", href: "/candidate/jobs", icon: Briefcase },
     { label: "Ứng tuyển", href: "/candidate/applications", icon: Send },
-    { label: "Offer", href: "/candidate/offers", icon: Handshake },
     { label: "Phỏng vấn", href: "/candidate/interviews", icon: CalendarDays },
     { label: "Lộ trình", href: "/candidate/roadmap", icon: Map },
     { label: "Trợ lý AI", href: "/candidate/assistant", icon: Bot },

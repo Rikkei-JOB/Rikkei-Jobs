@@ -27,7 +27,7 @@ function SsoCallback() {
       .sso(ticket)
       .then((result) => {
         setSession(result.accessToken, result.user)
-        router.replace(pathAfterLogin(result.user.role))
+        router.replace(result.user.mustChangePassword ? "/change-password" : pathAfterLogin(result.user.role))
       })
       .catch((e) => setError(getErrorMessage(e)))
   }, [ticket, router, setSession])

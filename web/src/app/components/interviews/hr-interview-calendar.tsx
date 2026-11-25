@@ -8,6 +8,7 @@ import { useAuthGuard } from "@/hooks/use-auth-guard";
 import { getErrorMessage } from "@/services/api";
 import { interviewService } from "@/services/interview.service";
 import { currentMonday, dayLabel, interviewTime, interviewClock, shiftDay } from "./interview-time";
+import { TaskBanner } from "@/app/components/ui/task-banner";
 export function HrInterviewCalendar() {
   const allowed = useAuthGuard({ roles: ["HR"] });
   const [week, setWeek] = useState(currentMonday), [email, setEmail] = useState(""), [filter, setFilter] = useState(""), [status, setStatus] = useState("");
@@ -21,7 +22,11 @@ export function HrInterviewCalendar() {
   const from = `${week}T00:00:00+07:00`, to = `${shiftDay(week, 7)}T00:00:00+07:00`;
   const query = useQuery({ queryKey: ["interviews", "company", viewerId, token, week, filter, status], queryFn: ({ signal }) => interviewService.companyAll({ from, to, interviewerEmail: filter || undefined, status: status || undefined }, signal), enabled: allowed });
   if (!allowed) return null;
-  return <div className="hr-page"><header className="hr-page-heading"><div><p className="hr-eyebrow">KẾ HOẠCH TUYỂN DỤNG</p><h1>Lịch phỏng vấn</h1><p className="hr-description">Theo dõi lịch toàn công ty · Giờ Việt Nam (UTC+07:00)</p></div><div className="flex gap-2" role="group" aria-label="Cách xem lịch"><Button variant={view === "week" ? "default" : "outline"} aria-pressed={view === "week"} onClick={() => setView("week")}><CalendarDays aria-hidden="true" />Tuần</Button><Button variant={view === "list" ? "default" : "outline"} aria-pressed={view === "list"} onClick={() => setView("list")}><List aria-hidden="true" />Danh sách</Button></div></header>
+  return <div className="hr-page">
+    <TaskBanner title="Lịch phỏng vấn" eyebrow="Kế hoạch tuyển dụng" description="Chủ động lịch hẹn, kết nối nhân tài. Theo dõi lịch phỏng vấn và phối hợp cùng đội ngũ tuyển dụng." illustration="interviews" compact>
+      <span>Giờ Việt Nam · UTC+7</span>
+    </TaskBanner>
+    <div className="flex flex-wrap gap-2" role="group" aria-label="Cách xem lịch"><Button variant={view === "week" ? "default" : "outline"} aria-pressed={view === "week"} onClick={() => setView("week")}><CalendarDays aria-hidden="true" />Tuần</Button><Button variant={view === "list" ? "default" : "outline"} aria-pressed={view === "list"} onClick={() => setView("list")}><List aria-hidden="true" />Danh sách</Button></div>
     <div className="flex flex-wrap items-center gap-2"><Button variant="outline" onClick={() => setWeek(shiftDay(week, -7))}>Tuần trước</Button><Button variant="outline" onClick={() => setWeek(currentMonday())}>Hôm nay</Button><Button variant="outline" onClick={() => setWeek(shiftDay(week, 7))}>Tuần sau</Button><strong data-testid="calendar-range" className="ml-2 text-sm">{dayLabel(week)} – {dayLabel(shiftDay(week, 6))}</strong></div>
     <form className="hr-surface hr-filter-bar" onSubmit={e => { e.preventDefault(); setFilter(email.trim()); }}><label className="text-sm">Người phỏng vấn<input aria-label="Lọc email người phỏng vấn" type="email" placeholder="Tất cả người phỏng vấn" value={email} onChange={e => setEmail(e.target.value)} className="mt-1 block w-64 max-w-full rounded-lg border bg-background p-2" /></label><label className="text-sm">Trạng thái<select aria-label="Lọc trạng thái lịch" value={status} onChange={e => setStatus(e.target.value)} className="mt-1 block rounded-lg border bg-background p-2"><option value="">Đã xác nhận và hoàn thành</option><option value="SCHEDULED">Đã xác nhận</option><option value="DONE">Đã hoàn thành</option><option value="CANCELLED">Đã huỷ</option></select></label><Button type="submit" variant="outline">Lọc</Button></form>
     {query.isPending && <p role="status">Đang tải lịch…</p>}{query.isError && <div role="alert"><p>{getErrorMessage(query.error)}</p><Button variant="outline" onClick={() => query.refetch()}>Thử lại</Button></div>}{!query.isError && query.data?.length === 0 && <p className="rounded-xl border p-6 text-muted-foreground">Tuần này chưa có lịch phù hợp.</p>}

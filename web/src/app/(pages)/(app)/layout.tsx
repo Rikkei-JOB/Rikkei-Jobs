@@ -25,10 +25,14 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   // Làm mới thông tin người dùng một lần; token hết hạn sẽ tự đưa về /login (services/api.ts).
   React.useEffect(() => {
     if (!signedIn) return
-    authService.me().then(setUser).catch(() => undefined)
+    const session = useAuthStore.getState()
+    authService.me().then(value => {
+      const current = useAuthStore.getState()
+      if (current.token === session.token && current.user?.id === session.user?.id) setUser(value)
+    }).catch(() => undefined)
   }, [signedIn, setUser])
 
   if (access === "pending" || !user) return null
 
-  return <AppShell user={user}>{access === "forbidden" ? <Forbidden role={user.role} /> : children}</AppShell>
+  return <AppShell user={user}>{access === "forbidden" ? <Forbidden role={user.role} allowSwitchAccount={/^\/candidate\/offers\/[^/]+$/.test(pathname)} /> : children}</AppShell>
 }

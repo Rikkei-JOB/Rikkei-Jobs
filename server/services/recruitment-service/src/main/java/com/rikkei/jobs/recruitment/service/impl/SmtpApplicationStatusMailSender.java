@@ -10,6 +10,8 @@ import jakarta.mail.internet.MimeMessage;
 import java.nio.charset.StandardCharsets;
 import java.util.UUID;
 import java.text.NumberFormat;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.Locale;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.MailPreparationException;
@@ -19,6 +21,8 @@ import org.springframework.stereotype.Component;
 
 @Component
 public class SmtpApplicationStatusMailSender implements ApplicationStatusMailSender {
+    private static final DateTimeFormatter OFFER_DEADLINE = DateTimeFormatter.ofPattern("HH:mm dd/MM/uuuu")
+        .withZone(ZoneId.of("Asia/Ho_Chi_Minh"));
     private final JavaMailSender sender;
     private final OfferRepository offers;
     private final String from;
@@ -54,9 +58,11 @@ public class SmtpApplicationStatusMailSender implements ApplicationStatusMailSen
                     + ".\nLương: " + salary + " VND/tháng (gross)"
                     + "\nNgày bắt đầu: " + terms.getStartDate()
                     + "\nĐịa điểm: " + terms.getWorkLocation()
-                    + "\nHạn trả lời: " + terms.getResponseDeadline()
+                    + "\nHạn trả lời: " + OFFER_DEADLINE.format(terms.getResponseDeadline()) + " (Giờ Việt Nam, UTC+7)"
                     + (terms.getNote() == null || terms.getNote().isBlank() ? "" : "\nGhi chú: " + terms.getNote())
-                    + "\nXem và phản hồi: " + webBaseUrl + "/candidate/offers/" + terms.getId());
+                    + "\nXem và phản hồi: " + webBaseUrl + "/candidate/offers/" + terms.getId()
+                    + "\nVui lòng đăng nhập bằng tài khoản đã ứng tuyển để xem và xác nhận offer."
+                    + "\nMở liên kết không tự động chấp nhận offer. Bạn cần xác nhận quyết định trên trang phản hồi.");
             } else {
                 helper.setSubject("Cập nhật đơn ứng tuyển: " + application.getJobTitle());
                 helper.setText("Đơn ứng tuyển vị trí " + application.getJobTitle()

@@ -12,6 +12,7 @@ import { useAuthStore } from "@/hooks/use-auth-store";
 import { hrApplicationService } from "@/services/hr-application.service";
 import { getErrorMessage } from "@/services/api";
 import { HrJobFilter } from "./hr-job-filter";
+import { TaskBanner } from "@/app/components/ui/task-banner";
 
 export function HrApplicationList() {
   const allowed = useAuthGuard({ roles: ["HR"] });
@@ -36,7 +37,7 @@ export function HrApplicationList() {
   const href = (id: string) => `/hr/recruitment/${id}?${new URLSearchParams({ returnTo: listUrl })}`;
   const data = query.isError || query.isFetching ? undefined : query.data;
   return <div className="hr-page">
-    <header className="hr-page-heading"><div><p className="hr-eyebrow">QUẢN LÝ TUYỂN DỤNG</p><h1>Hồ sơ ứng tuyển</h1><p className="hr-description">Tìm hồ sơ phù hợp và theo dõi từng bước tuyển dụng của công ty.</p></div></header>
+    <TaskBanner title="Hồ sơ ứng tuyển" eyebrow="Quản lý tuyển dụng" description="Kết nối đúng người, đúng cơ hội. Sàng lọc hồ sơ và theo dõi tiến trình tuyển dụng của công ty." illustration="applications" compact />
     <section className="hr-surface hr-filter-bar" aria-label="Bộ lọc hồ sơ">
       <HrJobFilter value={jobId} onChange={value => navigate({ jobId: value, page: "" })} />
       <div className="min-w-0 flex-1"><label htmlFor="hr-status-filter">Trạng thái</label><select id="hr-status-filter" value={status ?? ""} onChange={event => navigate({ status: event.target.value, page: "" })}>
