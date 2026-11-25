@@ -38,7 +38,7 @@ Qua gateway `http://localhost:8080/api/v1` (gateway bỏ `/api/v1`). Route `comp
 
 | Endpoint | Vai trò | Thành công | Lỗi chính |
 | --- | --- | --- | --- |
-| `GET /staff/companies?q=&status=&page=&size=` | `STAFF` | 200 `PageResponse<StaffCompanyItem>` | 400 `BAD_REQUEST` (page/size/status sai) |
+| `GET /staff/companies?q=&status=&page=&size=` | `STAFF` | 200 `PageResponse<StaffCompanyItem>` (thêm `logoUrl`, `city`, `size` để hiện logo và dòng phụ) | 400 `BAD_REQUEST` (page/size/status sai) |
 | `GET /staff/companies/{id}` | `STAFF` | 200 `StaffCompanyDetail` (kèm `hrAccounts`) | 404 `NOT_FOUND`, 503 `EXTERNAL_UNAVAILABLE` |
 | `POST /staff/hr-accounts/{userId}/lock` body `{reason}` | `STAFF` | 200 `StaffHrAccount` | 400 `VALIDATION_ERROR` (lý do trống / > 500 ký tự), 404 `NOT_FOUND`, 503 |
 | `POST /staff/hr-accounts/{userId}/unlock` | `STAFF` | 200 `StaffHrAccount` | 404 `NOT_FOUND`, 503 |
@@ -81,12 +81,16 @@ Quên mật khẩu với tài khoản bị khoá vẫn trả 200 nhưng **không
 
 ## 4. Giao diện
 
+**Khung điều hướng (làm lại)**: HR và STAFF dùng chung `ManagerShell`, thanh ngang màu đỏ Rikkei thay cho menu dọc. HR có 5 mục phẳng. STAFF gom nhóm: "Duyệt ▾" (Duyệt hồ sơ, Duyệt JD) · Đơn ứng tuyển · Doanh nghiệp · Ghép thực tập · "Hệ thống ▾" (Đồng bộ dữ liệu, Báo cáo). Menu tài khoản có "Đổi mật khẩu" (chỉ HR) và "Đăng xuất". Từ 768px trở xuống thanh thu thành nút ☰. Màu của khung nằm trong token `.admin-theme`; mentor, admin và ứng viên giữ giao diện cũ.
+
+**Đầu trang công ty (`CompanyHeader`)**: viền đỏ 4px phía trên, logo, tên và dòng thông tin (ngành, quy mô, thành phố); dùng chung ở `/hr/company`, trang xem trước và chi tiết công ty của STAFF.
+
 | Trang | Vai trò | Nội dung |
 | --- | --- | --- |
-| `/staff/companies` | STAFF | Bảng công ty (tên, MST, trạng thái, số HR, số JD); ô tìm debounce 300 ms, lọc trạng thái, phân trang 20 dòng; `q`, `status`, `page` nằm trên URL; nút **"+ Tạo công ty"** mở hộp thoại (Tên công ty *, Mã số thuế * 10 hoặc 13 chữ số, Ngành, Quy mô, Địa chỉ, Thành phố, Website, Giới thiệu) gọi `POST /staff/companies` của DN-01; trùng mã số thuế báo "Mã số thuế đã tồn tại" ngay trong hộp; tạo xong chuyển sang trang chi tiết để thêm HR |
-| `/staff/companies/[id]` | STAFF | Thông tin công ty, bảng HR với trạng thái; nút Khoá (hộp thoại bắt buộc lý do), Mở khoá, Thêm HR |
-| `/hr/company` | HR | Hai cột: form sửa hồ sơ + thẻ tóm tắt; logo xem trước ngay khi chọn, báo trạng thái lưu; nút "Xem như ứng viên" |
-| `/hr/company/preview` | HR | Trang công ty như ứng viên thấy, luôn tải lại bản đã lưu |
+| `/staff/companies` | STAFF | Danh sách gọn: mỗi dòng có logo, tên, dòng phụ (thành phố, quy mô), MST, trạng thái, số HR, số JD; ô tìm debounce 300 ms, lọc trạng thái, phân trang 20 dòng; `q`, `status`, `page` nằm trên URL; nút **"+ Tạo công ty"** mở hộp thoại (Tên công ty *, Mã số thuế * 10 hoặc 13 chữ số, Ngành, Quy mô, Địa chỉ, Thành phố, Website, Giới thiệu) gọi `POST /staff/companies` của DN-01; trùng mã số thuế báo "Mã số thuế đã tồn tại" ngay trong hộp; tạo xong chuyển sang trang chi tiết để thêm HR |
+| `/staff/companies/[id]` | STAFF | `CompanyHeader`, thông tin công ty, mục "Tài khoản HR (n)" với trạng thái (tab "JD của công ty" làm ở DN-07); nút Khoá (hộp thoại bắt buộc lý do), Mở khoá, Thêm HR |
+| `/hr/company` | HR | `CompanyHeader` rồi ba tab Giới thiệu / Thông tin liên hệ / Việc làm đang tuyển (n), chung một form và một thanh lưu dính đáy; logo xem trước ngay khi chọn, báo trạng thái lưu; nút "Xem như ứng viên". Công ty bị khoá hiện "Công ty đang bị khoá, ứng viên hiện không thấy việc làm" |
+| `/hr/company/preview` | HR | Trang công ty như ứng viên thấy (cùng `CompanyHeader`, danh sách việc làm đang tuyển thật), luôn tải lại bản đã lưu |
 
 Khi token của HR đã bị khoá, request kế tiếp trả 401 và axios đưa về `/login`. Các endpoint đăng nhập công khai không gắn bearer cũ, để token của tài khoản bị khoá không làm hỏng việc đăng nhập bằng tài khoản khác.
 
@@ -150,6 +154,8 @@ Các lớp test nằm ở `server/services/company-service/src/test` và `server
 - khoá hr2 trên `/staff/companies/[id]`: bỏ trống lý do bị chặn ngay trong hộp thoại; khoá xong, hr2 đang mở `/hr/company` thao tác tiếp bị đưa về `/login`, đăng nhập báo "Tài khoản đã bị khoá";
 - mở khoá hr2 → hr2 đăng nhập lại được;
 - HR sửa hồ sơ, đổi logo (xem trước rồi "Dùng ảnh này"), lưu, "Xem như ứng viên" hiện đúng bản đã lưu.
+
+> Các ảnh dưới đây chụp giao diện **trước khi làm lại** (DN-05 UI refresh); ảnh mới sẽ chụp lại sau lần chạy thật.
 
 **Ảnh minh chứng** (chụp 2026-11-19 khi chạy lại toàn hệ thống; Công ty A đã được đổi tên thành "RikkeiSoft" trên DB dev):
 
