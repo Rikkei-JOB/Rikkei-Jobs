@@ -31,11 +31,11 @@ export function HrAccountTable({ accounts, onLock, onUnlock }: HrAccountTablePro
     return <p className="rounded-md border border-dashed py-8 text-center text-xs text-muted-foreground">Công ty chưa có tài khoản HR</p>
   }
   return (
-    <div className="overflow-x-auto rounded-md border">
+    <div className="overflow-x-auto rounded-xl border bg-white">
       <table className="w-full text-left text-xs">
         <thead className="bg-muted/50 text-muted-foreground">
           <tr>
-            <th className="px-3 py-2 font-medium">Họ tên / Email</th>
+            <th className="px-3 py-2 font-medium">Tài khoản</th>
             <th className="px-3 py-2 font-medium">Trạng thái</th>
             <th className="px-3 py-2 text-right font-medium">Thao tác</th>
           </tr>
@@ -44,19 +44,19 @@ export function HrAccountTable({ accounts, onLock, onUnlock }: HrAccountTablePro
           {accounts.map((account) => (
             <tr key={account.userId} className="border-t align-top">
               <td className="px-3 py-2">
-                <div className="font-medium">{account.fullName}</div>
-                <div className="text-muted-foreground">{account.email}</div>
+                <div className="font-bold">{account.fullName}</div>
+                <div className="break-all text-muted-foreground">{account.email}</div>
               </td>
               <td className="px-3 py-2">
                 {account.status === "LOCKED" ? (
                   <div className="space-y-0.5">
-                    <span className="rounded-full bg-destructive/10 px-2 py-0.5 text-destructive">Đã khoá</span>
+                    <span className="inline-block rounded-full bg-destructive/10 px-2 py-0.5 text-destructive">Đã khoá</span>
                     {account.lockedAt ? <div className="text-muted-foreground">Khoá lúc {formatDateTime(account.lockedAt)}</div> : null}
                     {account.lockedReason ? <div className="text-muted-foreground">Lý do: {account.lockedReason}</div> : null}
                   </div>
                 ) : (
                   <div className="space-y-0.5">
-                    <span className="rounded-full bg-primary/10 px-2 py-0.5 text-primary">Hoạt động</span>
+                    <span className="inline-block rounded-full bg-primary/10 px-2 py-0.5 text-primary">Hoạt động</span>
                     {account.tempLockedUntil ? (
                       <div className="text-muted-foreground">Tạm khoá do sai mật khẩu đến {formatTime(account.tempLockedUntil)}</div>
                     ) : null}

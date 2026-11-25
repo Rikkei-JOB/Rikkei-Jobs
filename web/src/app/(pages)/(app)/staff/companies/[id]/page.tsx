@@ -5,6 +5,7 @@ import Link from "next/link"
 import { useParams } from "next/navigation"
 import { Alert } from "@/app/components/ui/alert"
 import { Button } from "@/app/components/ui/button"
+import { CompanyHeader } from "@/app/components/company/company-header"
 import { AddHrDialog } from "@/app/components/staff-company/add-hr-dialog"
 import { HrAccountTable } from "@/app/components/staff-company/hr-account-table"
 import { hrErrorMessage } from "@/app/components/staff-company/hr-error"
@@ -13,7 +14,6 @@ import { UnlockHrDialog } from "@/app/components/staff-company/unlock-hr-dialog"
 import { useAuthGuard } from "@/hooks/use-auth-guard"
 import { useStaffCompany } from "@/hooks/use-staff-companies"
 import type { StaffHrAccount } from "@/interface/company"
-import { companyService } from "@/services/company.service"
 
 export default function StaffCompanyDetailPage() {
   const allowed = useAuthGuard({ roles: ["STAFF"] })
@@ -27,11 +27,8 @@ export default function StaffCompanyDetailPage() {
 
   if (!allowed) return null
 
-  const logo = company ? companyService.logoSrc(company.logoUrl) : null
-  const meta = company ? [company.industry, company.size, company.city].filter(Boolean).join(" · ") : ""
-
   return (
-    <div className="mx-auto max-w-5xl space-y-4">
+    <div className="space-y-4">
       <Link href="/staff/companies" className="text-xs text-primary hover:underline">
         ‹ Doanh nghiệp
       </Link>
@@ -51,33 +48,24 @@ export default function StaffCompanyDetailPage() {
 
       {company ? (
         <>
-          <div className="flex items-center gap-4">
-            <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-lg border bg-muted/40">
-              {logo ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={logo} alt={`Logo ${company.name}`} className="h-full w-full object-contain" />
-              ) : (
-                <span className="text-[0.625rem] text-muted-foreground">Chưa có logo</span>
-              )}
-            </div>
-            <div className="space-y-0.5">
-              <h1 className="font-heading text-lg font-semibold">{company.name}</h1>
-              <p className="text-xs text-muted-foreground">
+          <CompanyHeader
+            company={company}
+            subline={
+              <>
                 MST {company.taxCode} ·{" "}
                 <span className={company.status === "LOCKED" ? "text-destructive" : "text-primary"}>
                   {company.status === "LOCKED" ? "Đã khoá" : "Hoạt động"}
                 </span>
-              </p>
-              {meta ? <p className="text-xs text-muted-foreground">{meta}</p> : null}
-            </div>
-          </div>
+              </>
+            }
+            actions={
+              <Button size="sm" onClick={() => setAdding(true)}>
+                + Thêm HR
+              </Button>
+            }
+          />
 
-          <div className="flex items-center justify-between">
-            <h2 className="text-sm font-semibold">Tài khoản HR ({company.hrAccounts.length})</h2>
-            <Button size="sm" onClick={() => setAdding(true)}>
-              + Thêm HR
-            </Button>
-          </div>
+          <h2 className="text-sm font-semibold">Tài khoản HR ({company.hrAccounts.length})</h2>
 
           <HrAccountTable
             accounts={company.hrAccounts}
