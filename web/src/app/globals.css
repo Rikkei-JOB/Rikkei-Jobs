@@ -82,6 +82,19 @@
     --sidebar-ring: oklch(0.708 0 0);
 }
 
+/* Khung HR/cán bộ (ManagerShell): đỏ Rikkei, nền xám nhạt; không đụng :root. */
+.admin-theme {
+    --background: oklch(0.972 0.003 265);
+    --foreground: oklch(0.372 0.039 257);
+    --card: oklch(1 0 0);
+    --popover: oklch(1 0 0);
+    --primary: oklch(0.5 0.185 24);
+    --primary-foreground: oklch(1 0 0);
+    --ring: oklch(0.5 0.185 24);
+    --border: oklch(0.929 0.013 256);
+    --input: oklch(0.929 0.013 256);
+}
+
 .dark {
     --background: oklch(0.145 0 0);
     --foreground: oklch(0.985 0 0);

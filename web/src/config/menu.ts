@@ -68,3 +68,24 @@ export const ROLE_MENU: Record<Role, MenuItem[]> = {
 export function findMenuItem(role: Role, pathname: string): MenuItem | undefined {
   return ROLE_MENU[role].find((item) => pathname === item.href || pathname.startsWith(`${item.href}/`));
 }
+
+export interface NavGroup {
+  label: string;
+  items: MenuItem[];
+}
+
+const pick = (role: Role, ...hrefs: string[]): MenuItem[] =>
+  hrefs.map((href) => ROLE_MENU[role].find((item) => item.href === href)!);
+
+/** Nhóm menu trên thanh ngang (HR, cán bộ): nhóm 1 mục là link phẳng, nhóm từ 2 mục là menu thả xuống. */
+export const ROLE_NAV_GROUPS: Partial<Record<Role, NavGroup[]>> = {
+  HR: ROLE_MENU.HR.map((item) => ({ label: item.label, items: [item] })),
+  STAFF: [
+    { label: "Duyệt", items: pick("STAFF", "/staff/profile-reviews", "/staff/jobs") },
+    ...pick("STAFF", "/staff/applications", "/staff/companies", "/staff/internships").map((item) => ({
+      label: item.label,
+      items: [item],
+    })),
+    { label: "Hệ thống", items: pick("STAFF", "/staff/sync", "/staff/reports") },
+  ],
+};
