@@ -959,6 +959,9 @@ components:
         hrCount: { type: integer, format: int64 }
         jdCount: { type: integer, format: int64, description: 'Số JD của công ty, mọi trạng thái trừ DRAFT (DN-02)' }
         createdAt: { type: string, format: date-time }
+        logoUrl: { type: string, nullable: true }
+        city: { type: string, nullable: true }
+        size: { type: string, nullable: true }
     StaffCompanyPage:
       type: object
       properties:

@@ -138,6 +138,22 @@ class StaffCompanyListApiTest extends CompanyApiTestSupport {
                 .andExpect(jsonPath("$.items[?(@.id == '" + b.getId() + "')].jdCount").value(0));
     }
 
+    @Test
+    void listIncludesLogoCityAndSize() throws Exception {
+        a.setLogoUrl("/companies/logos/a.png");
+        a.setCity("Hà Nội");
+        a.setSize("51-200");
+        companies.save(a);
+
+        list("").andExpect(status().isOk())
+                .andExpect(jsonPath("$.items[?(@.id == '" + a.getId() + "')].logoUrl").value("/companies/logos/a.png"))
+                .andExpect(jsonPath("$.items[?(@.id == '" + a.getId() + "')].city").value("Hà Nội"))
+                .andExpect(jsonPath("$.items[?(@.id == '" + a.getId() + "')].size").value("51-200"))
+                .andExpect(jsonPath("$.items[?(@.id == '" + b.getId() + "')].logoUrl").value((Object) null))
+                .andExpect(jsonPath("$.items[?(@.id == '" + b.getId() + "')].city").value((Object) null))
+                .andExpect(jsonPath("$.items[?(@.id == '" + b.getId() + "')].size").value((Object) null));
+    }
+
     @ParameterizedTest
     @ValueSource(strings = {"page=0", "size=0", "size=101"})
     void invalidPagingIs400(String query) throws Exception {
