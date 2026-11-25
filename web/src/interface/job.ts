@@ -44,6 +44,8 @@ export interface JobSummary {
   status: JobStatus;
   deadline: string | null;
   updatedAt: string;
+  requiredSkillCount: number;
+  rejectReason: string | null;
 }
 
 /** Body POST /jobs và PUT /jobs/{id} (JobRequest): chỉ title bắt buộc khi lưu nháp, trường trống gửi null. */

@@ -4,50 +4,33 @@ import * as React from "react"
 import Link from "next/link"
 import { Alert } from "@/app/components/ui/alert"
 import { Button } from "@/app/components/ui/button"
-import { CompanyProfileForm } from "@/app/components/company/company-profile-form"
-import { CompanySummaryCard } from "@/app/components/company/company-summary-card"
+import { CompanyHeader } from "@/app/components/company/company-header"
+import { CompanyOpenJobs } from "@/app/components/company/company-open-jobs"
+import { CompanyProfileForm, type CompanyTab } from "@/app/components/company/company-profile-form"
 import { useAuthGuard } from "@/hooks/use-auth-guard"
-import { useMyCompany, useUploadMyLogo } from "@/hooks/use-my-company"
+import { useMyCompany } from "@/hooks/use-my-company"
+import { useOpenJobs } from "@/hooks/use-my-jobs"
 import { getErrorMessage } from "@/services/api"
 
-/** Hồ sơ công ty của HR: thẻ tóm tắt cố định bên trái, form chỉnh sửa bên phải (một cột trên màn hẹp). */
+/** Hồ sơ công ty của HR: đầu trang + 3 tab; hai tab đầu dùng chung một form với thanh lưu dính đáy. */
 export default function HrCompanyPage() {
   const allowed = useAuthGuard({ roles: ["HR"] })
   const { data: company, error, isPending, refetch } = useMyCompany(allowed)
-  const uploadLogo = useUploadMyLogo()
-  const [logoError, setLogoError] = React.useState<string | null>(null)
-  const [dirty, setDirty] = React.useState(false)
+  const { data: openJobs = [] } = useOpenJobs(allowed)
+  const [tab, setTab] = React.useState<CompanyTab>("intro")
 
   if (!allowed) return null
 
-  // File đã được thẻ tóm tắt kiểm tra (định dạng, dung lượng) trước khi hiện xem trước.
-  function handleLogoUpload(file: File, onSuccess: () => void) {
-    setLogoError(null)
-    uploadLogo.mutate(file, { onSuccess, onError: (e) => setLogoError(getErrorMessage(e)) })
-  }
-
   const locked = company?.status === "LOCKED"
+  const jobCount = locked ? 0 : openJobs.length
+  const tabs: { id: CompanyTab; label: string }[] = [
+    { id: "intro", label: "Giới thiệu" },
+    { id: "contact", label: "Thông tin liên hệ" },
+    { id: "jobs", label: `Việc làm đang tuyển (${jobCount})` },
+  ]
 
   return (
-    // Nằm trong <main> của layout (app) (NT-02), nên dùng <div> và không thêm padding.
-    <div className="mx-auto max-w-5xl space-y-4">
-      <div className="flex flex-wrap items-start justify-between gap-2">
-        <h1 className="font-heading text-lg font-semibold">Hồ sơ công ty</h1>
-        <div className="flex flex-col items-end gap-1">
-          <div className="flex gap-2">
-            {company ? (
-              <Button size="sm" render={<Link href="/hr/company/preview" />} nativeButton={false}>
-                Xem như ứng viên
-              </Button>
-            ) : null}
-            <Button variant="outline" size="sm" render={<Link href="/hr" />} nativeButton={false}>
-              Quay lại
-            </Button>
-          </div>
-          {dirty ? <p className="text-xs text-muted-foreground">Xem trước chỉ hiện bản đã lưu</p> : null}
-        </div>
-      </div>
-
+    <div className="space-y-4">
       {isPending ? <p className="text-xs text-muted-foreground">Đang tải...</p> : null}
 
       {error ? (
@@ -61,22 +44,38 @@ export default function HrCompanyPage() {
 
       {company ? (
         <>
+          <CompanyHeader
+            company={company}
+            subline={`MST ${company.taxCode} · ${company.status === "ACTIVE" ? "Đang hoạt động" : "Đang bị khoá"} · Liên hệ cán bộ để đổi`}
+            actions={
+              <Button size="sm" render={<Link href="/hr/company/preview" />} nativeButton={false}>
+                Xem như ứng viên
+              </Button>
+            }
+            tabs={
+              <div role="tablist" aria-label="Hồ sơ công ty" className="flex gap-1">
+                {tabs.map((t) => (
+                  <button
+                    key={t.id}
+                    type="button"
+                    role="tab"
+                    aria-selected={tab === t.id}
+                    onClick={() => setTab(t.id)}
+                    className={`-mb-px border-b-2 px-3 py-2.5 text-xs font-medium whitespace-nowrap ${
+                      tab === t.id
+                        ? "border-primary text-primary"
+                        : "border-transparent text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    {t.label}
+                  </button>
+                ))}
+              </div>
+            }
+          />
           {locked ? <Alert>Công ty đang bị khoá, bạn chỉ xem được hồ sơ.</Alert> : null}
-          <div className="grid gap-4 md:grid-cols-[280px_1fr] md:items-start">
-            <CompanySummaryCard
-              company={company}
-              onLogoUpload={handleLogoUpload}
-              uploading={uploadLogo.isPending}
-              error={logoError}
-              disabled={locked}
-            />
-            <CompanyProfileForm
-              company={company}
-              disabled={locked}
-              onSaved={() => undefined}
-              onDirtyChange={setDirty}
-            />
-          </div>
+          <CompanyProfileForm company={company} disabled={locked} tab={tab} onTabChange={setTab} />
+          {tab === "jobs" ? <CompanyOpenJobs jobs={openJobs} locked={locked} /> : null}
         </>
       ) : null}
     </div>

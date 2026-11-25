@@ -3,6 +3,7 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuthStore } from "@/hooks/use-auth-store";
 import type { Job, JobPayload, JobStatus } from "@/interface/job";
+import { daysUntil } from "@/app/components/job/job-deadline";
 import { jobService } from "@/services/job.service";
 
 // Khoá cache gắn với id người dùng (như use-my-company.ts) để HR khác trong cùng tab không đọc nhầm JD.
@@ -24,6 +25,17 @@ export function useMyJobs(status: JobStatus | undefined, page: number, enabled =
   });
 }
 
+/** JD đang tuyển (APPROVED) còn hạn nộp; bỏ JD không có deadline hoặc đã quá hạn. */
+export function useOpenJobs(enabled = true) {
+  const userId = useAuthStore((state) => state.user?.id);
+  return useQuery({
+    queryKey: [...jobKeys.all(userId), "open"] as const,
+    queryFn: () => jobService.listMine({ status: "APPROVED", page: 1, size: 100 }),
+    enabled,
+    select: (data) => data.items.filter((job) => job.deadline !== null && daysUntil(job.deadline) >= 0),
+  });
+}
+
 export function useJob(id: string | undefined, enabled = true) {
   const userId = useAuthStore((state) => state.user?.id);
   return useQuery({
@@ -39,6 +51,7 @@ function useAfterWrite() {
   const userId = useAuthStore((state) => state.user?.id);
   return (job: Job) => {
     queryClient.setQueryData(jobKeys.detail(userId, job.id), job);
+    void queryClient.invalidateQueries({ queryKey: [...jobKeys.all(userId), "open"] });
     return queryClient.invalidateQueries({ queryKey: [...jobKeys.all(userId), "list"] });
   };
 }
