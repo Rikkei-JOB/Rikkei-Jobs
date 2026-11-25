@@ -34,7 +34,11 @@ export default function HrCompanyPage() {
   ]
 
   return (
-    <div className="space-y-4">
+    <div className="hr-page">
+      <div className="hr-page-heading">
+        <div><p className="hr-eyebrow">THÔNG TIN DOANH NGHIỆP</p><h1>Hồ sơ công ty</h1><p className="hr-description">Giới thiệu doanh nghiệp để ứng viên hiểu hơn về nơi làm việc.</p></div>
+      </div>
+
       {isPending ? <p className="text-xs text-muted-foreground">Đang tải...</p> : null}
 
       {error ? (
@@ -49,6 +53,7 @@ export default function HrCompanyPage() {
       {company ? (
         <>
           <CompanyHeader
+            titleAs="h2"
             company={company}
             subline={`MST ${company.taxCode} · ${company.status === "ACTIVE" ? "Đang hoạt động" : "Đang bị khoá"} · Liên hệ cán bộ để đổi`}
             actions={

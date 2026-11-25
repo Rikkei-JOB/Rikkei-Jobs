@@ -4,12 +4,12 @@ import type { Job, JobListParams, JobPayload, JobStatusSummary, JobSummary } fro
 
 /** Các endpoint JD của company-service dành cho HR. */
 export const jobService = {
-  listMine: async (params: JobListParams) =>
-    (await api.get<PageResult<JobSummary>>("/companies/me/jobs", { params: { size: 20, ...params } })).data,
+  listMine: async (params: JobListParams, signal?: AbortSignal) =>
+    (await api.get<PageResult<JobSummary>>("/companies/me/jobs", { params: { size: 20, ...params }, signal })).data,
 
   summaryMine: async () => (await api.get<JobStatusSummary>("/companies/me/jobs/summary")).data,
 
-  get: async (id: string) => (await api.get<Job>(`/jobs/${id}`)).data,
+  get: async (id: string, signal?: AbortSignal) => (await api.get<Job>(`/jobs/${encodeURIComponent(id)}`, { signal })).data,
 
   create: async (payload: JobPayload) => (await api.post<Job>("/jobs", payload)).data,
 

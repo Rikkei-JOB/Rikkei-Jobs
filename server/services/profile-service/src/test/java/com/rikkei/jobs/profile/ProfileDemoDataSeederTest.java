@@ -27,6 +27,7 @@ class ProfileDemoDataSeederTest {
     @Autowired SkillEvidenceRepository evidences;
     @Autowired SkillProfileStateRepository states;
     @Autowired SkillScoreRepository scores;
+    @Autowired PortfolioProjectRepository portfolio;
 
     @Test
     void seedsRealIdentityIdsAndSelfOnlySkillWithoutPublishingOrDuplicating() {
@@ -46,6 +47,9 @@ class ProfileDemoDataSeederTest {
         long sourceCount = external.count();
         long evidenceCount = evidences.count();
         seeder.run(null);
+        // HS-03: đúng một dự án IOC mẫu, chạy lại seed không nhân bản.
+        assertThat(portfolio.findAllByUserIdOrderBySortOrderAscIdAsc(realCandidate)).singleElement()
+                .satisfies(p -> assertThat(p.isIoc()).isTrue());
         assertThat(external.count()).isEqualTo(sourceCount);
         assertThat(evidences.count()).isEqualTo(evidenceCount);
         assertThat(states.findAll()).hasSize(3).allSatisfy(state -> {

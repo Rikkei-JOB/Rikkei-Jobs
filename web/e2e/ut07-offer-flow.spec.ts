@@ -44,7 +44,7 @@ test("HR gửi offer lương gross theo tháng từ đơn có vòng cuối PASS"
     } });
     return route.fulfill({ headers: cors, json: {} });
   });
-  await page.goto(`/hr/recruitment/${applicationId}`);
+  await page.goto(`/hr/recruitment/${applicationId}?tab=offer`);
   await page.getByLabel("Vị trí offer").fill("Java Developer");
   await page.getByLabel("Lương gross/tháng (VND)").fill("12.000.000");
   await page.getByLabel("Ngày bắt đầu").fill("2030-02-01");
@@ -77,7 +77,7 @@ test("HR tải lại vẫn thấy xác nhận đi làm và không xác nhận l�
     } });
     return route.fulfill({ headers: cors, json: {} });
   });
-  await page.goto(`/hr/recruitment/${applicationId}`);
+  await page.goto(`/hr/recruitment/${applicationId}?tab=offer`);
   await expect(page.getByText(/Đã phản hồi:/)).toBeVisible();
   await page.getByRole("button", { name: "Xác nhận đã đi làm" }).click();
   await page.reload();

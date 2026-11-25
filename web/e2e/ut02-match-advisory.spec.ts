@@ -29,6 +29,7 @@ test("score zero and belowMinimum are advisory; missing metadata remains compati
   await expect(page.getByText("Điểm phù hợp chỉ mang tính tham khảo")).toBeVisible();
   await expect(page.getByRole("img",{name:"Điểm phù hợp 0%"})).toBeVisible();
   await expect(page.getByText("Thiếu kỹ năng bắt buộc tối thiểu")).toBeVisible();
+  await page.getByRole("tab",{name:/^Offer/}).click();
   await expect(page.getByRole("button",{name:"Gửi offer",exact:true})).toBeEnabled();
   await expect(page.getByRole("button",{name:"Chuyển sang Không đạt"})).toBeEnabled();expect(state.calls).toBe(0);
   await page.screenshot({path:"../docs/api/screenshots/ut02-match-available.png",fullPage:true});
@@ -45,8 +46,9 @@ test("retry updates only match and preserves unsaved fields; double click sends 
   const state=await fixture(page,"HR",null,"UNAVAILABLE");let release!:()=>void;const wait=new Promise<void>(resolve=>{release=resolve;});
   state.retry=async route=>{await wait;await route.fulfill({headers:cors,json:{matchStatus:"AVAILABLE",match:score(78)}});};
   await page.goto("/hr/recruitment/app-a");await expect(page.getByText(/Tạm thời không lấy được điểm phù hợp/)).toBeVisible();
-  await page.getByLabel("Ghi chú chuyển bước").fill("Đang cân nhắc");await page.getByLabel("Tên vòng",{exact:true}).fill("Vòng mới");await page.getByLabel("Lương gross/tháng (VND)").fill("12000000");
+  await page.getByLabel("Ghi chú chuyển bước").fill("Đang cân nhắc");await page.getByRole("tab",{name:/^Phỏng vấn/}).click();await page.getByLabel("Tên vòng",{exact:true}).fill("Vòng mới");await page.getByRole("tab",{name:/^Offer/}).click();await page.getByLabel("Lương gross/tháng (VND)").fill("12000000");
   await page.getByRole("button",{name:"Thử lại",exact:true}).dblclick();await expect.poll(()=>state.calls).toBe(1);
+  await page.getByRole("tab",{name:/^Offer/}).click();
   await expect(page.getByRole("button",{name:"Gửi offer",exact:true})).toBeEnabled();release();
   await expect(page.getByRole("img",{name:"Điểm phù hợp 78%"})).toBeVisible();
   await expect(page.getByLabel("Ghi chú chuyển bước")).toHaveValue("Đang cân nhắc");await expect(page.getByLabel("Tên vòng",{exact:true})).toHaveValue("Vòng mới");await expect(page.getByLabel("Lương gross/tháng (VND)")).toHaveValue("12.000.000");expect(state.detailCalls).toBe(1);
@@ -60,9 +62,11 @@ test("retry failure clears old score and preserves permission error",async({page
   state.retry=async route=>route.fulfill({status:403,headers:cors,json:{code:"FORBIDDEN",message:"Bạn không có quyền xem điểm."}});
   await page.goto("/hr/recruitment/app-a");await expect(page.getByRole("img",{name:"Điểm phù hợp 78%"})).toBeVisible();await page.getByRole("button",{name:"Tải lại điểm",exact:true}).click();
   await expect(page.getByText("Bạn không có quyền xem điểm.")).toBeVisible();await expect(page.getByRole("img",{name:/Điểm phù hợp/})).toHaveCount(0);
+  await page.getByRole("tab",{name:/^Offer/}).click();
   await expect(page.getByRole("button",{name:"Gửi offer",exact:true})).toBeEnabled();
   await page.screenshot({path:"../docs/api/screenshots/ut02-match-unavailable.png",fullPage:true});
   state.initial=score(86);state.initialStatus="AVAILABLE";
+  await page.getByRole("tab",{name:/^Phỏng vấn/}).click();
   await page.getByRole("button",{name:"Lưu kết quả",exact:true}).click();
   await expect(page.getByRole("img",{name:"Điểm phù hợp 86%"})).toBeVisible();
   await expect(page.getByText("Bạn không có quyền xem điểm.")).toHaveCount(0);
@@ -71,7 +75,7 @@ test("late retry for old application cannot replace new application's score",asy
   const state=await fixture(page,"HR",null,"UNAVAILABLE");let release!:()=>void,finished!:()=>void;const hold=new Promise<void>(r=>{release=r;}),done=new Promise<void>(r=>{finished=r;});
   state.retry=async route=>{await hold;try{await route.fulfill({headers:cors,json:{matchStatus:"AVAILABLE",match:score(55)}});}catch{}finally{finished();}};
   await page.goto("/hr/recruitment/app-a");await page.getByRole("button",{name:"Thử lại",exact:true}).click();await expect.poll(()=>state.calls).toBe(1);
-  await page.getByRole("link",{name:"← Danh sách đơn ứng tuyển"}).click();await page.getByRole("link").filter({hasText:"Candidate app-b"}).click();
+  await page.getByRole("link",{name:"Danh sách đơn ứng tuyển"}).click();await page.getByRole("link",{name:"Xem hồ sơ Candidate app-b"}).click();
   await expect(page.getByRole("img",{name:"Điểm phù hợp 88%"})).toBeVisible();release();await done;
   await expect(page.getByRole("img",{name:"Điểm phù hợp 88%"})).toBeVisible();await expect(page.getByRole("img",{name:"Điểm phù hợp 55%"})).toHaveCount(0);
 });
@@ -80,9 +84,9 @@ for(const sameViewer of [false,true]) test(`late retry from previous login canno
   if(sameViewer)state.loginViewerId="viewer-old";
   state.retry=async route=>{await hold;try{await route.fulfill({headers:cors,json:{matchStatus:"AVAILABLE",match:score(55)}});}catch{}finally{finished();}};
   await page.goto("/hr/recruitment/app-a");await page.getByRole("button",{name:"Thử lại",exact:true}).click();await expect.poll(()=>state.calls).toBe(1);
-  await page.getByRole("button",{name:"Đăng xuất"}).click();await page.getByRole("tab",{name:"Doanh nghiệp",exact:true}).click();await page.getByLabel("Email",{exact:true}).fill("new@test.local");await page.getByLabel("Mật khẩu",{exact:true}).fill("Password123!");await page.getByRole("button",{name:"Đăng nhập",exact:true}).click();
+  await page.getByRole("button",{name:"Tài khoản HR"}).click();await page.getByRole("menuitem",{name:"Đăng xuất"}).click();await page.getByRole("tab",{name:"Doanh nghiệp",exact:true}).click();await page.getByLabel("Email",{exact:true}).fill("new@test.local");await page.getByLabel("Mật khẩu",{exact:true}).fill("Password123!");await page.getByRole("button",{name:"Đăng nhập",exact:true}).click();
   state.retry=async route=>route.fulfill({headers:cors,json:{matchStatus:"AVAILABLE",match:score(88)}});
-  await page.getByRole("navigation",{name:"Menu chính"}).getByRole("link",{name:"Tuyển dụng",exact:true}).click();await page.getByRole("link").filter({hasText:"Candidate app-a"}).click();
+  await page.getByRole("navigation",{name:"Menu HR",exact:true}).getByRole("link",{name:"Hồ sơ ứng tuyển",exact:true}).click();await page.getByRole("link",{name:"Xem hồ sơ Candidate app-a"}).click();
   await page.getByRole("button",{name:"Thử lại",exact:true}).click();await expect.poll(()=>state.calls).toBe(2);await expect(page.getByRole("img",{name:"Điểm phù hợp 88%"})).toBeVisible();
   release();await done;await expect(page.getByRole("img",{name:"Điểm phù hợp 88%"})).toBeVisible();await expect(page.getByRole("img",{name:"Điểm phù hợp 55%"})).toHaveCount(0);
 });
@@ -92,7 +96,7 @@ for (const failed of [false,true]) test(`newer detail wins over pending retry ${
   const hold=new Promise<void>(r=>{release=r;}),done=new Promise<void>(r=>{finished=r;});
   state.retry=async route=>{await hold;try{await route.fulfill(failed?{status:403,headers:cors,json:{message:"Old forbidden"}}:{headers:cors,json:{matchStatus:"AVAILABLE",match:score(55)}});}catch{}finally{finished();}};
   await page.goto("/hr/recruitment/app-a");await page.getByRole("button",{name:"Thử lại",exact:true}).click();await expect.poll(()=>state.calls).toBe(1);
-  state.initial=score(86);state.initialStatus="AVAILABLE";await page.getByRole("button",{name:"Lưu kết quả",exact:true}).click();
+  state.initial=score(86);state.initialStatus="AVAILABLE";await page.getByRole("tab",{name:/^Phỏng vấn/}).click();await page.getByRole("button",{name:"Lưu kết quả",exact:true}).click();
   await expect(page.getByRole("img",{name:"Điểm phù hợp 86%"})).toBeVisible();release();await done;
   await expect(page.getByRole("img",{name:"Điểm phù hợp 86%"})).toBeVisible();await expect(page.getByText("Old forbidden")).toHaveCount(0);
 });
@@ -101,7 +105,8 @@ test("newer retry wins while older detail still refreshes workflow fields",async
   const state=await fixture(page,"HR",null,"UNAVAILABLE");let release!:()=>void;const hold=new Promise<void>(r=>{release=r;});
   await page.goto("/hr/recruitment/app-a");await expect(page.getByRole("button",{name:"Thử lại",exact:true})).toBeVisible();
   state.detailResponder=async(route,id)=>{await hold;await route.fulfill({headers:cors,json:{...detail(id,score(55),"AVAILABLE"),jobTitle:"Updated workflow title"}});};
+  await page.getByRole("tab",{name:/^Phỏng vấn/}).click();
   await page.getByRole("button",{name:"Lưu kết quả",exact:true}).click();await expect.poll(()=>state.detailCalls).toBe(2);
   await page.getByRole("button",{name:"Thử lại",exact:true}).click();await expect(page.getByRole("img",{name:"Điểm phù hợp 78%"})).toBeVisible();release();
-  await expect(page.getByRole("heading",{name:"Updated workflow title"})).toBeVisible();await expect(page.getByRole("img",{name:"Điểm phù hợp 78%"})).toBeVisible();
+  await expect(page.getByText("Updated workflow title",{exact:true})).toBeVisible();await expect(page.getByRole("img",{name:"Điểm phù hợp 78%"})).toBeVisible();
 });

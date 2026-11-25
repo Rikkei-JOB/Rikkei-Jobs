@@ -51,6 +51,7 @@ test("UT-02 HR chuyển bước và chỉ thêm vòng khi đã phỏng vấn", a
   await expect(page.getByRole("button", { name: "Chuyển sang Phỏng vấn" })).toHaveCount(0);
   await page.getByRole("button", { name: "Chuyển sang Sàng lọc" }).click();
   await page.getByRole("button", { name: "Chuyển sang Phỏng vấn" }).click();
+  await page.getByRole("tab", { name: /^Phỏng vấn/ }).click();
   await page.getByLabel("Tên vòng").fill("Kỹ thuật");
   await page.getByLabel("Email người phỏng vấn").fill("interviewer@example.test");
   await page.getByRole("button", { name: "Thêm vòng" }).click();

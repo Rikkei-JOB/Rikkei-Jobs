@@ -32,6 +32,7 @@ test("loads LMS fields read-only and saves only editable personal fields", async
   await fixtures(page);
   await page.goto("/candidate/profile");
   await expect(page.getByRole("heading", { name: "Thông tin cá nhân" })).toBeVisible();
+  await page.getByRole("button", { name: "Sửa thông tin" }).click();
   await expect(page.getByLabel("Hệ đào tạo")).toHaveValue(profile.program);
   await expect(page.getByLabel("Lớp")).toHaveAttribute("readonly", "");
   await expect(page.getByLabel("Khoá")).toHaveAttribute("readonly", "");
@@ -53,6 +54,7 @@ test("rejects invalid personal details before calling the API", async ({ page })
   let writes = 0;
   page.on("request", r => { if (r.method() === "PUT" && r.url().endsWith("/profiles/me")) writes++; });
   await page.goto("/candidate/profile");
+  await page.getByRole("button", { name: "Sửa thông tin" }).click();
   await page.getByLabel("Email", { exact: true }).fill("invalid-email");
   await page.getByLabel("Số điện thoại").fill("123");
   await page.getByLabel("Ngày sinh").fill("2099-01-01");
@@ -69,6 +71,7 @@ test("retries loading after LMS is unavailable", async ({ page }) => {
   await expect(page.getByRole("alert").filter({ hasText: "LMS tạm thời không sẵn sàng" })).toBeVisible();
   recover();
   await page.getByRole("button", { name: "Thử lại" }).click();
+  await page.getByRole("button", { name: "Sửa thông tin" }).click();
   await expect(page.getByLabel("Họ và tên")).toHaveValue(profile.fullName);
 });
 
@@ -79,6 +82,7 @@ test("keeps unsaved input when saving fails", async ({ page }) => {
     return route.fulfill({ status: 503, headers: cors, json: { code: "EXTERNAL_UNAVAILABLE", message: "Không thể lưu lúc này" } });
   });
   await page.goto("/candidate/profile");
+  await page.getByRole("button", { name: "Sửa thông tin" }).click();
   await page.getByLabel("Giới thiệu bản thân").fill("Nội dung tôi đang chỉnh sửa");
   await page.getByRole("button", { name: "Lưu thông tin" }).click();
   await expect(page.getByRole("alert").filter({ hasText: "Không thể lưu lúc này" })).toBeVisible();

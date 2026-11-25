@@ -18,11 +18,12 @@ interface JobTableProps {
 export function JobTable({ items, companyLocked = false, onFeedback }: JobTableProps) {
   const router = useRouter()
   if (items.length === 0) {
-    return <p className="rounded-md border border-dashed py-10 text-center text-xs text-muted-foreground">Chưa có JD nào</p>
+    return <div className="hr-surface py-12 text-center"><h2 className="text-xl font-semibold">Chưa có tin tuyển dụng</h2><p className="hr-description">Tạo tin để bắt đầu kết nối với ứng viên.</p></div>
   }
   return (
-    <div className="overflow-x-auto rounded-md border">
-      <table className="w-full text-left text-xs">
+    <div className="overflow-x-auto rounded-xl border bg-background" role="region" aria-label="Danh sách tin tuyển dụng" tabIndex={0}>
+      <table className="hr-table min-w-[640px]">
+        <caption className="sr-only">Tin tuyển dụng của công ty</caption>
         <thead className="bg-muted/50 text-muted-foreground">
           <tr>
             <th className="px-3 py-2 font-medium">Tiêu đề</th>

@@ -109,6 +109,7 @@ export function CompanyProfileForm({ company, disabled, tab, onTabChange, onDirt
       className={tab === "jobs" ? "hidden" : "space-y-4"}
     >
       <section className={tab === "intro" ? cardClass : "hidden"}>
+        <div><h2 className="text-xl font-semibold">Thông tin cơ bản</h2><p className="mt-2 text-sm text-muted-foreground">Tên, lĩnh vực hoạt động và quy mô doanh nghiệp.</p></div>
         <CompanyLogoField company={company} disabled={disabled} />
         <FormField label="Tên công ty *" htmlFor="name" error={errors.name?.message}>
           <Input id="name" disabled={disabled} aria-invalid={Boolean(errors.name)} {...register("name")} />
@@ -128,6 +129,7 @@ export function CompanyProfileForm({ company, disabled, tab, onTabChange, onDirt
             </select>
           </FormField>
         </div>
+        <h2 className="border-t pt-6 text-xl font-semibold">Giới thiệu doanh nghiệp</h2>
         <FormField label="Giới thiệu" htmlFor="description" error={errors.description?.message}>
           <textarea
             id="description"
@@ -141,6 +143,7 @@ export function CompanyProfileForm({ company, disabled, tab, onTabChange, onDirt
       </section>
 
       <section className={tab === "contact" ? cardClass : "hidden"}>
+        <h2 className="text-xl font-semibold">Địa chỉ và liên hệ</h2>
         <FormField label="Địa chỉ" htmlFor="address" error={errors.address?.message}>
           <Input id="address" disabled={disabled} aria-invalid={Boolean(errors.address)} {...register("address")} />
         </FormField>
