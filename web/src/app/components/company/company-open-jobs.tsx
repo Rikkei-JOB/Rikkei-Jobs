@@ -17,7 +17,7 @@ export function CompanyOpenJobs({ jobs, locked }: { jobs: JobSummary[]; locked: 
             <>
               {" "}
               <Link href="/hr/jobs/new" className="text-primary underline underline-offset-2">
-                Tạo JD
+                Tạo tin tuyển dụng
               </Link>
             </>
           )}

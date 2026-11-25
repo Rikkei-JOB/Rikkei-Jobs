@@ -79,7 +79,6 @@ const pick = (role: Role, ...hrefs: string[]): MenuItem[] =>
 
 /** Nhóm menu trên thanh ngang (HR, cán bộ): nhóm 1 mục là link phẳng, nhóm từ 2 mục là menu thả xuống. */
 export const ROLE_NAV_GROUPS: Partial<Record<Role, NavGroup[]>> = {
-  HR: ROLE_MENU.HR.map((item) => ({ label: item.label, items: [item] })),
   STAFF: [
     { label: "Duyệt", items: pick("STAFF", "/staff/profile-reviews", "/staff/jobs") },
     ...pick("STAFF", "/staff/applications", "/staff/companies", "/staff/internships").map((item) => ({

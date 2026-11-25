@@ -5,7 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Menu } from "@base-ui/react/menu";
 import { Popover } from "@base-ui/react/popover";
-import { ChevronDown, KeyRound, LogOut, Menu as MenuIcon, X } from "lucide-react";
+import { ChevronDown, LogOut, Menu as MenuIcon, X } from "lucide-react";
 import { ROLE_NAV_GROUPS, type MenuItem } from "@/config/menu";
 import { ROLE_HOME, ROLE_LABEL } from "@/config/roles";
 import type { User } from "@/interface/auth";
@@ -13,7 +13,7 @@ import "./manager-shell.css";
 
 function active(pathname: string, item: MenuItem) { return pathname === item.href || pathname.startsWith(`${item.href}/`); }
 
-/** Khung thanh ngang cho HR và cán bộ (cùng kiểu thanh của ứng viên, không có chuông thông báo). */
+/** Khung thanh ngang cho cán bộ (cùng kiểu thanh của ứng viên, không có chuông thông báo). HR dùng HrShell (UT-02). */
 export function ManagerShell({ user, children, onLogout }: { user: User; children: ReactNode; onLogout(): void }) {
   const pathname = usePathname();
   const groups = ROLE_NAV_GROUPS[user.role] ?? [];
@@ -37,7 +37,6 @@ export function ManagerShell({ user, children, onLogout }: { user: User; childre
           <span className="manager-account-name">{fullName}</span><ChevronDown aria-hidden="true" /></Menu.Trigger>
           <Menu.Portal><Menu.Positioner side="bottom" align="end" sideOffset={12} collisionPadding={16} className="manager-overlay"><Menu.Popup className="manager-popup manager-account-popup">
             <div className="manager-account-info"><strong>{fullName}</strong><span>{roleLabel}</span></div>
-            {user.role === "HR" && <Menu.LinkItem render={<Link href="/change-password" />} closeOnClick className="manager-menu-link"><KeyRound aria-hidden="true" />Đổi mật khẩu</Menu.LinkItem>}
             <Menu.Item onClick={onLogout} className="manager-menu-link"><LogOut aria-hidden="true" />Đăng xuất</Menu.Item>
           </Menu.Popup></Menu.Positioner></Menu.Portal>
         </Menu.Root>
