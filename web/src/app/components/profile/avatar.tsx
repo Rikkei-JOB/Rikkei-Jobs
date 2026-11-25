@@ -1,16 +1,15 @@
 "use client";
 
 import * as React from "react";
-import { Card, CardContent, CardHeader } from "@/app/components/ui/card";
+import { Camera, Trash2 } from "lucide-react";
 import { Alert } from "@/app/components/ui/alert";
 import { Button } from "@/app/components/ui/button";
-import { Input } from "@/app/components/ui/input";
-import { FormField } from "@/app/components/auth/form-field";
 import { qualificationService } from "@/services/profile-qualifications.service";
 import { validateProfileFile } from "@/schemas/profile-qualifications.schema";
 import { getErrorMessage } from "@/services/api";
 
-export function ProfileAvatar({ initialFileUrl }: { initialFileUrl: string | null }) {
+/** Ảnh đại diện tròn ở đầu thẻ hồ sơ: bấm biểu tượng máy ảnh để đổi ảnh. Thông báo hiện ở hàng riêng bên dưới. */
+export function ProfileAvatar({ initialFileUrl, fallback }: { initialFileUrl: string | null; fallback: string }) {
   const [fileUrl, setFileUrl] = React.useState<string | null>(initialFileUrl);
   const [src, setSrc] = React.useState<string | null>(null);
   const [error, setError] = React.useState<string | null>(null);
@@ -42,18 +41,26 @@ export function ProfileAvatar({ initialFileUrl }: { initialFileUrl: string | nul
     catch (err) { setError(getErrorMessage(err, "Không thể xoá ảnh đại diện.")); }
     finally { setBusy(false); }
   }
-  return <Card>
-    <CardHeader><h2 className="text-lg font-semibold">Ảnh đại diện</h2></CardHeader>
-    <CardContent className="space-y-3">
-      {src ? <picture><img src={src} alt="Ảnh đại diện của bạn" className="size-24 rounded-full object-cover ring-1 ring-border" /></picture> : null}
-      <FormField label="Chọn ảnh đại diện" htmlFor="profile-avatar"><Input id="profile-avatar" type="file" accept="image/jpeg,image/png" disabled={busy} onChange={event => {
-        const file = event.target.files?.[0]; if (file) void upload(file); event.target.value = "";
-      }} /></FormField>
-      <p className="text-xs text-muted-foreground">JPG hoặc PNG, tối đa 5MB. Ảnh được lưu riêng tư.</p>
-      {fileUrl ? <Button variant="outline" onClick={() => void remove()} disabled={busy}>Xoá ảnh đại diện</Button> : null}
-      {busy ? <p role="status">Đang cập nhật ảnh đại diện...</p> : null}
+  return <>
+    <div className="flex items-end gap-2">
+      <div className="relative">
+        <div className="flex size-24 items-center justify-center overflow-hidden rounded-full bg-violet-100 text-2xl font-semibold text-violet-800 ring-4 ring-card dark:bg-violet-950 dark:text-violet-200">
+          {src ? <picture><img src={src} alt="Ảnh đại diện của bạn" className="size-24 object-cover" /></picture> : <span aria-hidden>{fallback}</span>}
+        </div>
+        <label htmlFor="profile-avatar" title="Đổi ảnh đại diện (JPG hoặc PNG, tối đa 5MB)"
+          className={`absolute right-0 bottom-0 flex size-8 cursor-pointer items-center justify-center rounded-full border bg-background shadow-sm hover:bg-muted ${busy ? "pointer-events-none opacity-50" : ""}`}>
+          <Camera className="size-4" aria-hidden />
+        </label>
+        <input id="profile-avatar" type="file" accept="image/jpeg,image/png" aria-label="Chọn ảnh đại diện" className="sr-only" disabled={busy} onChange={event => {
+          const file = event.target.files?.[0]; if (file) void upload(file); event.target.value = "";
+        }} />
+      </div>
+      {fileUrl ? <Button variant="ghost" size="icon-sm" aria-label="Xoá ảnh đại diện" onClick={() => void remove()} disabled={busy}><Trash2 /></Button> : null}
+    </div>
+    {busy || error || saved ? <div className="order-last basis-full space-y-2">
+      {busy ? <p role="status" className="text-xs text-muted-foreground">Đang cập nhật ảnh đại diện...</p> : null}
       {error ? <div className="space-y-2"><Alert variant="destructive">{error}</Alert>{fileUrl ? <Button onClick={() => { setError(null); setReload(v => v + 1); }}>Tải lại ảnh</Button> : null}</div> : null}
       {saved ? <Alert variant="success">Đã cập nhật ảnh đại diện</Alert> : null}
-    </CardContent>
-  </Card>;
+    </div> : null}
+  </>;
 }

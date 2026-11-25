@@ -45,7 +45,7 @@ test("ứng viên thêm dự án có 2 ảnh, IOC không xoá được, sắp th
   await mkdir(directory, { recursive: true });
   const style = "nextjs-portal { display: none !important; }";
 
-  await section.getByRole("button", { name: "Thêm dự án" }).click();
+  await section.getByRole("button", { name: "Thêm dự án", exact: true }).click();
   const dialog = page.getByRole("dialog", { name: "Thêm dự án" });
   const name = "Shop thời trang (dự án cá nhân)";
   await dialog.getByLabel("Tên dự án").fill(name);

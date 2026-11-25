@@ -3,7 +3,7 @@
 import * as React from "react";
 import { useForm } from "react-hook-form";
 import { Dialog } from "@base-ui/react/dialog";
-import { ArrowDown, ArrowUp, BadgeCheck, ChevronLeft, ChevronRight, GripVertical, ImageIcon, X } from "lucide-react";
+import { ArrowDown, ArrowUp, BadgeCheck, ChevronLeft, ChevronRight, CodeXml, ExternalLink, EyeOff, GripVertical, Pencil, Plus, Trash2, X } from "lucide-react";
 import { Card, CardContent, CardHeader } from "@/app/components/ui/card";
 import { Button } from "@/app/components/ui/button";
 import { Alert } from "@/app/components/ui/alert";
@@ -14,6 +14,7 @@ import { PORTFOLIO_MAX_IMAGES, portfolioPayload, portfolioSchema, validatePortfo
 import { portfolioService } from "@/services/portfolio.service";
 import { getErrorMessage } from "@/services/api";
 import type { PortfolioMedia, PortfolioProject } from "@/interface/portfolio";
+import { HOVER_ACTIONS, initials, monthYear, toneOf } from "./display";
 
 /**
  * HS-03 Portfolio. Không truyền userId: màn quản lý của ứng viên (thêm/sửa/xoá, tải ảnh, kéo thả sắp thứ tự).
@@ -60,20 +61,27 @@ export function Portfolio({ userId }: { userId?: string }) {
   const canDrag = !readOnly && editing === undefined && !busy && (items?.length ?? 0) > 1;
 
   return <Card>
-    <CardHeader><div className="flex flex-wrap items-center justify-between gap-3">
-      <h2 className="text-lg font-semibold">Portfolio dự án</h2>
-      {readOnly ? null : <Button onClick={() => setEditing(null)} disabled={items === null}>Thêm dự án</Button>}
+    <CardHeader><div className="flex flex-wrap items-end justify-between gap-3">
+      <div>
+        <h2 className="text-lg font-semibold">Portfolio dự án{items?.length ? <span className="font-normal text-muted-foreground"> · {items.length}</span> : null}</h2>
+        <p className="text-xs text-muted-foreground">{readOnly ? "Các dự án ứng viên đã thực hiện." : "Những dự án bạn muốn nhà tuyển dụng thấy đầu tiên."}</p>
+      </div>
+      {readOnly ? null : <Button onClick={() => setEditing(null)} disabled={items === null}><Plus aria-hidden />Thêm dự án</Button>}
     </div></CardHeader>
     <CardContent className="space-y-4">
       {error ? <div className="space-y-2"><Alert variant="destructive">{error}</Alert>{items === null ? <Button onClick={() => { setError(null); setReload(v => v + 1); }}>Thử lại</Button> : null}</div> : null}
-      {items === null && !error ? <p role="status">Đang tải portfolio...</p> : null}
+      {items === null && !error ? <div role="status" aria-label="Đang tải portfolio..." className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {[0, 1, 2].map(i => <div key={i} className="animate-pulse overflow-hidden rounded-xl border">
+          <div className="aspect-[4/3] bg-muted" /><div className="space-y-2 p-3"><div className="h-4 w-2/3 rounded bg-muted" /><div className="h-3 w-1/2 rounded bg-muted" /></div>
+        </div>)}
+      </div> : null}
       {editing !== undefined ? <ProjectForm key={editing?.id ?? "new"} item={editing} onCancel={() => setEditing(undefined)} onSaved={saved => {
         setItems(old => (old ?? []).some(p => p.id === saved.id) ? (old ?? []).map(p => p.id === saved.id ? saved : p) : [...old ?? [], saved]);
         setEditing(undefined);
       }} /> : null}
       {viewing ? <ProjectDetail item={viewing} onClose={() => setViewing(null)}
         onEdit={readOnly ? undefined : () => { setEditing(viewing); setViewing(null); }} /> : null}
-      {items?.length === 0 ? <p className="text-sm text-muted-foreground">{readOnly ? "Chưa có dự án công khai." : "Chưa có dự án. Thêm dự án đầu tiên để nhà tuyển dụng thấy bạn đã làm gì."}</p> : null}
+      {items?.length === 0 && readOnly ? <p className="text-sm text-muted-foreground">Chưa có dự án công khai.</p> : null}
       {canDrag ? <p className="text-xs text-muted-foreground">Kéo thả thẻ hoặc dùng nút mũi tên để sắp thứ tự; thứ tự được lưu ngay.</p> : null}
       <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {items?.map((item, index) => <li key={item.id} draggable={canDrag}
@@ -84,43 +92,69 @@ export function Portfolio({ userId }: { userId?: string }) {
           onClick={e => { if (!(e.target as HTMLElement).closest("button,a")) setViewing(item); }}
           onKeyDown={e => { if (e.target === e.currentTarget && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); setViewing(item); } }}
           tabIndex={0} aria-label={`Xem chi tiết dự án ${item.name}`}
-          className={`flex flex-col overflow-hidden rounded-lg border bg-card transition-shadow hover:shadow-md focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none ${dragId === item.id ? "opacity-50" : ""} ${canDrag ? "cursor-grab" : "cursor-pointer"}`}
+          className={`group flex flex-col overflow-hidden rounded-xl border bg-card transition duration-200 hover:-translate-y-0.5 hover:shadow-lg focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none ${dragId === item.id ? "opacity-50" : ""} ${canDrag ? "cursor-grab" : "cursor-pointer"}`}
           data-testid="portfolio-card">
-          <Cover media={item.media} name={item.name} />
+          <div className="relative">
+            <Cover media={item.media} name={item.name} />
+            {!readOnly && !item.visible ? <span className="absolute top-2 left-2 inline-flex items-center gap-1 rounded-full bg-background/90 px-2 py-0.5 text-[0.625rem] text-muted-foreground"><EyeOff className="size-3" aria-hidden />Đang ẩn</span> : null}
+            {readOnly ? null : <div className={`absolute top-2 right-2 ${HOVER_ACTIONS}`}>
+              <Button variant="outline" size="icon-sm" className="bg-background/95" aria-label={`Đưa ${item.name} lên trước`} disabled={busy || index === 0} onClick={() => move(item.id, index - 1)}><ArrowUp /></Button>
+              <Button variant="outline" size="icon-sm" className="bg-background/95" aria-label={`Đưa ${item.name} ra sau`} disabled={busy || index === items.length - 1} onClick={() => move(item.id, index + 1)}><ArrowDown /></Button>
+              <Button variant="outline" size="icon-sm" className="bg-background/95" aria-label={`Sửa dự án ${item.name}`} disabled={busy} onClick={() => setEditing(item)}><Pencil /></Button>
+              {item.verified ? null : <Button variant="outline" size="icon-sm" className="bg-background/95 text-destructive" aria-label={`Xoá dự án ${item.name}`} disabled={busy} onClick={() => void remove(item)}><Trash2 /></Button>}
+            </div>}
+          </div>
           <div className="flex flex-1 flex-col gap-2 p-3">
             <div className="flex items-start gap-2">
               {canDrag ? <GripVertical aria-hidden className="mt-0.5 size-4 shrink-0 text-muted-foreground" /> : null}
-              <h3 className="flex-1 font-medium break-words">{item.name}</h3>
-              {!readOnly && !item.visible ? <span className="rounded bg-muted px-1.5 py-0.5 text-[0.625rem] text-muted-foreground">Đang ẩn</span> : null}
+              <div className="min-w-0 flex-1">
+                <h3 className="text-sm font-semibold break-words">{item.name}</h3>
+                <ProjectMeta item={item} />
+              </div>
             </div>
             {item.verified ? <VerifiedBadge /> : null}
-            {item.role ? <p className="text-sm text-muted-foreground break-words">{item.role}</p> : null}
-            {item.startDate ? <p className="text-xs text-muted-foreground">{item.startDate}{item.endDate ? ` → ${item.endDate}` : " → nay"}</p> : null}
-            {item.description ? <p className="line-clamp-3 text-sm break-words">{item.description}</p> : null}
-            {item.techStack.length ? <ul className="flex flex-wrap gap-1" aria-label="Công nghệ">{item.techStack.map(tag =>
-              <li key={tag} className="rounded bg-secondary px-1.5 py-0.5 text-xs text-secondary-foreground">{tag}</li>)}</ul> : null}
-            <ProjectLinks item={item} />
-            {readOnly ? null : <div className="mt-auto flex flex-wrap gap-2 pt-2">
-              <Button variant="outline" size="icon-sm" aria-label={`Đưa ${item.name} lên trước`} disabled={busy || index === 0} onClick={() => move(item.id, index - 1)}><ArrowUp /></Button>
-              <Button variant="outline" size="icon-sm" aria-label={`Đưa ${item.name} ra sau`} disabled={busy || index === items.length - 1} onClick={() => move(item.id, index + 1)}><ArrowDown /></Button>
-              <Button variant="outline" aria-label={`Sửa dự án ${item.name}`} disabled={busy} onClick={() => setEditing(item)}>Sửa</Button>
-              {item.verified ? null : <Button variant="destructive" aria-label={`Xoá dự án ${item.name}`} disabled={busy} onClick={() => void remove(item)}>Xoá</Button>}
-            </div>}
+            {item.description ? <p className="line-clamp-2 text-xs text-muted-foreground break-words">{item.description}</p> : null}
+            <TechTags tags={item.techStack} max={4} />
+            <div className="mt-auto pt-1"><ProjectLinks item={item} /></div>
           </div>
         </li>)}
+        {readOnly || items === null ? null : <li>
+          <button type="button" onClick={() => setEditing(null)} className="flex size-full min-h-48 flex-col items-center justify-center gap-2 rounded-xl border border-dashed text-muted-foreground transition-colors hover:border-foreground/40 hover:text-foreground">
+            <Plus className="size-6" aria-hidden />
+            <span className="text-sm">{items.length ? "Thêm dự án mới" : "Thêm dự án đầu tiên"}</span>
+            {items.length ? null : <span className="max-w-56 text-center text-xs">Cho nhà tuyển dụng thấy bạn đã làm được gì.</span>}
+          </button>
+        </li>}
       </ul>
     </CardContent>
   </Card>;
 }
 
-const LINK = "text-primary underline-offset-4 hover:underline";
+const LINK = "inline-flex items-center gap-1 rounded-md border px-2 py-1 text-xs text-muted-foreground transition-colors hover:border-foreground/30 hover:text-foreground";
 function ProjectLinks({ item }: { item: PortfolioProject }) {
-  return <div className="flex flex-wrap gap-3 text-xs">
-    {item.repoUrl ? <a href={item.repoUrl} target="_blank" rel="noopener noreferrer" className={LINK}>Mã nguồn</a> : null}
-    {item.demoUrl ? <a href={item.demoUrl} target="_blank" rel="noopener noreferrer" className={LINK}>Demo</a> : null}
+  return <div className="flex flex-wrap gap-1.5">
+    {item.repoUrl ? <a href={item.repoUrl} target="_blank" rel="noopener noreferrer" className={LINK}><CodeXml className="size-3.5" aria-hidden />Mã nguồn</a> : null}
+    {item.demoUrl ? <a href={item.demoUrl} target="_blank" rel="noopener noreferrer" className={LINK}><ExternalLink className="size-3.5" aria-hidden />Demo</a> : null}
     {item.media.filter(m => m.type === "EVIDENCE").map(m => /^https?:\/\//i.test(m.url)
-      ? <a key={m.id} href={m.url} target="_blank" rel="noopener noreferrer" className={LINK}>{m.caption ?? "Minh chứng"}</a> : null)}
+      ? <a key={m.id} href={m.url} target="_blank" rel="noopener noreferrer" className={LINK}><BadgeCheck className="size-3.5" aria-hidden />{m.caption ?? "Minh chứng"}</a> : null)}
   </div>;
+}
+
+function period(item: PortfolioProject) {
+  return item.startDate ? `${monthYear(item.startDate)} – ${item.endDate ? monthYear(item.endDate) : "nay"}` : null;
+}
+function ProjectMeta({ item }: { item: PortfolioProject }) {
+  const text = [item.role, period(item)].filter(Boolean).join(" · ");
+  return text ? <p className="mt-0.5 text-xs text-muted-foreground break-words">{text}</p> : null;
+}
+
+function TechTags({ tags, max }: { tags: string[]; max?: number }) {
+  if (!tags.length) return null;
+  const shown = max ? tags.slice(0, max) : tags;
+  return <ul className="flex flex-wrap gap-1" aria-label="Công nghệ">
+    {shown.map(tag => <li key={tag} className="rounded-full bg-secondary px-2 py-0.5 text-[0.6875rem] text-secondary-foreground">{tag}</li>)}
+    {tags.length > shown.length ? <li className="rounded-full bg-secondary px-2 py-0.5 text-[0.6875rem] text-muted-foreground" title={tags.slice(shown.length).join(", ")}>+{tags.length - shown.length}</li> : null}
+  </ul>;
 }
 
 function VerifiedBadge() {
@@ -160,13 +194,12 @@ function ProjectDetail({ item, onClose, onEdit }: { item: PortfolioProject; onCl
               className={`block size-16 overflow-hidden rounded-md border ${i === selected ? "ring-2 ring-primary" : "opacity-70 hover:opacity-100"}`}><Thumb media={m} /></button>
           </li>)}</ul> : null}
         </div> : null}
-        <dl className="grid gap-x-6 gap-y-2 text-sm sm:grid-cols-2">
+        <dl className="grid gap-x-6 gap-y-2 rounded-lg bg-muted/50 p-3 text-sm sm:grid-cols-2">
           {item.role ? <div><dt className="text-xs text-muted-foreground">Vai trò</dt><dd className="break-words">{item.role}</dd></div> : null}
-          {item.startDate ? <div><dt className="text-xs text-muted-foreground">Thời gian</dt><dd>{item.startDate}{item.endDate ? ` → ${item.endDate}` : " → nay"}</dd></div> : null}
+          {item.startDate ? <div><dt className="text-xs text-muted-foreground">Thời gian</dt><dd>{period(item)}</dd></div> : null}
         </dl>
-        {item.description ? <p className="mt-3 text-sm whitespace-pre-line break-words">{item.description}</p> : null}
-        {item.techStack.length ? <ul className="mt-3 flex flex-wrap gap-1" aria-label="Công nghệ">{item.techStack.map(tag =>
-          <li key={tag} className="rounded bg-secondary px-1.5 py-0.5 text-xs text-secondary-foreground">{tag}</li>)}</ul> : null}
+        {item.description ? <p className="mt-4 text-sm leading-relaxed whitespace-pre-line break-words">{item.description}</p> : null}
+        <div className="mt-4"><TechTags tags={item.techStack} /></div>
         <div className="mt-3"><ProjectLinks item={item} /></div>
         <div className="mt-6 flex gap-2">
           {onEdit ? <Button onClick={onEdit}>Sửa dự án</Button> : null}
@@ -198,10 +231,11 @@ function useImageSrc(url: string | null) {
 function Cover({ media, name }: { media: PortfolioMedia[]; name: string }) {
   const images = media.filter(m => m.type === "IMAGE");
   const src = useImageSrc(images[0]?.url ?? null);
-  return <div className="relative aspect-video bg-muted">
-    {src ? <picture><img src={src} alt={`Ảnh bìa dự án ${name}`} className="size-full object-cover" /></picture>
-      : <div className="flex size-full items-center justify-center text-muted-foreground"><ImageIcon className="size-8" aria-hidden /></div>}
-    {images.length > 1 ? <span className="absolute right-2 bottom-2 rounded bg-black/60 px-1.5 py-0.5 text-xs text-white">{images.length} ảnh</span> : null}
+  return <div className={`relative aspect-[4/3] overflow-hidden ${images.length ? "bg-muted" : toneOf(name)}`}>
+    {src ? <picture><img src={src} alt={`Ảnh bìa dự án ${name}`} className="size-full object-cover transition-transform duration-300 group-hover:scale-105" /></picture>
+      : images.length ? <div className="size-full animate-pulse bg-muted" />
+      : <div className="flex size-full items-center justify-center text-3xl font-semibold tracking-wide" aria-hidden>{initials(name)}</div>}
+    {images.length > 1 ? <span className="absolute bottom-2 left-2 rounded-full bg-black/60 px-2 py-0.5 text-[0.6875rem] text-white">{images.length} ảnh</span> : null}
   </div>;
 }
 

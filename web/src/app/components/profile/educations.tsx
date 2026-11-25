@@ -2,6 +2,8 @@
 
 import * as React from "react";
 import { useForm } from "react-hook-form";
+import { GraduationCap, Pencil, Plus, Trash2 } from "lucide-react";
+import { HOVER_ACTIONS, initials, monthYear, toneOf } from "./display";
 import { Card, CardContent, CardHeader } from "@/app/components/ui/card";
 import { Button } from "@/app/components/ui/button";
 import { Alert } from "@/app/components/ui/alert";
@@ -33,26 +35,54 @@ export function Educations() {
     catch (err) { setError(getErrorMessage(err, "Không thể xoá học vấn.")); }
     finally { setDeleting(null); }
   }
+  // Mốc mới nhất lên đầu dòng thời gian.
+  const sorted = items ? [...items].sort((a, b) => b.fromDate.localeCompare(a.fromDate)) : null;
   return <Card>
-    <CardHeader><div className="flex flex-wrap items-center justify-between gap-3"><h2 className="text-lg font-semibold">Học vấn</h2>
-      <Button onClick={() => setEditing(null)} disabled={items === null}>Thêm học vấn</Button></div></CardHeader>
+    <CardHeader><div className="flex flex-wrap items-center justify-between gap-3">
+      <h2 className="text-lg font-semibold">Học vấn{items?.length ? <span className="font-normal text-muted-foreground"> · {items.length}</span> : null}</h2>
+      <Button onClick={() => setEditing(null)} disabled={items === null}><Plus aria-hidden />Thêm học vấn</Button></div></CardHeader>
     <CardContent className="space-y-4">
       {error ? <div className="space-y-2"><Alert variant="destructive">{error}</Alert>{items === null ? <Button onClick={() => { setError(null); setReload(v => v + 1); }}>Thử lại học vấn</Button> : null}</div> : null}
       {items === null && !error ? <p role="status">Đang tải học vấn...</p> : null}
       {editing !== undefined ? <FormDialog title={editing ? "Sửa học vấn" : "Thêm học vấn"} onClose={() => setEditing(undefined)}><EducationForm key={editing?.id ?? "new"} item={editing} onCancel={() => setEditing(undefined)} onSaved={item => {
         setItems(old => editing ? (old ?? []).map(e => e.id === item.id ? item : e) : [...old ?? [], item]); setEditing(undefined);
       }} /></FormDialog> : null}
-      {items?.length === 0 ? <p className="text-sm text-muted-foreground">Chưa có thông tin học vấn.</p> : null}
-      {items?.map(item => <article key={item.id} className="rounded-lg border p-3 space-y-2">
-        <h3 className="font-medium break-words">{item.school}</h3>
-        {item.major ? <p className="text-sm break-words">{item.major}</p> : null}
-        <p className="text-xs text-muted-foreground">{item.fromDate} — {item.toDate ?? "Đang học"}{item.gpa !== null ? ` · GPA: ${item.gpa}/10` : ""}</p>
-        {item.note ? <p className="whitespace-pre-wrap break-words text-sm">{item.note}</p> : null}
-        <div className="flex gap-2"><Button variant="outline" aria-label={`Sửa học vấn ${item.school}`} disabled={deleting !== null} onClick={() => setEditing(item)}>Sửa</Button>
-          <Button variant="destructive" aria-label={`Xoá học vấn ${item.school}`} disabled={deleting !== null} onClick={() => void remove(item)}>{deleting === item.id ? "Đang xoá..." : "Xoá"}</Button></div>
-      </article>)}
+      {items?.length === 0 ? <button type="button" onClick={() => setEditing(null)} className="flex w-full flex-col items-center gap-1 rounded-xl border border-dashed p-6 text-muted-foreground transition-colors hover:border-foreground/40 hover:text-foreground">
+        <GraduationCap className="size-6" aria-hidden /><span className="text-sm">Chưa có thông tin học vấn</span><span className="text-xs">Thêm trường bạn đã và đang học.</span>
+      </button> : null}
+      {sorted?.length ? <ol>{sorted.map((item, index) => <li key={item.id}
+        onClick={e => { if (deleting === null && !(e.target as HTMLElement).closest("button,a")) setEditing(item); }}
+        className={`group flex cursor-pointer gap-3 rounded-xl p-3 transition-colors hover:bg-muted/60 ${deleting === item.id ? "opacity-50" : ""}`}>
+        <div className="flex flex-col items-center">
+          <div className={`flex size-10 shrink-0 items-center justify-center rounded-lg text-xs font-semibold ${toneOf(item.school)}`} aria-hidden>{schoolInitials(item.school)}</div>
+          {index < sorted.length - 1 ? <div className="mt-2 w-px flex-1 bg-border" aria-hidden /> : null}
+        </div>
+        <div className="min-w-0 flex-1 pb-1">
+          <div className="flex items-start justify-between gap-2">
+            <div className="min-w-0">
+              <h3 className="text-sm font-semibold break-words">{item.school}</h3>
+              <p className="mt-0.5 text-xs text-muted-foreground break-words">{[item.major, `${monthYear(item.fromDate)} – ${item.toDate ? monthYear(item.toDate) : "nay"}`].filter(Boolean).join(" · ")}</p>
+            </div>
+            <div className={HOVER_ACTIONS}>
+              <Button variant="outline" size="icon-sm" aria-label={`Sửa học vấn ${item.school}`} disabled={deleting !== null} onClick={() => setEditing(item)}><Pencil /></Button>
+              <Button variant="outline" size="icon-sm" className="text-destructive" aria-label={`Xoá học vấn ${item.school}`} disabled={deleting !== null} onClick={() => void remove(item)}><Trash2 /></Button>
+            </div>
+          </div>
+          <div className="mt-2 flex flex-wrap gap-1.5">
+            {item.gpa !== null ? <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-[0.6875rem] font-medium text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300">GPA {item.gpa} / 10</span> : null}
+            {item.toDate ? null : <span className="rounded-full bg-sky-50 px-2 py-0.5 text-[0.6875rem] text-sky-700 dark:bg-sky-950 dark:text-sky-300">Đang học</span>}
+          </div>
+          {item.note ? <p className="mt-2 text-xs whitespace-pre-wrap break-words text-muted-foreground">{item.note}</p> : null}
+        </div>
+      </li>)}</ol> : null}
     </CardContent>
   </Card>;
+}
+
+// Bỏ các từ chung như "Đại học", "THPT Chuyên" để chữ viết tắt ra "BK" thay vì "ĐH".
+const SCHOOL_WORDS = /^(trường|đại|học|cao|đẳng|thpt|thcs|chuyên|university|of|college|-)$/i;
+function schoolInitials(school: string) {
+  return initials(school.split(/\s+/).filter(w => !SCHOOL_WORDS.test(w)).join(" ") || school);
 }
 
 function EducationForm({ item, onCancel, onSaved }: { item: Education | null; onCancel: () => void; onSaved: (item: Education) => void }) {
