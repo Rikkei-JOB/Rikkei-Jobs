@@ -14,6 +14,7 @@ public class InterviewLifecycleService {
     private final InterviewScheduleRepository schedules;
     private final InterviewSlotRepository slots;
     private final InterviewNotifications notifications;
+    private final CandidateNotificationService candidateNotifications;
     private final JdbcTemplate jdbc;
     private final ObjectMapper json;
     @Transactional(propagation=Propagation.MANDATORY)
@@ -32,6 +33,9 @@ public class InterviewLifecycleService {
             var recipients=notifications.attemptedRecipients(schedule.getId());
             var payloads=jdbc.queryForList("select payload from recruitment.interview_notification_outbox where schedule_id=? and type='CONFIRMATION' limit 1",String.class,schedule.getId());
             schedule.setStatus("CANCELLED");schedule.setCancelledAt(now);schedules.save(schedule);
+            var round = rounds.findById(roundId).orElseThrow();
+            candidateNotifications.publish(schedule.getCandidateId(), round.getApplicationId(), "schedule:"+schedule.getId()+":cancelled",
+                "INTERVIEW_CANCELLED", "Lịch phỏng vấn đã được huỷ", round.getName()+" — xem cập nhật lịch phỏng vấn của bạn.", "/candidate/interviews", now);
             if(!recipients.isEmpty() && !payloads.isEmpty()) {
                 try {notifications.enqueue("schedule:"+schedule.getId(),"CANCELLATION",json.readValue(payloads.get(0),InterviewNotificationPayload.class),recipients,now);}
                 catch(com.fasterxml.jackson.core.JsonProcessingException ex){throw new IllegalStateException(ex);}

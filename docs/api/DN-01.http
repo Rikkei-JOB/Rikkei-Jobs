@@ -80,7 +80,7 @@ Content-Type: application/json
 
 { "id": "{{B}}", "name": "Cong ty A (da sua)", "industry": "Phan mem", "size": "51-200", "city": "Ha Noi" }
 
-### 3d. hr1 goi PUT /companies/{B} -> 404 NOT_FOUND (khong co route nhu vay)
+### 3d. hr1 goi PUT /companies/{B} -> 404 NOT_FOUND "Không tìm thấy công ty", cong ty B khong doi (HR chi sua duoc cong ty minh; PUT /companies/{A} -> 200 nhu PUT /companies/me)
 PUT {{gw}}/companies/{{B}}
 Authorization: Bearer {{hr1Login.response.body.accessToken}}
 Content-Type: application/json

@@ -320,6 +320,47 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Error' }
+  /companies/{id}:
+    put:
+      tags: [company]
+      summary: HR sửa công ty theo id (chỉ công ty của mình)
+      description: |
+        Công ty của HR xác định qua bảng company_hr, không đọc claim companyId. id là công ty của HR thì xử lý y như PUT /companies/me.
+        id là công ty khác hoặc không tồn tại thì trả cùng một lỗi 404, không lộ id có thật. Cán bộ quản lý công ty qua /staff/companies.
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/UpdateCompanyRequest' }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CompanyResponse' }
+        '400':
+          description: VALIDATION_ERROR - errors là map field -> thông báo; BAD_REQUEST - id không phải UUID
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '401':
+          description: UNAUTHORIZED hoặc ACCOUNT_DISABLED
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '403':
+          description: FORBIDDEN (không phải HR), MUST_CHANGE_PASSWORD hoặc COMPANY_LOCKED
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '404':
+          description: NOT_FOUND - không có công ty, hoặc không phải công ty của HR đang gọi
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
   /companies/me/logo:
     post:
       tags: [company]
@@ -1023,7 +1064,7 @@ components:
       description: Điểm khớp ứng viên với JD (DN-06), đúng hợp đồng Match của ut02-openapi.yaml. Công thức ở docs/matching.md.
       required: [score, belowMinimum, met, missing]
       properties:
-        score: { type: number, minimum: 0, maximum: 100, description: Số nguyên (làm tròn 0,5 lên) }
+        score: { type: number, minimum: 0, maximum: 100, description: "Số nguyên (làm tròn 0,5 lên)" }
         belowMinimum: { type: boolean, description: true khi có kỹ năng bắt buộc với điểm dưới 50% min_score }
         met: { type: array, items: { $ref: '#/components/schemas/MatchSkill' }, description: Kỹ năng đạt (điểm >= min_score) }
         missing: { type: array, items: { $ref: '#/components/schemas/MatchSkill' }, description: Kỹ năng thiếu (điểm < min_score) }

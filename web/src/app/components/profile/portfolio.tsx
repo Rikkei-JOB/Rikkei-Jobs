@@ -14,7 +14,7 @@ import { PORTFOLIO_MAX_IMAGES, portfolioPayload, portfolioSchema, validatePortfo
 import { portfolioService } from "@/services/portfolio.service";
 import { getErrorMessage } from "@/services/api";
 import type { PortfolioMedia, PortfolioProject } from "@/interface/portfolio";
-import { HOVER_ACTIONS, initials, monthYear, toneOf } from "./display";
+import { ADD_TILE, BADGE, BRAND_SOFT, CHIP, ICON_ACTION, ICON_DANGER, ITEM_CARD, ITEM_TITLE, META, PRIMARY_CTA, SECONDARY_CTA, SECTION_TITLE, TONE, initials, monthYear } from "./display";
 
 /**
  * HS-03 Portfolio. Không truyền userId: màn quản lý của ứng viên (thêm/sửa/xoá, tải ảnh, kéo thả sắp thứ tự).
@@ -63,15 +63,15 @@ export function Portfolio({ userId }: { userId?: string }) {
   return <Card>
     <CardHeader><div className="flex flex-wrap items-end justify-between gap-3">
       <div>
-        <h2 className="text-lg font-semibold">Portfolio dự án{items?.length ? <span className="font-normal text-muted-foreground"> · {items.length}</span> : null}</h2>
-        <p className="text-xs text-muted-foreground">{readOnly ? "Các dự án ứng viên đã thực hiện." : "Những dự án bạn muốn nhà tuyển dụng thấy đầu tiên."}</p>
+        <h2 className={SECTION_TITLE}>Portfolio dự án{items?.length ? <span className="font-normal text-[#64748B]"> · {items.length}</span> : null}</h2>
+        <p className={`mt-1 ${META}`}>{readOnly ? "Các dự án ứng viên đã thực hiện." : "Những dự án bạn muốn nhà tuyển dụng thấy đầu tiên."}</p>
       </div>
-      {readOnly ? null : <Button onClick={() => setEditing(null)} disabled={items === null}><Plus aria-hidden />Thêm dự án</Button>}
+      {readOnly ? null : <Button className={PRIMARY_CTA} onClick={() => setEditing(null)} disabled={items === null}><Plus aria-hidden />Thêm dự án</Button>}
     </div></CardHeader>
     <CardContent className="space-y-4">
       {error ? <div className="space-y-2"><Alert variant="destructive">{error}</Alert>{items === null ? <Button onClick={() => { setError(null); setReload(v => v + 1); }}>Thử lại</Button> : null}</div> : null}
-      {items === null && !error ? <div role="status" aria-label="Đang tải portfolio..." className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {[0, 1, 2].map(i => <div key={i} className="animate-pulse overflow-hidden rounded-xl border">
+      {items === null && !error ? <div role="status" aria-label="Đang tải portfolio..." className="grid grid-cols-[repeat(auto-fill,minmax(min(100%,300px),1fr))] gap-4">
+        {[0, 1, 2].map(i => <div key={i} className="animate-pulse overflow-hidden rounded-xl border border-[#E2E8F0]">
           <div className="aspect-[4/3] bg-muted" /><div className="space-y-2 p-3"><div className="h-4 w-2/3 rounded bg-muted" /><div className="h-3 w-1/2 rounded bg-muted" /></div>
         </div>)}
       </div> : null}
@@ -82,8 +82,8 @@ export function Portfolio({ userId }: { userId?: string }) {
       {viewing ? <ProjectDetail item={viewing} onClose={() => setViewing(null)}
         onEdit={readOnly ? undefined : () => { setEditing(viewing); setViewing(null); }} /> : null}
       {items?.length === 0 && readOnly ? <p className="text-sm text-muted-foreground">Chưa có dự án công khai.</p> : null}
-      {canDrag ? <p className="text-xs text-muted-foreground">Kéo thả thẻ hoặc dùng nút mũi tên để sắp thứ tự; thứ tự được lưu ngay.</p> : null}
-      <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      {canDrag ? <p className={META}>Kéo thả thẻ hoặc dùng nút mũi tên để sắp thứ tự; thứ tự được lưu ngay.</p> : null}
+      <ul className="grid grid-cols-[repeat(auto-fill,minmax(min(100%,300px),1fr))] gap-4">
         {items?.map((item, index) => <li key={item.id} draggable={canDrag}
           onDragStart={e => { setDragId(item.id); e.dataTransfer.effectAllowed = "move"; }}
           onDragOver={e => { if (dragId) e.preventDefault(); }}
@@ -92,36 +92,37 @@ export function Portfolio({ userId }: { userId?: string }) {
           onClick={e => { if (!(e.target as HTMLElement).closest("button,a")) setViewing(item); }}
           onKeyDown={e => { if (e.target === e.currentTarget && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); setViewing(item); } }}
           tabIndex={0} aria-label={`Xem chi tiết dự án ${item.name}`}
-          className={`group flex flex-col overflow-hidden rounded-xl border bg-card transition duration-200 hover:-translate-y-0.5 hover:shadow-lg focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none ${dragId === item.id ? "opacity-50" : ""} ${canDrag ? "cursor-grab" : "cursor-pointer"}`}
+          className={`group flex flex-col overflow-hidden ${ITEM_CARD} focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#B4232D] ${dragId === item.id ? "opacity-50" : ""} ${canDrag ? "cursor-grab" : "cursor-pointer"}`}
           data-testid="portfolio-card">
           <div className="relative">
             <Cover media={item.media} name={item.name} />
-            {!readOnly && !item.visible ? <span className="absolute top-2 left-2 inline-flex items-center gap-1 rounded-full bg-background/90 px-2 py-0.5 text-[0.625rem] text-muted-foreground"><EyeOff className="size-3" aria-hidden />Đang ẩn</span> : null}
-            {readOnly ? null : <div className={`absolute top-2 right-2 ${HOVER_ACTIONS}`}>
-              <Button variant="outline" size="icon-sm" className="bg-background/95" aria-label={`Đưa ${item.name} lên trước`} disabled={busy || index === 0} onClick={() => move(item.id, index - 1)}><ArrowUp /></Button>
-              <Button variant="outline" size="icon-sm" className="bg-background/95" aria-label={`Đưa ${item.name} ra sau`} disabled={busy || index === items.length - 1} onClick={() => move(item.id, index + 1)}><ArrowDown /></Button>
-              <Button variant="outline" size="icon-sm" className="bg-background/95" aria-label={`Sửa dự án ${item.name}`} disabled={busy} onClick={() => setEditing(item)}><Pencil /></Button>
-              {item.verified ? null : <Button variant="outline" size="icon-sm" className="bg-background/95 text-destructive" aria-label={`Xoá dự án ${item.name}`} disabled={busy} onClick={() => void remove(item)}><Trash2 /></Button>}
-            </div>}
+            {!readOnly && !item.visible ? <span className={`absolute top-3 left-3 ${BADGE} bg-white/95 text-[#475569]`}><EyeOff className="size-3.5" aria-hidden />Đang ẩn</span> : null}
           </div>
-          <div className="flex flex-1 flex-col gap-2 p-3">
+          <div className="flex flex-1 flex-col gap-3 p-4">
             <div className="flex items-start gap-2">
-              {canDrag ? <GripVertical aria-hidden className="mt-0.5 size-4 shrink-0 text-muted-foreground" /> : null}
+              {canDrag ? <GripVertical aria-hidden className="mt-1 size-5 shrink-0 text-[#64748B]" /> : null}
               <div className="min-w-0 flex-1">
-                <h3 className="text-sm font-semibold break-words">{item.name}</h3>
+                <h3 className={ITEM_TITLE}>{item.name}</h3>
                 <ProjectMeta item={item} />
               </div>
             </div>
             {item.verified ? <VerifiedBadge /> : null}
-            {item.description ? <p className="line-clamp-2 text-xs text-muted-foreground break-words">{item.description}</p> : null}
+            {item.description ? <p className="line-clamp-2 text-sm break-words text-[#334155]">{item.description}</p> : null}
             <TechTags tags={item.techStack} max={4} />
-            <div className="mt-auto pt-1"><ProjectLinks item={item} /></div>
+            <div className="mt-auto"><ProjectLinks item={item} /></div>
           </div>
+          {readOnly ? null : <div className="flex items-center gap-1 border-t border-[#E2E8F0] px-2 py-1">
+            <Button variant="ghost" className={ICON_ACTION} aria-label={`Đưa ${item.name} lên trước`} disabled={busy || index === 0} onClick={() => move(item.id, index - 1)}><ArrowUp /></Button>
+            <Button variant="ghost" className={ICON_ACTION} aria-label={`Đưa ${item.name} ra sau`} disabled={busy || index === items.length - 1} onClick={() => move(item.id, index + 1)}><ArrowDown /></Button>
+            <span className="flex-1" />
+            <Button variant="ghost" className={ICON_ACTION} aria-label={`Sửa dự án ${item.name}`} disabled={busy} onClick={() => setEditing(item)}><Pencil /></Button>
+            {item.verified ? null : <Button variant="ghost" className={ICON_DANGER} aria-label={`Xoá dự án ${item.name}`} disabled={busy} onClick={() => void remove(item)}><Trash2 /></Button>}
+          </div>}
         </li>)}
         {readOnly || items === null ? null : <li>
-          <button type="button" onClick={() => setEditing(null)} className="flex size-full min-h-48 flex-col items-center justify-center gap-2 rounded-xl border border-dashed text-muted-foreground transition-colors hover:border-foreground/40 hover:text-foreground">
+          <button type="button" onClick={() => setEditing(null)} className={`size-full min-h-48 ${ADD_TILE}`}>
             <Plus className="size-6" aria-hidden />
-            <span className="text-sm">{items.length ? "Thêm dự án mới" : "Thêm dự án đầu tiên"}</span>
+            <span className="text-sm font-medium">{items.length ? "Thêm dự án mới" : "Thêm dự án đầu tiên"}</span>
             {items.length ? null : <span className="max-w-56 text-center text-xs">Cho nhà tuyển dụng thấy bạn đã làm được gì.</span>}
           </button>
         </li>}
@@ -130,13 +131,13 @@ export function Portfolio({ userId }: { userId?: string }) {
   </Card>;
 }
 
-const LINK = "inline-flex items-center gap-1 rounded-md border px-2 py-1 text-xs text-muted-foreground transition-colors hover:border-foreground/30 hover:text-foreground";
+const LINK = "inline-flex min-h-11 items-center gap-2 rounded-lg px-2 text-sm font-medium text-[#B4232D] underline-offset-4 hover:underline";
 function ProjectLinks({ item }: { item: PortfolioProject }) {
-  return <div className="flex flex-wrap gap-1.5">
-    {item.repoUrl ? <a href={item.repoUrl} target="_blank" rel="noopener noreferrer" className={LINK}><CodeXml className="size-3.5" aria-hidden />Mã nguồn</a> : null}
-    {item.demoUrl ? <a href={item.demoUrl} target="_blank" rel="noopener noreferrer" className={LINK}><ExternalLink className="size-3.5" aria-hidden />Demo</a> : null}
+  return <div className="-mx-2 flex flex-wrap gap-x-1">
+    {item.repoUrl ? <a href={item.repoUrl} target="_blank" rel="noopener noreferrer" className={LINK}><CodeXml className="size-4" aria-hidden />Mã nguồn</a> : null}
+    {item.demoUrl ? <a href={item.demoUrl} target="_blank" rel="noopener noreferrer" className={LINK}><ExternalLink className="size-4" aria-hidden />Demo</a> : null}
     {item.media.filter(m => m.type === "EVIDENCE").map(m => /^https?:\/\//i.test(m.url)
-      ? <a key={m.id} href={m.url} target="_blank" rel="noopener noreferrer" className={LINK}><BadgeCheck className="size-3.5" aria-hidden />{m.caption ?? "Minh chứng"}</a> : null)}
+      ? <a key={m.id} href={m.url} target="_blank" rel="noopener noreferrer" className={LINK}><BadgeCheck className="size-4" aria-hidden />{m.caption ?? "Minh chứng"}</a> : null)}
   </div>;
 }
 
@@ -145,20 +146,20 @@ function period(item: PortfolioProject) {
 }
 function ProjectMeta({ item }: { item: PortfolioProject }) {
   const text = [item.role, period(item)].filter(Boolean).join(" · ");
-  return text ? <p className="mt-0.5 text-xs text-muted-foreground break-words">{text}</p> : null;
+  return text ? <p className={`mt-0.5 break-words ${META}`}>{text}</p> : null;
 }
 
 function TechTags({ tags, max }: { tags: string[]; max?: number }) {
   if (!tags.length) return null;
   const shown = max ? tags.slice(0, max) : tags;
-  return <ul className="flex flex-wrap gap-1" aria-label="Công nghệ">
-    {shown.map(tag => <li key={tag} className="rounded-full bg-secondary px-2 py-0.5 text-[0.6875rem] text-secondary-foreground">{tag}</li>)}
-    {tags.length > shown.length ? <li className="rounded-full bg-secondary px-2 py-0.5 text-[0.6875rem] text-muted-foreground" title={tags.slice(shown.length).join(", ")}>+{tags.length - shown.length}</li> : null}
+  return <ul className="flex flex-wrap gap-1.5" aria-label="Công nghệ">
+    {shown.map(tag => <li key={tag} className={CHIP}>{tag}</li>)}
+    {tags.length > shown.length ? <li className={CHIP} title={tags.slice(shown.length).join(", ")}>+{tags.length - shown.length}</li> : null}
   </ul>;
 }
 
 function VerifiedBadge() {
-  return <span className="inline-flex w-fit items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300">
+  return <span className={`${BADGE} ${TONE.success}`}>
     <BadgeCheck className="size-3.5" aria-hidden />Thực tập IOC – đã xác thực</span>;
 }
 
@@ -174,10 +175,10 @@ function ProjectDetail({ item, onClose, onEdit }: { item: PortfolioProject; onCl
       <Dialog.Popup className="fixed left-1/2 top-1/2 z-50 max-h-[90dvh] w-[calc(100%-2rem)] max-w-3xl -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-2xl border bg-background p-6 shadow-xl">
         <div className="mb-4 flex items-start justify-between gap-3">
           <div className="space-y-1">
-            <Dialog.Title className="text-lg font-semibold break-words">{item.name}</Dialog.Title>
+            <Dialog.Title className="text-xl font-semibold break-words text-[#18233A]">{item.name}</Dialog.Title>
             {item.verified ? <VerifiedBadge /> : null}
           </div>
-          <Dialog.Close aria-label="Đóng" className="rounded-md p-2 hover:bg-muted"><X className="size-4" /></Dialog.Close>
+          <Dialog.Close aria-label="Đóng" className="flex size-11 items-center justify-center rounded-lg hover:bg-[#F6F7FA]"><X className="size-5" /></Dialog.Close>
         </div>
         {images.length ? <div className="mb-4 space-y-2">
           <div className="relative aspect-video overflow-hidden rounded-lg bg-muted"
@@ -191,19 +192,19 @@ function ProjectDetail({ item, onClose, onEdit }: { item: PortfolioProject; onCl
           </div>
           {images.length > 1 ? <ul className="flex flex-wrap gap-2">{images.map((m, i) => <li key={m.id}>
             <button type="button" onClick={() => setSelected(i)} aria-label={`Xem ảnh ${i + 1}`} aria-pressed={i === selected}
-              className={`block size-16 overflow-hidden rounded-md border ${i === selected ? "ring-2 ring-primary" : "opacity-70 hover:opacity-100"}`}><Thumb media={m} /></button>
+              className={`block size-16 overflow-hidden rounded-lg border ${i === selected ? "ring-2 ring-[#B4232D]" : "opacity-70 hover:opacity-100"}`}><Thumb media={m} /></button>
           </li>)}</ul> : null}
         </div> : null}
-        <dl className="grid gap-x-6 gap-y-2 rounded-lg bg-muted/50 p-3 text-sm sm:grid-cols-2">
-          {item.role ? <div><dt className="text-xs text-muted-foreground">Vai trò</dt><dd className="break-words">{item.role}</dd></div> : null}
-          {item.startDate ? <div><dt className="text-xs text-muted-foreground">Thời gian</dt><dd>{period(item)}</dd></div> : null}
+        <dl className="grid gap-x-6 gap-y-2 rounded-lg bg-[#F6F7FA] p-4 text-sm text-[#18233A] sm:grid-cols-2">
+          {item.role ? <div><dt className={META}>Vai trò</dt><dd className="break-words">{item.role}</dd></div> : null}
+          {item.startDate ? <div><dt className={META}>Thời gian</dt><dd>{period(item)}</dd></div> : null}
         </dl>
-        {item.description ? <p className="mt-4 text-sm leading-relaxed whitespace-pre-line break-words">{item.description}</p> : null}
+        {item.description ? <p className="mt-4 text-base leading-6 whitespace-pre-line break-words text-[#334155]">{item.description}</p> : null}
         <div className="mt-4"><TechTags tags={item.techStack} /></div>
         <div className="mt-3"><ProjectLinks item={item} /></div>
         <div className="mt-6 flex gap-2">
-          {onEdit ? <Button onClick={onEdit}>Sửa dự án</Button> : null}
-          <Dialog.Close render={<Button variant="outline" />}>Đóng</Dialog.Close>
+          {onEdit ? <Button className={PRIMARY_CTA} onClick={onEdit}>Sửa dự án</Button> : null}
+          <Dialog.Close render={<Button variant="outline" className={SECONDARY_CTA} />}>Đóng</Dialog.Close>
         </div>
       </Dialog.Popup>
     </Dialog.Portal>
@@ -231,11 +232,11 @@ function useImageSrc(url: string | null) {
 function Cover({ media, name }: { media: PortfolioMedia[]; name: string }) {
   const images = media.filter(m => m.type === "IMAGE");
   const src = useImageSrc(images[0]?.url ?? null);
-  return <div className={`relative aspect-[4/3] overflow-hidden ${images.length ? "bg-muted" : toneOf(name)}`}>
-    {src ? <picture><img src={src} alt={`Ảnh bìa dự án ${name}`} className="size-full object-cover transition-transform duration-300 group-hover:scale-105" /></picture>
+  return <div className={`relative aspect-[4/3] overflow-hidden ${images.length ? "bg-slate-100" : BRAND_SOFT}`}>
+    {src ? <picture><img src={src} alt={`Ảnh bìa dự án ${name}`} className="size-full object-cover transition-transform duration-200 motion-safe:group-hover:scale-105" /></picture>
       : images.length ? <div className="size-full animate-pulse bg-muted" />
       : <div className="flex size-full items-center justify-center text-3xl font-semibold tracking-wide" aria-hidden>{initials(name)}</div>}
-    {images.length > 1 ? <span className="absolute bottom-2 left-2 rounded-full bg-black/60 px-2 py-0.5 text-[0.6875rem] text-white">{images.length} ảnh</span> : null}
+    {images.length > 1 ? <span className={`absolute bottom-3 left-3 ${BADGE} bg-black/65 text-white`}>{images.length} ảnh</span> : null}
   </div>;
 }
 
@@ -347,8 +348,8 @@ function ProjectForm({ item, onCancel, onSaved }: { item: PortfolioProject | nul
         </ul> : null}
       </div>
       {error ? <Alert variant="destructive">{error}</Alert> : null}
-      <div className="flex gap-2"><Button type="submit">{isSubmitting ? "Đang lưu..." : "Lưu dự án"}</Button>
-        <Button type="button" variant="outline" onClick={close}>Huỷ</Button></div>
+      <div className="flex gap-2"><Button type="submit" className={PRIMARY_CTA}>{isSubmitting ? "Đang lưu..." : "Lưu dự án"}</Button>
+        <Button type="button" variant="outline" className={SECONDARY_CTA} onClick={close}>Huỷ</Button></div>
     </fieldset>
   </form>
       </Dialog.Popup>

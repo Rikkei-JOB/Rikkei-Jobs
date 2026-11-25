@@ -17,6 +17,7 @@ import { Alert } from "@/app/components/ui/alert";
 import { skillService } from "@/services/skill.service";
 import type { SkillProfileItem, SkillEvidence, SkillLevel, SkillSource } from "@/interface/skill";
 import { getErrorMessage } from "@/services/api";
+import { BADGE, META, SECONDARY_CTA, SECTION_TITLE, TONE } from "@/app/components/profile/display";
 
 const LEVEL_CONFIG: Record<
   NonNullable<SkillLevel>,
@@ -214,20 +215,20 @@ function SkillProfileContent({ userId, readOnly = false, previewSkills }: SkillP
       <CardHeader>
         <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <h2 className="text-lg font-semibold">
+            <h2 className={SECTION_TITLE}>
               Hồ sơ năng lực kỹ năng
               <span className="font-normal text-muted-foreground"> · {stats.total}</span>
             </h2>
             <p className="text-xs text-muted-foreground">
               {stats.verifiedCount} đã xác thực · {stats.selfCount} có điểm tự đánh giá · {stats.totalEvidences} bằng chứng
             </p>
-            <div className="mt-2 flex flex-wrap gap-4 text-[0.6875rem] text-muted-foreground">
-              <span className="inline-flex items-center gap-1.5"><span className="h-1.5 w-3 rounded-full bg-gradient-to-r from-slate-500 via-blue-600 to-purple-600" aria-hidden />Điểm xác thực</span>
+            <div className="mt-2 flex flex-wrap gap-4 text-xs text-[#64748B]">
+              <span className="inline-flex items-center gap-1.5"><span className="h-2 w-4 rounded-full bg-slate-500" aria-hidden />Điểm xác thực (màu theo bậc)</span>
               <span className="inline-flex items-center gap-1.5"><span className="h-3 w-0.5 bg-foreground/60" aria-hidden />Tự đánh giá</span>
             </div>
           </div>
           {!readOnly && (
-            <Button variant="outline" onClick={handleRecompute} disabled={recomputing} className="self-start sm:self-auto">
+            <Button variant="outline" onClick={handleRecompute} disabled={recomputing} className={`self-start sm:self-auto ${SECONDARY_CTA}`}>
               <RefreshCw className={recomputing ? "animate-spin" : ""} aria-hidden />
               {recomputing ? "Đang tính lại..." : "Tính lại chỉ số"}
             </Button>
@@ -253,7 +254,7 @@ function SkillProfileContent({ userId, readOnly = false, previewSkills }: SkillP
             <h3 className="mt-3 text-sm font-medium">Chưa có dữ liệu kỹ năng</h3>
             <p className="mt-1 text-xs text-muted-foreground">Hồ sơ chưa có kỹ năng hoặc kết quả học tập nào được đồng bộ.</p>
             {!readOnly && (
-              <Button variant="outline" size="sm" onClick={handleRecompute} disabled={recomputing} className="mt-4">
+              <Button variant="outline" onClick={handleRecompute} disabled={recomputing} className={`mt-4 ${SECONDARY_CTA}`}>
                 <RefreshCw aria-hidden />
                 Đồng bộ ngay
               </Button>
@@ -298,7 +299,7 @@ function SkillRow({ item, expanded, onToggle }: { item: SkillProfileItem; expand
           {sources.size ? (
             <div className="mt-1 flex flex-wrap gap-1">
               {[...sources].map(source => (
-                <span key={source} className={`rounded-full px-1.5 py-px text-[0.625rem] ${source === "SELF" ? "border border-dashed text-muted-foreground" : "bg-secondary text-secondary-foreground"}`}>
+                <span key={source} className={`rounded-full px-2 py-0.5 text-xs ${source === "SELF" ? "border border-dashed border-[#64748B] text-[#475569]" : "bg-slate-100 text-[#334155]"}`}>
                   {SOURCE_SHORT[source]}
                 </span>
               ))}
@@ -316,7 +317,7 @@ function SkillRow({ item, expanded, onToggle }: { item: SkillProfileItem; expand
               <div className="absolute -top-1 h-4 w-0.5 -translate-x-1/2 rounded bg-foreground/60" style={{ left: `${clamp(item.selfScore)}%` }} />
             ) : null}
           </div>
-          <p className="flex flex-wrap gap-x-3 text-[0.6875rem] text-muted-foreground">
+          <p className={`flex flex-wrap gap-x-3 ${META}`}>
             {verified !== null ? <span>Xác thực <span className="font-semibold text-foreground">{verified.toFixed(1)}</span></span> : null}
             {item.selfScore !== null ? <span>Tự đánh giá <span className="font-semibold text-foreground">{item.selfScore.toFixed(1)}</span></span> : null}
             {verified === null && item.selfScore === null ? <span>Chưa có chỉ số</span> : null}
@@ -325,12 +326,12 @@ function SkillRow({ item, expanded, onToggle }: { item: SkillProfileItem; expand
 
         <div className="flex items-center gap-2 sm:justify-end">
           {level ? (
-            <span className={`rounded-full border px-2 py-0.5 text-[0.6875rem] font-medium ${level.badgeClass}`}>{level.label}</span>
+            <span className={`${BADGE} border ${level.badgeClass}`}>{level.label}</span>
           ) : (
-            <span className="rounded-full bg-muted px-2 py-0.5 text-[0.6875rem] text-muted-foreground">Chưa xác thực</span>
+            <span className={`${BADGE} ${TONE.neutral}`}>Chưa xác thực</span>
           )}
           <button type="button" onClick={onToggle} aria-expanded={expanded}
-            className="inline-flex items-center gap-1 rounded-md px-1.5 py-1 text-[0.6875rem] text-muted-foreground hover:bg-muted hover:text-foreground">
+            className="inline-flex min-h-11 items-center gap-1 rounded-lg px-2 text-xs font-medium text-[#475569] hover:bg-[#FFF1F2] hover:text-[#B4232D]">
             <Award className="h-3.5 w-3.5" aria-hidden />
             Bằng chứng ({evidenceCount})
             {expanded ? <ChevronUp className="h-3.5 w-3.5" aria-hidden /> : <ChevronDown className="h-3.5 w-3.5" aria-hidden />}
