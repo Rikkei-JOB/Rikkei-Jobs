@@ -1,6 +1,6 @@
 "use client";
 
-import type { ReactNode } from "react";
+import { useEffect, type ReactNode } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Menu } from "@base-ui/react/menu";
@@ -19,6 +19,11 @@ export function ManagerShell({ user, children, onLogout }: { user: User; childre
   const groups = ROLE_NAV_GROUPS[user.role] ?? [];
   const roleLabel = ROLE_LABEL[user.role];
   const fullName = user.fullName?.trim() || roleLabel;
+  // Dialog/Select/Popover của trang được portal ra body, ngoài khung này; gắn theme lên body để chúng cũng đỏ.
+  useEffect(() => {
+    document.body.classList.add("admin-theme");
+    return () => document.body.classList.remove("admin-theme");
+  }, []);
   return <div className="admin-theme manager-shell">
     <header className="manager-header"><div className="manager-topbar">
       <Link href={ROLE_HOME[user.role]} className="manager-brand" aria-label="Rikkei Jobs, trang chủ"><span>Rikkei</span> Jobs<span className="manager-brand-dot" aria-hidden="true" /></Link>

@@ -4,8 +4,8 @@
 .manager-brand { display: inline-flex; align-items: baseline; gap: 5px; color: #18233a; font-size: 21px; font-weight: 700; letter-spacing: -.04em; white-space: nowrap; }
 .manager-brand > span:first-child { color: #b4232d; }
 .manager-brand-dot { width: 5px; height: 5px; align-self: center; margin-left: 3px; background: #b4232d; border-radius: 50%; }
-.manager-desktop-nav { align-self: stretch; display: flex; gap: 28px; align-items: stretch; }
-.manager-nav-link { display: inline-flex; align-items: center; gap: 6px; min-height: 44px; color: #475569; font-size: 14px; font-weight: 500; border-bottom: 2px solid transparent; padding: 2px 0 0; }
+.manager-desktop-nav { align-self: stretch; display: flex; gap: 20px; min-width: 0; align-items: stretch; }
+.manager-nav-link { white-space: nowrap; display: inline-flex; align-items: center; gap: 6px; min-height: 44px; color: #475569; font-size: 14px; font-weight: 500; border-bottom: 2px solid transparent; padding: 2px 0 0; }
 .manager-nav-link:hover { color: #b4232d; }
 .manager-nav-link[aria-current=page], .manager-nav-link[data-active] { color: #b4232d; border-bottom-color: #b4232d; font-weight: 600; }
 .manager-nav-link svg { width: 14px; height: 14px; }
@@ -35,6 +35,10 @@
 .manager-panel-heading { display: flex; align-items: center; justify-content: space-between; padding: 16px 20px; gap: 12px; border-bottom: 1px solid #e2e8f0; }
 .manager-panel-heading h2 { color: #18233a; font-size: 18px; line-height: 26px; font-weight: 600; }
 .manager-shell :is(button,a):focus-visible, .manager-popup :is(button,a):focus-visible { outline: 2px solid #b4232d; outline-offset: 2px; }
+@media (min-width: 769px) and (max-width: 1024px) {
+  .manager-topbar { gap: 24px; }
+  .manager-account-name, .manager-account > svg { display: none; }
+}
 @media (max-width: 768px) {
   .manager-desktop-nav { display: none; }
   .manager-mobile-trigger { display: inline-flex; }
