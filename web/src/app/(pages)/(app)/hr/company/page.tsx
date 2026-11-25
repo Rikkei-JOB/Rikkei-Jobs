@@ -30,9 +30,9 @@ export default function HrCompanyPage() {
 
   return (
     // Nằm trong <main> của layout (app) (NT-02), nên dùng <div> và không thêm padding.
-    <div className="mx-auto max-w-5xl space-y-4">
-      <div className="flex flex-wrap items-start justify-between gap-2">
-        <h1 className="font-heading text-lg font-semibold">Hồ sơ công ty</h1>
+    <div className="hr-page">
+      <div className="hr-page-heading">
+        <div><p className="hr-eyebrow">THÔNG TIN DOANH NGHIỆP</p><h1>Hồ sơ công ty</h1><p className="hr-description">Giới thiệu doanh nghiệp để ứng viên hiểu hơn về nơi làm việc.</p></div>
         <div className="flex flex-col items-end gap-1">
           <div className="flex gap-2">
             {company ? (
@@ -62,7 +62,7 @@ export default function HrCompanyPage() {
       {company ? (
         <>
           {locked ? <Alert>Công ty đang bị khoá, bạn chỉ xem được hồ sơ.</Alert> : null}
-          <div className="grid gap-4 md:grid-cols-[280px_1fr] md:items-start">
+          <div className="grid min-w-0 gap-6 min-[1200px]:grid-cols-[280px_minmax(0,1fr)] min-[1200px]:items-start">
             <CompanySummaryCard
               company={company}
               onLogoUpload={handleLogoUpload}

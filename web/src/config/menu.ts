@@ -43,8 +43,8 @@ export const ROLE_MENU: Record<Role, MenuItem[]> = {
   ],
   HR: [
     { label: "Công ty", href: "/hr/company", icon: Building2 },
-    { label: "JD", href: "/hr/jobs", icon: FileText },
-    { label: "Tuyển dụng", href: "/hr/recruitment", icon: UserSearch },
+    { label: "Tin tuyển dụng", href: "/hr/jobs", icon: FileText },
+    { label: "Hồ sơ ứng tuyển", href: "/hr/recruitment", icon: UserSearch },
     { label: "Lịch phỏng vấn", href: "/hr/interviews", icon: CalendarDays },
     { label: "Thực tập sinh", href: "/hr/interns", icon: GraduationCap },
   ],

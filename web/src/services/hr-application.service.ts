@@ -6,8 +6,8 @@ import type { CreateOfferPayload, EmploymentRecord, Offer } from "@/interface/of
 const root = "/recruitment";
 const idPath = (id: string) => `${root}/applications/${encodeURIComponent(id)}`;
 export const hrApplicationService = {
-  async listHr(params: { jobId?: string; status?: ApplicationStatus; page?: number; size?: number }) {
-    return (await api.get<HrApplicationPage>(`${root}/hr/applications`, { params })).data;
+  async listHr(params: { jobId?: string; status?: ApplicationStatus; page?: number; size?: number }, signal?: AbortSignal) {
+    return (await api.get<HrApplicationPage>(`${root}/hr/applications`, { params, signal })).data;
   },
   async listStaff(params: { companyId?: string; jobId?: string; status?: ApplicationStatus; page?: number; size?: number }) {
     return (await api.get<HrApplicationPage>(`${root}/staff/applications`, { params })).data;

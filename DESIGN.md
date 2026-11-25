@@ -1,6 +1,6 @@
 # Rikkei Jobs — Quy chuẩn thiết kế giao diện
 
-**Phiên bản 1.0 · Cập nhật 24/11/2026 · Áp dụng cho toàn bộ frontend.**
+**Phiên bản 1.1 · Cập nhật 25/11/2026 · Áp dụng cho toàn bộ frontend.**
 
 Đây là tài liệu chuẩn để cả team và Codex thiết kế, triển khai và review UI. Phong cách chung lấy từ giao diện ứng viên đã được duyệt: đỏ trầm, nền sáng, chữ rõ, khoảng cách thoáng và thông tin tuyển dụng dễ quét. Các vai trò dùng chung tokens và component; bố cục điều hướng được chọn theo nhiệm vụ của từng vai trò.
 
@@ -13,7 +13,7 @@
 
 ### Chuẩn đích và hiện trạng
 
-Tài liệu quy định **chuẩn đích**, không khẳng định các màn đã đồng nhất. Hiện `globals.css` còn theme mặc định đen/trắng và Button chung có kích thước nhỏ; khu vực ứng viên đã có theme đỏ và control 44px trong CSS riêng. Việc tạo tài liệu không tự thay đổi runtime theme.
+Tài liệu quy định **chuẩn đích**, không khẳng định các màn đã đồng nhất. `globals.css` khai báo tokens chung `--brand`, `--brand-hover`, `--brand-soft`, `--heading`, `--body`, `--text-muted`, `--surface`, `--surface-border`, `--control-border`, `--page-background`. HR ánh xạ các tokens này sang semantic theme trong `HrShell`; ứng viên còn CSS tương thích riêng. Theme mặc định của vai trò khác và Button chung vẫn cần chuyển dần.
 
 Khi chuẩn hoá code, tập trung tokens vào `web/src/app/globals.css` và các biến thể vào `web/src/app/components/ui/`. Scope ứng viên hiện có là lớp tương thích trong giai đoạn chuyển đổi; map các giá trị đó về theme chung khi chuyển module, thay vì sao chép một bộ màu mới cho mỗi vai trò. Thay đổi theme toàn cục cần kiểm tra cả component cũ dùng theme đó.
 
@@ -123,7 +123,8 @@ Ví dụ dùng component và semantic utility sau khi theme đã được chuẩ
 Breakpoint desktop của sản phẩm là **1200px**. Tailwind `xl` mặc định là 1280px; dùng `min-[1200px]` hoặc media query 1200px khi cần đúng ngưỡng này.
 
 - **Ứng viên:** top bar sticky 64px; logo, menu, chuông, tài khoản. Dưới 1200px dùng menu thu gọn, chuông luôn tiếp cận được.
-- **HR/Staff/Admin/Mentor:** giữ khung hiện có trong giai đoạn chuyển đổi. Áp dụng tokens/component chung khi sửa màn; thay điều hướng là công việc riêng theo luồng nghiệp vụ.
+- **HR:** top bar sticky 64px, menu Tin tuyển dụng / Hồ sơ ứng tuyển / Lịch phỏng vấn / Thực tập sinh; menu tài khoản chứa công ty, đổi mật khẩu, đăng xuất. Dưới 1200px thu gọn menu. Khung nội dung tối đa 1200px (padding ngoài 24px). Thông báo HR chờ API riêng; không dùng API thông báo ứng viên.
+- **Staff/Admin/Mentor:** giữ khung hiện có trong giai đoạn chuyển đổi; áp dụng tokens/component chung khi sửa màn.
 - **Trang chi tiết:** nội dung chính và aside 280px khi đủ rộng; tablet về một cột. Sticky aside lấy offset theo header, dùng `--app-sticky-offset` hiện có.
 - **CTA đáy mobile:** chừa padding nội dung cùng safe-area; modal mở thì CTA nền được ẩn; sau đóng trả focus khi control đã hiện lại.
 - **Lớp hiển thị:** nội dung thông thường; CTA đáy 15; header ứng viên 30; menu/popover 40; modal/backdrop 50. Kiểm tra stacking context trước khi tăng z-index.
@@ -172,6 +173,8 @@ Các đường dẫn tính từ gốc repo:
 | `web/src/app/components/ui/` | Component nền tảng dùng chung |
 | `web/src/app/components/layout/app-shell.tsx` | Chọn layout theo vai trò |
 | `web/src/app/components/layout/candidate-shell.tsx` | Top bar và điều hướng ứng viên |
+| `web/src/app/components/layout/hr-shell.tsx` | Top bar và điều hướng HR |
+| `web/src/app/components/layout/hr-shell.css` | Mapping token chung vào HR và responsive trong giai đoạn chuyển đổi |
 | `web/src/app/components/applications/career.css` | Theme ứng viên hiện có, cần hợp nhất dần với theme chung |
 | `web/src/app/components/applications/career-banner.tsx` | Banner SVG theo phong cách được duyệt |
 | `web/src/config/application-status.ts` | Nhãn và màu trạng thái ứng tuyển |
@@ -203,3 +206,4 @@ Các bản đặc tả riêng trong `docs/superpowers/specs/` giải thích từ
 | Phiên bản | Ngày | Nội dung |
 | --- | --- | --- |
 | 1.0 | 24/11/2026 | Thống nhất phong cách đỏ trầm từ giao diện ứng viên làm nền tảng toàn team; ghi rõ hiện trạng và hướng chuyển đổi theme/component. |
+| 1.1 | 25/11/2026 | Bổ sung tokens nền tảng chung, khung HR dùng top bar và quy tắc chuyển đổi theo vai trò. |
