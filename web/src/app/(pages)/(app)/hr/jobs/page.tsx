@@ -29,8 +29,11 @@ function HrJobsView() {
   const rawPage = Number(searchParams.get("page") ?? "1")
   const page = Number.isInteger(rawPage) && rawPage > 0 ? rawPage : 1
 
+  const [feedback, setFeedback] = React.useState<JobRowFeedback | null>(null)
+
   const navigate = React.useCallback(
     (next: { status?: JobStatus; page: number }) => {
+      setFeedback(null)
       const query = new URLSearchParams()
       if (next.status) query.set("status", next.status)
       if (next.page > 1) query.set("page", String(next.page))
@@ -44,7 +47,6 @@ function HrJobsView() {
   React.useEffect(() => clearJobListNotice(), [])
 
   const { data: company } = useMyCompany(allowed)
-  const [feedback, setFeedback] = React.useState<JobRowFeedback | null>(null)
   const { data: summary } = useMyJobSummary(allowed)
   const { data, error, isPending, isFetching, refetch } = useMyJobs(status, page, allowed)
 
@@ -70,11 +72,16 @@ function HrJobsView() {
       {feedback ? (
         <Alert variant={feedback.variant} className="flex flex-wrap items-center justify-between gap-2">
           <span>{feedback.message}</span>
+          <span className="flex items-center gap-3">
           {feedback.href ? (
             <Link href={feedback.href} className="font-medium underline">
               Mở để sửa
             </Link>
           ) : null}
+            <button type="button" aria-label="Đóng thông báo" onClick={() => setFeedback(null)} className="text-base leading-none">
+              ×
+            </button>
+          </span>
         </Alert>
       ) : null}
 

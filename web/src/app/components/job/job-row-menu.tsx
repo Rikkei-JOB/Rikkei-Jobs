@@ -20,7 +20,8 @@ export interface JobRowFeedback {
 interface JobRowMenuProps {
   job: JobSummary
   companyLocked: boolean
-  onFeedback?: (feedback: JobRowFeedback) => void
+  /** null = xoá thông báo cũ khi bắt đầu thao tác mới. */
+  onFeedback?: (feedback: JobRowFeedback | null) => void
 }
 
 const itemClass = "flex cursor-pointer items-center rounded-md px-2 py-1.5 text-xs outline-none data-[highlighted]:bg-muted"
@@ -36,29 +37,32 @@ export function JobRowMenu({ job, companyLocked, onFeedback }: JobRowMenuProps) 
   const canClose = !companyLocked && job.status === "APPROVED"
   const canEdit = canSubmit || canClose
 
-  function handleSubmit() {
-    submit.mutate(job.id, {
-      onSuccess: () => onFeedback?.({ variant: "success", message: "Đã gửi duyệt" }),
-      onError: (error) =>
-        onFeedback?.(
-          error instanceof ApiError && error.code === "VALIDATION_ERROR"
-            ? { variant: "destructive", message: "JD chưa đủ điều kiện gửi duyệt", href }
-            : { variant: "destructive", message: getErrorMessage(error) },
-        ),
-    })
+  // mutateAsync (không dùng callback của mutate): hàng có thể bị gỡ khỏi danh sách ngay khi cache làm mới,
+  // khi đó callback theo từng lần gọi của TanStack Query bị bỏ qua.
+  async function handleSubmit() {
+    onFeedback?.(null)
+    try {
+      await submit.mutateAsync(job.id)
+      onFeedback?.({ variant: "success", message: "Đã gửi duyệt" })
+    } catch (error) {
+      onFeedback?.(
+        error instanceof ApiError && error.code === "VALIDATION_ERROR"
+          ? { variant: "destructive", message: "JD chưa đủ điều kiện gửi duyệt", href }
+          : { variant: "destructive", message: getErrorMessage(error) },
+      )
+    }
   }
 
-  function handleClose() {
-    close.mutate(job.id, {
-      onSuccess: () => {
-        setConfirmClose(false)
-        onFeedback?.({ variant: "success", message: "Đã đóng JD" })
-      },
-      onError: (error) => {
-        setConfirmClose(false)
-        onFeedback?.({ variant: "destructive", message: getErrorMessage(error) })
-      },
-    })
+  async function handleClose() {
+    onFeedback?.(null)
+    try {
+      await close.mutateAsync(job.id)
+      onFeedback?.({ variant: "success", message: "Đã đóng JD" })
+    } catch (error) {
+      onFeedback?.({ variant: "destructive", message: getErrorMessage(error) })
+    } finally {
+      setConfirmClose(false)
+    }
   }
 
   return (
@@ -78,7 +82,7 @@ export function JobRowMenu({ job, companyLocked, onFeedback }: JobRowMenuProps) 
                 {canEdit ? "Sửa" : "Xem"}
               </Menu.LinkItem>
               {canSubmit ? (
-                <Menu.Item disabled={submit.isPending} onClick={handleSubmit} className={itemClass}>
+                <Menu.Item disabled={submit.isPending} onClick={() => void handleSubmit()} className={itemClass}>
                   Gửi duyệt
                 </Menu.Item>
               ) : null}
@@ -98,7 +102,7 @@ export function JobRowMenu({ job, companyLocked, onFeedback }: JobRowMenuProps) 
           confirmLabel="Đóng JD"
           destructive
           pending={close.isPending}
-          onConfirm={handleClose}
+          onConfirm={() => void handleClose()}
           onCancel={() => setConfirmClose(false)}
         />
       ) : null}

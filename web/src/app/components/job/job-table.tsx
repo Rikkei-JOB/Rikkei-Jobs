@@ -11,7 +11,7 @@ import { LEVEL_LABEL, formatDate } from "@/app/components/job/job-labels"
 interface JobTableProps {
   items: JobSummary[]
   companyLocked?: boolean
-  onFeedback?: (feedback: JobRowFeedback) => void
+  onFeedback?: (feedback: JobRowFeedback | null) => void
 }
 
 /** Bảng JD của HR; bấm một dòng (hoặc liên kết ở tiêu đề, cho bàn phím) mở /hr/jobs/{id}. */
