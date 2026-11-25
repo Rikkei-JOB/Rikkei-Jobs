@@ -13,8 +13,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="vi" className={cn("font-sans", inter.variable)}>
       <body>
-        <AuthHydrator />
-        <QueryProvider>{children}</QueryProvider>
+        <QueryProvider><AuthHydrator />{children}</QueryProvider>
       </body>
     </html>
   );

@@ -64,6 +64,8 @@ class SmtpApplicationStatusMailSenderTest {
         verify(sender, times(1)).send(sent.capture());
         String body = sent.getValue().getContent().toString();
         assertThat(body).contains("12.000.000", "gross", "2030-02-01", "Hà Nội",
-            "2030-01-03", "http://localhost:3000/candidate/offers/" + offer.getId());
+            "07:00 03/01/2030 (Giờ Việt Nam, UTC+7)",
+            "đăng nhập bằng tài khoản đã ứng tuyển",
+            "http://localhost:3000/candidate/offers/" + offer.getId());
     }
 }

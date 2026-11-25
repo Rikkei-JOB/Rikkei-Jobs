@@ -18,11 +18,13 @@ test("Ứng viên chọn giờ và vào phòng, gửi một yêu cầu", async (
   });
   await page.goto("/candidate/interviews");
   await page.getByRole("radio").check(); await page.getByRole("button", { name: "Xác nhận khung giờ" }).click();
-  await expect(page.getByRole("link", { name: "Vào phòng họp" })).toHaveAttribute("href", "https://meet.test/room");
+  await expect(page.getByRole("status").filter({ hasText: "Đã xác nhận khung giờ" })).toBeVisible();
+  await page.getByRole("tab", { name: /Sắp diễn ra/ }).click();
+  await expect(page.getByRole("link", { name: "Vào phòng phỏng vấn" })).toHaveAttribute("href", "https://meet.test/room");
   await expect(page.getByText(/09:00/)).toBeVisible(); expect(posts).toBe(1);
   await page.screenshot({ path: "../docs/api/screenshots/ut06-candidate.png", fullPage: true });
   await page.setViewportSize({ width: 390, height: 844 });
-  await expect(page.getByRole("link", { name: "Vào phòng họp" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Vào phòng phỏng vấn" })).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
   await page.screenshot({ path: "../docs/api/screenshots/ut06-candidate-mobile.png", fullPage: true });
 });
