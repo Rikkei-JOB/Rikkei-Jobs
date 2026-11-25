@@ -32,8 +32,9 @@ public class JobMapper {
                 job.getReviewedAt(), job.getCreatedAt(), job.getUpdatedAt(), sorted);
     }
 
-    public JobSummary toSummary(Job job) {
+    public JobSummary toSummary(Job job, int requiredSkillCount) {
         return new JobSummary(job.getId(), job.getTitle(), job.getLevel(), job.getStatus(), job.getDeadline(),
-                job.getUpdatedAt());
+                job.getUpdatedAt(), requiredSkillCount,
+                job.getStatus() == JobStatus.REJECTED ? job.getRejectReason() : null);
     }
 }

@@ -12,6 +12,7 @@ import com.rikkei.jobs.company.config.exception.JobValidationException;
 import com.rikkei.jobs.company.dto.request.JobRequest;
 import com.rikkei.jobs.company.dto.request.JobSkillRequest;
 import com.rikkei.jobs.company.dto.response.JobResponse;
+import com.rikkei.jobs.company.dto.response.JobStatusSummary;
 import com.rikkei.jobs.company.dto.response.JobSummary;
 import com.rikkei.jobs.company.entity.Company;
 import com.rikkei.jobs.company.entity.CompanyStatus;
@@ -27,6 +28,9 @@ import com.rikkei.jobs.company.service.JobService;
 import com.rikkei.jobs.company.util.JobRules;
 import java.time.Clock;
 import java.time.Instant;
+import java.time.LocalDate;
+import java.util.EnumMap;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -150,7 +154,35 @@ public class JobServiceImpl implements JobService {
         Page<Job> result = status == null
                 ? jobRepository.findByCompanyId(company.getId(), pageable)
                 : jobRepository.findByCompanyIdAndStatus(company.getId(), status, pageable);
-        return PageResponse.of(result, result.getContent().stream().map(jobMapper::toSummary).toList());
+        List<UUID> ids = result.getContent().stream().map(Job::getId).toList();
+        Map<UUID, Integer> requiredCounts = new HashMap<>();
+        if (!ids.isEmpty()) {
+            for (Object[] row : jobSkillRepository.countRequiredByJobIds(ids)) {
+                requiredCounts.put((UUID) row[0], ((Number) row[1]).intValue());
+            }
+        }
+        return PageResponse.of(result, result.getContent().stream()
+                .map(j -> jobMapper.toSummary(j, requiredCounts.getOrDefault(j.getId(), 0))).toList());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public JobStatusSummary summaryMine(UUID hrUserId) {
+        Company company = companyService.findMine(hrUserId);
+        Map<JobStatus, Long> byStatus = new EnumMap<>(JobStatus.class);
+        for (JobStatus s : JobStatus.values()) {
+            byStatus.put(s, 0L);
+        }
+        long total = 0;
+        for (Object[] row : jobRepository.countByStatus(company.getId())) {
+            long count = ((Number) row[1]).longValue();
+            byStatus.put((JobStatus) row[0], count);
+            total += count;
+        }
+        LocalDate today = JobRules.today(clock);
+        long expiringSoon = jobRepository.countByCompanyIdAndStatusAndDeadlineBetween(
+                company.getId(), JobStatus.APPROVED, today, today.plusDays(7));
+        return new JobStatusSummary(total, byStatus, expiringSoon);
     }
 
     // ---- các bước dùng chung ----

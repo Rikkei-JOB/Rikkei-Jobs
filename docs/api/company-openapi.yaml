@@ -466,6 +466,34 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Error' }
+  /companies/me/jobs/summary:
+    get:
+      tags: [job]
+      summary: HR xem tổng hợp JD của công ty mình
+      description: Vai trò HR. Số JD theo từng trạng thái (byStatus luôn đủ 5 khoá, theo thứ tự enum) và expiringSoon = số JD APPROVED có deadline từ hôm nay đến hôm nay + 7 ngày (Asia/Ho_Chi_Minh). Công ty LOCKED vẫn xem được.
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: Tổng hợp JD
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/JobStatusSummary' }
+              example: { total: 11, byStatus: { DRAFT: 3, PENDING: 5, APPROVED: 2, REJECTED: 1, CLOSED: 0 }, expiringSoon: 1 }
+        '401':
+          description: UNAUTHORIZED - thiếu hoặc sai token; ACCOUNT_DISABLED - HR bị cán bộ khoá
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '403':
+          description: FORBIDDEN (không phải HR) hoặc MUST_CHANGE_PASSWORD
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '404':
+          description: NOT_FOUND - HR chưa được gán công ty
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
   /jobs:
     post:
       tags: [job]
@@ -1044,6 +1072,22 @@ components:
         status: { $ref: '#/components/schemas/JobStatus' }
         deadline: { type: string, format: date, nullable: true }
         updatedAt: { type: string, format: date-time }
+        requiredSkillCount: { type: integer, description: Số kỹ năng bắt buộc của JD }
+        rejectReason: { type: string, nullable: true, description: Chỉ có khi status là REJECTED }
+    JobStatusSummary:
+      type: object
+      properties:
+        total: { type: integer, format: int64 }
+        byStatus:
+          type: object
+          description: Đủ 5 khoá trạng thái, giá trị 0 vẫn có mặt
+          properties:
+            DRAFT: { type: integer, format: int64 }
+            PENDING: { type: integer, format: int64 }
+            APPROVED: { type: integer, format: int64 }
+            REJECTED: { type: integer, format: int64 }
+            CLOSED: { type: integer, format: int64 }
+        expiringSoon: { type: integer, format: int64, description: Số JD APPROVED hết hạn trong 7 ngày tới }
     JobSummaryPage:
       type: object
       properties:
