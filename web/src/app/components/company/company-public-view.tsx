@@ -18,7 +18,6 @@ const SECTION_CLASS = "space-y-2 rounded-xl border border-border bg-white p-4";
  */
 export function CompanyPublicView({ company, jobs }: { company: Company; jobs: JobSummary[] }) {
   const locked = company.status === "LOCKED";
-  const shown = locked ? [] : jobs;
   return (
     <div className="space-y-4">
       <section className={SECTION_CLASS}>
@@ -68,14 +67,14 @@ export function CompanyPublicView({ company, jobs }: { company: Company; jobs: J
       </section>
 
       <section className={SECTION_CLASS}>
-        <h2 className="font-heading text-sm font-semibold">Việc làm đang tuyển ({shown.length})</h2>
+        <h2 className="font-heading text-sm font-semibold">Việc làm đang tuyển ({jobs.length})</h2>
         {locked ? <p className="text-xs text-muted-foreground">{LOCKED_JOBS_NOTICE}</p> : null}
-        {!locked && shown.length === 0 ? (
+        {jobs.length === 0 ? (
           <p className="text-xs text-muted-foreground">Hiện chưa có vị trí nào đang tuyển.</p>
         ) : null}
-        {shown.length > 0 ? (
+        {jobs.length > 0 ? (
           <ul className="grid gap-3 sm:grid-cols-2">
-            {shown.map((job) => {
+            {jobs.map((job) => {
               const hint = deadlineHint(job.deadline);
               return (
                 <li key={job.id} className="flex items-start gap-3 rounded-lg border border-border p-3">

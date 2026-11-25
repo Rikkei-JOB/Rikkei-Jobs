@@ -22,11 +22,10 @@ export default function HrCompanyPage() {
   if (!allowed) return null
 
   const locked = company?.status === "LOCKED"
-  const jobCount = locked ? 0 : openJobs.length
   const tabs: { id: CompanyTab; label: string }[] = [
     { id: "intro", label: "Giới thiệu" },
     { id: "contact", label: "Thông tin liên hệ" },
-    { id: "jobs", label: `Việc làm đang tuyển (${jobCount})` },
+    { id: "jobs", label: `Việc làm đang tuyển (${openJobs.length})` },
   ]
 
   return (
