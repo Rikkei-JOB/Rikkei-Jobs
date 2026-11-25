@@ -76,6 +76,13 @@ public class ProfileDemoDataSeeder implements ApplicationRunner {
                 seedSelfOnlySkill(userId);
                 seedIocProject(userId);
             }
+            if (candidate.lmsUserId().equals("lms-sv-003")) {
+                // Đủ 5 nguồn bằng chứng để demo nhãn: LMS, EXAM, PM (INTERNSHIP) từ JSON; MENTOR và SELF tại đây.
+                seedDirectEvidence(userId, "JAVA", EvidenceSource.MENTOR, "c3-mentor-java-2026-10",
+                        "Mentor đánh giá code review Java (mẫu)", "68", true);
+                seedDirectEvidence(userId, "SQL", EvidenceSource.SELF, "c3-self-sql",
+                        "Tự đánh giá SQL (mẫu)", "70", false);
+            }
             core.recomputeSkills(userId);
         }
     }
@@ -107,6 +114,33 @@ public class ProfileDemoDataSeeder implements ApplicationRunner {
         }
         score.setUpdatedAt(Instant.now());
         scores.save(score);
+    }
+
+    /** shortcut: chỉ kiểm theo sourceRef, nên người dùng xoá bằng chứng mẫu thì lần khởi động dev sau sẽ thêm lại. */
+    private void seedDirectEvidence(UUID userId, String skillCode, EvidenceSource source, String ref,
+                                    String title, String score, boolean verified) {
+        boolean present = evidences.findAllByUserId(userId).stream()
+                .anyMatch(e -> e.getSource() == source && e.getSourceRef().equals(ref));
+        if (present) return;
+        UUID skillId = skills.findByCode(skillCode).orElseThrow().getId();
+        SkillEvidence evidence = new SkillEvidence();
+        evidence.setUserId(userId);
+        evidence.setSkillId(skillId);
+        evidence.setSource(source);
+        evidence.setSourceRef(ref);
+        evidence.setTitle(title);
+        evidence.setScore(new BigDecimal(score));
+        evidence.setWeight(BigDecimal.ONE);
+        evidence.setRecordedAt(Instant.parse("2026-10-25T00:00:00Z"));
+        evidence.setVerified(verified);
+        evidences.save(evidence);
+        if (source == EvidenceSource.SELF) {
+            SkillScore s = scores.findById(new SkillScoreId(userId, skillId)).orElseGet(SkillScore::new);
+            s.setId(new SkillScoreId(userId, skillId));
+            if (s.getSelfScore() == null) s.setSelfScore(new BigDecimal(score));
+            s.setUpdatedAt(Instant.now());
+            scores.save(s);
+        }
     }
 
     private void seedIocProject(UUID userId) {

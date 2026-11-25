@@ -46,23 +46,25 @@ test("ứng viên thêm dự án có 2 ảnh, IOC không xoá được, sắp th
   const style = "nextjs-portal { display: none !important; }";
 
   await section.getByRole("button", { name: "Thêm dự án" }).click();
+  const dialog = page.getByRole("dialog", { name: "Thêm dự án" });
   const name = "Shop thời trang (dự án cá nhân)";
-  await section.getByLabel("Tên dự án").fill(name);
-  await section.getByLabel("Vai trò").fill("Fullstack Developer");
-  await section.getByRole("textbox", { name: /Công nghệ/ }).fill("Next.js, Spring Boot, PostgreSQL");
-  await section.getByLabel("Link mã nguồn").fill("abc");
-  await section.getByLabel("Mô tả").fill("Website bán hàng có giỏ hàng, thanh toán và trang quản trị.");
-  await section.getByRole("button", { name: "Lưu dự án" }).click();
-  await expect(section.getByText("Phải là URL http(s) hợp lệ")).toBeVisible();
-  await section.getByLabel("Link mã nguồn").fill("https://github.com/example/fashion-shop");
-  await section.locator("#portfolio-images").setInputFiles([
+  await dialog.getByLabel("Tên dự án").fill(name);
+  await dialog.getByLabel("Vai trò").fill("Fullstack Developer");
+  await dialog.getByRole("textbox", { name: /Công nghệ/ }).fill("Next.js, Spring Boot, PostgreSQL");
+  await dialog.getByLabel("Link mã nguồn").fill("abc");
+  await dialog.getByLabel("Mô tả").fill("Website bán hàng có giỏ hàng, thanh toán và trang quản trị.");
+  await dialog.getByRole("button", { name: "Lưu dự án" }).click();
+  await expect(dialog.getByText("Phải là URL http(s) hợp lệ")).toBeVisible();
+  await dialog.getByLabel("Link mã nguồn").fill("https://github.com/example/fashion-shop");
+  await dialog.locator("#portfolio-images").setInputFiles([
     { name: "home.png", mimeType: "image/png", buffer: png(37, 99, 235) },
     { name: "cart.png", mimeType: "image/png", buffer: png(234, 88, 12) },
   ]);
-  await expect(section.getByRole("img", { name: /^Xem trước/ })).toHaveCount(2);
-  await section.screenshot({ path: join(directory, "form-preview.png"), style });
-  await section.getByRole("button", { name: "Lưu dự án" }).click();
+  await expect(dialog.getByRole("img", { name: /^Xem trước/ })).toHaveCount(2);
+  await page.screenshot({ path: join(directory, "form-preview.png"), style });
+  await dialog.getByRole("button", { name: "Lưu dự án" }).click();
 
+  await expect(dialog).toBeHidden();
   const card = section.getByTestId("portfolio-card").filter({ hasText: name });
   await expect(card.getByText("2 ảnh")).toBeVisible();
   await expect(card.getByRole("img", { name: `Ảnh bìa dự án ${name}` })).toBeVisible();
@@ -73,6 +75,19 @@ test("ứng viên thêm dự án có 2 ảnh, IOC không xoá được, sắp th
   await expect(section.getByTestId("portfolio-card").first()).toContainText(name);
   await expect(section.getByRole("img", { name: `Ảnh bìa dự án ${name}` })).toBeVisible();
   await section.screenshot({ path: join(directory, "portfolio-desktop.png"), style });
+
+  // Bấm thẻ mở chi tiết (chỉ đọc), từ đó mới chuyển sang sửa.
+  await section.getByTestId("portfolio-card").filter({ hasText: name }).getByRole("heading", { name }).click();
+  const detail = page.getByRole("dialog", { name });
+  await expect(detail.getByRole("button", { name: "Xem ảnh 2" })).toBeVisible();
+  await expect(detail.getByRole("textbox")).toHaveCount(0);
+  await page.screenshot({ path: join(directory, "detail.png"), style });
+  await detail.getByRole("button", { name: "Sửa dự án" }).click();
+  const edit = page.getByRole("dialog", { name: "Sửa dự án" });
+  await expect(edit.getByLabel("Tên dự án")).toHaveValue(name);
+  await edit.getByRole("button", { name: "Huỷ" }).click();
+  await expect(edit).toBeHidden();
+
   await page.setViewportSize({ width: 390, height: 900 });
   await section.screenshot({ path: join(directory, "portfolio-mobile.png"), style });
 });

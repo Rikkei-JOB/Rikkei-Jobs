@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader } from "@/app/components/ui/card";
 import { Button } from "@/app/components/ui/button";
 import { Alert } from "@/app/components/ui/alert";
 import { Input } from "@/app/components/ui/input";
+import { FormDialog } from "@/app/components/profile/form-dialog";
 import { FormField } from "@/app/components/auth/form-field";
 import { zodResolver } from "@/helper/zod-resolver";
 import { educationSchema, educationPayload, type EducationValues } from "@/schemas/profile-qualifications.schema";
@@ -34,21 +35,21 @@ export function Educations() {
   }
   return <Card>
     <CardHeader><div className="flex flex-wrap items-center justify-between gap-3"><h2 className="text-lg font-semibold">Học vấn</h2>
-      <Button onClick={() => setEditing(null)} disabled={editing !== undefined || items === null}>Thêm học vấn</Button></div></CardHeader>
+      <Button onClick={() => setEditing(null)} disabled={items === null}>Thêm học vấn</Button></div></CardHeader>
     <CardContent className="space-y-4">
       {error ? <div className="space-y-2"><Alert variant="destructive">{error}</Alert>{items === null ? <Button onClick={() => { setError(null); setReload(v => v + 1); }}>Thử lại học vấn</Button> : null}</div> : null}
       {items === null && !error ? <p role="status">Đang tải học vấn...</p> : null}
-      {editing !== undefined ? <EducationForm key={editing?.id ?? "new"} item={editing} onCancel={() => setEditing(undefined)} onSaved={item => {
+      {editing !== undefined ? <FormDialog title={editing ? "Sửa học vấn" : "Thêm học vấn"} onClose={() => setEditing(undefined)}><EducationForm key={editing?.id ?? "new"} item={editing} onCancel={() => setEditing(undefined)} onSaved={item => {
         setItems(old => editing ? (old ?? []).map(e => e.id === item.id ? item : e) : [...old ?? [], item]); setEditing(undefined);
-      }} /> : null}
-      {items?.length === 0 && editing === undefined ? <p className="text-sm text-muted-foreground">Chưa có thông tin học vấn.</p> : null}
+      }} /></FormDialog> : null}
+      {items?.length === 0 ? <p className="text-sm text-muted-foreground">Chưa có thông tin học vấn.</p> : null}
       {items?.map(item => <article key={item.id} className="rounded-lg border p-3 space-y-2">
         <h3 className="font-medium break-words">{item.school}</h3>
         {item.major ? <p className="text-sm break-words">{item.major}</p> : null}
         <p className="text-xs text-muted-foreground">{item.fromDate} — {item.toDate ?? "Đang học"}{item.gpa !== null ? ` · GPA: ${item.gpa}/10` : ""}</p>
         {item.note ? <p className="whitespace-pre-wrap break-words text-sm">{item.note}</p> : null}
-        <div className="flex gap-2"><Button variant="outline" aria-label={`Sửa học vấn ${item.school}`} disabled={editing !== undefined || deleting !== null} onClick={() => setEditing(item)}>Sửa</Button>
-          <Button variant="destructive" aria-label={`Xoá học vấn ${item.school}`} disabled={editing !== undefined || deleting !== null} onClick={() => void remove(item)}>{deleting === item.id ? "Đang xoá..." : "Xoá"}</Button></div>
+        <div className="flex gap-2"><Button variant="outline" aria-label={`Sửa học vấn ${item.school}`} disabled={deleting !== null} onClick={() => setEditing(item)}>Sửa</Button>
+          <Button variant="destructive" aria-label={`Xoá học vấn ${item.school}`} disabled={deleting !== null} onClick={() => void remove(item)}>{deleting === item.id ? "Đang xoá..." : "Xoá"}</Button></div>
       </article>)}
     </CardContent>
   </Card>;
@@ -64,7 +65,7 @@ function EducationForm({ item, onCancel, onSaved }: { item: Education | null; on
     try { onSaved(await qualificationService.saveEducation(item?.id ?? null, educationPayload(values))); }
     catch (err) { setError(getErrorMessage(err, "Không thể lưu học vấn.")); }
   }
-  return <form onSubmit={handleSubmit(submit)} noValidate className="rounded-lg border p-3 space-y-4">
+  return <form onSubmit={handleSubmit(submit)} noValidate className="space-y-4">
     <fieldset disabled={isSubmitting} className="space-y-4">
       <div className="grid gap-4 sm:grid-cols-2">
         <FormField label="Trường học" htmlFor="education-school" error={errors.school?.message}><Input id="education-school" required maxLength={255} aria-invalid={Boolean(errors.school)} {...register("school")} /></FormField>

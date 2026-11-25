@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader } from "@/app/components/ui/card";
 import { Button } from "@/app/components/ui/button";
 import { Alert } from "@/app/components/ui/alert";
 import { Input } from "@/app/components/ui/input";
+import { FormDialog } from "@/app/components/profile/form-dialog";
 import { FormField } from "@/app/components/auth/form-field";
 import { zodResolver } from "@/helper/zod-resolver";
 import { certificateSchema, certificatePayload, validateProfileFile, type CertificateValues } from "@/schemas/profile-qualifications.schema";
@@ -45,21 +46,21 @@ export function Certificates() {
   }
   return <Card>
     <CardHeader><div className="flex flex-wrap items-center justify-between gap-3"><h2 className="text-lg font-semibold">Chứng chỉ</h2>
-      <Button onClick={() => setEditing(null)} disabled={editing !== undefined || items === null}>Thêm chứng chỉ</Button></div></CardHeader>
+      <Button onClick={() => setEditing(null)} disabled={items === null}>Thêm chứng chỉ</Button></div></CardHeader>
     <CardContent className="space-y-4">
       {error ? <div className="space-y-2"><Alert variant="destructive">{error}</Alert>{items === null ? <Button onClick={() => { setError(null); setReload(v => v + 1); }}>Thử lại chứng chỉ</Button> : null}</div> : null}
       {items === null && !error ? <p role="status">Đang tải chứng chỉ...</p> : null}
-      {editing !== undefined ? <CertificateForm key={editing?.id ?? "new"} item={editing} onCancel={() => setEditing(undefined)} onSaved={item => {
+      {editing !== undefined ? <FormDialog title={editing ? "Sửa chứng chỉ" : "Thêm chứng chỉ"} onClose={() => setEditing(undefined)}><CertificateForm key={editing?.id ?? "new"} item={editing} onCancel={() => setEditing(undefined)} onSaved={item => {
         setItems(old => editing ? (old ?? []).map(e => e.id === item.id ? item : e) : [...old ?? [], item]); setEditing(undefined);
-      }} /> : null}
-      {items?.length === 0 && editing === undefined ? <p className="text-sm text-muted-foreground">Chưa có chứng chỉ.</p> : null}
+      }} /></FormDialog> : null}
+      {items?.length === 0 ? <p className="text-sm text-muted-foreground">Chưa có chứng chỉ.</p> : null}
       {items?.map(item => <article key={item.id} className="rounded-lg border p-3 space-y-2">
         <h3 className="font-medium break-words">{item.name}</h3><p className="text-sm break-words">{item.issuer}</p>
         <p className="text-xs text-muted-foreground">Cấp ngày {item.issuedAt}{item.expiresAt ? ` · Hết hạn ${item.expiresAt}` : ""}</p>
         <div className="flex flex-wrap gap-2">
           {item.fileUrl ? <Button variant="outline" aria-label={`Tải tệp ${item.name}`} disabled={busy !== null} onClick={() => void download(item)}>Tải tệp</Button> : null}
-          <Button variant="outline" aria-label={`Sửa chứng chỉ ${item.name}`} disabled={editing !== undefined || busy !== null} onClick={() => setEditing(item)}>Sửa</Button>
-          <Button variant="destructive" aria-label={`Xoá chứng chỉ ${item.name}`} disabled={editing !== undefined || busy !== null} onClick={() => void remove(item)}>Xoá</Button>
+          <Button variant="outline" aria-label={`Sửa chứng chỉ ${item.name}`} disabled={busy !== null} onClick={() => setEditing(item)}>Sửa</Button>
+          <Button variant="destructive" aria-label={`Xoá chứng chỉ ${item.name}`} disabled={busy !== null} onClick={() => void remove(item)}>Xoá</Button>
         </div>
       </article>)}
     </CardContent>
@@ -86,7 +87,7 @@ function CertificateForm({ item, onCancel, onSaved }: { item: Certificate | null
       onSaved(await qualificationService.saveCertificate(item?.id ?? null, certificatePayload(values, fileUrl)));
     } catch (err) { setError(getErrorMessage(err, "Không thể lưu chứng chỉ.")); }
   }
-  return <form onSubmit={handleSubmit(submit)} noValidate className="rounded-lg border p-3 space-y-4">
+  return <form onSubmit={handleSubmit(submit)} noValidate className="space-y-4">
     <fieldset disabled={isSubmitting} className="space-y-4">
       <div className="grid gap-4 sm:grid-cols-2">
         <FormField label="Tên chứng chỉ" htmlFor="certificate-name" error={errors.name?.message}><Input id="certificate-name" required maxLength={255} {...register("name")} /></FormField>
