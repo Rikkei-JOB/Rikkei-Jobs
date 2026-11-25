@@ -1,0 +1,202 @@
+openapi: 3.0.3
+info:
+  title: HS-03 Portfolio – dự án thực tập IOC và dự án cá nhân
+  version: 1.0.0
+  description: |
+    Dự án IOC (source=IOC, verified=true) do TT-01 tạo; khi chưa có TT-01, profile-service seed một dự án
+    IOC mẫu ở profile dev (PROFILE_DEMO_DATA_ENABLED=true). Dự án IOC không xoá được và chỉ sửa được
+    role, description, visible. Ảnh cần JWT nên client đọc qua API (blob), không gắn thẳng vào <img src>.
+servers:
+  - url: /api/v1
+security:
+  - bearerAuth: []
+paths:
+  /profiles/me/portfolio:
+    get:
+      summary: Toàn bộ dự án của ứng viên đang đăng nhập (kể cả dự án ẩn), theo sortOrder
+      description: CANDIDATE only.
+      responses:
+        '200':
+          description: Danh sách dự án
+          content:
+            application/json:
+              schema: {type: array, items: {$ref: '#/components/schemas/PortfolioProject'}}
+        '401': {description: Thiếu hoặc sai JWT}
+        '403': {description: Không phải CANDIDATE}
+    post:
+      summary: Thêm dự án cá nhân (source=PERSONAL), xếp cuối danh sách
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/PortfolioProjectInput'}
+      responses:
+        '201':
+          description: Dự án đã tạo
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/PortfolioProject'}
+        '400':
+          description: VALIDATION_ERROR, ví dụ name rỗng hoặc repoUrl "abc" → errors.repoUrl
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/ErrorResponse'}
+  /profiles/me/portfolio/order:
+    put:
+      summary: Lưu thứ tự hiển thị
+      description: ids phải gồm đúng toàn bộ dự án của ứng viên, không trùng; vị trí trong mảng là sortOrder mới.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [ids]
+              properties:
+                ids: {type: array, maxItems: 200, items: {type: string, format: uuid}}
+      responses:
+        '200':
+          description: Danh sách theo thứ tự mới
+          content:
+            application/json:
+              schema: {type: array, items: {$ref: '#/components/schemas/PortfolioProject'}}
+        '400': {description: Thiếu, thừa hoặc trùng id}
+  /profiles/me/portfolio/{id}:
+    parameters:
+      - {name: id, in: path, required: true, schema: {type: string, format: uuid}}
+    put:
+      summary: Sửa dự án
+      description: Dự án IOC chỉ nhận role, description, visible; các trường khác bị bỏ qua (vẫn phải gửi name hợp lệ).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/PortfolioProjectInput'}
+      responses:
+        '200':
+          description: Dự án sau khi sửa
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/PortfolioProject'}
+        '400': {description: VALIDATION_ERROR}
+        '404': {description: Không có hoặc không thuộc ứng viên}
+    delete:
+      summary: Xoá dự án cá nhân (kèm ảnh)
+      responses:
+        '204': {description: Đã xoá}
+        '404': {description: Không có hoặc không thuộc ứng viên}
+        '409':
+          description: IOC_PROJECT_LOCKED – dự án IOC không xoá được
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/ErrorResponse'}
+  /profiles/me/portfolio/{id}/media:
+    parameters:
+      - {name: id, in: path, required: true, schema: {type: string, format: uuid}}
+    post:
+      summary: Tải một ảnh IMAGE cho dự án
+      description: JPG/PNG nhận diện theo nội dung (magic bytes), ≤ 5MB, tối đa 6 ảnh mỗi dự án. Ảnh đầu tiên là ảnh bìa.
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file: {type: string, format: binary}
+                caption: {type: string, maxLength: 255}
+      responses:
+        '201':
+          description: Ảnh đã lưu
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/PortfolioMedia'}
+        '400': {description: TOO_MANY_IMAGES (ảnh thứ 7) hoặc BAD_REQUEST (không phải JPG/PNG)}
+        '404': {description: Dự án không có hoặc không thuộc ứng viên}
+        '413': {description: FILE_TOO_LARGE – ảnh > 5MB}
+  /profiles/me/portfolio/{id}/media/{mediaId}:
+    parameters:
+      - {name: id, in: path, required: true, schema: {type: string, format: uuid}}
+      - {name: mediaId, in: path, required: true, schema: {type: string, format: uuid}}
+    delete:
+      summary: Xoá một ảnh IMAGE
+      responses:
+        '204': {description: Đã xoá}
+        '404': {description: Không có}
+        '409': {description: IOC_PROJECT_LOCKED – minh chứng EVIDENCE không xoá được}
+  /profiles/{userId}/portfolio:
+    parameters:
+      - {name: userId, in: path, required: true, schema: {type: string, format: uuid}}
+    get:
+      summary: Portfolio công khai của một ứng viên
+      description: Mọi vai trò đã đăng nhập. Chỉ trả dự án visible; người khác chủ hồ sơ chỉ xem được khi hồ sơ PUBLIC.
+      responses:
+        '200':
+          description: Dự án visible
+          content:
+            application/json:
+              schema: {type: array, items: {$ref: '#/components/schemas/PortfolioProject'}}
+        '404': {description: Hồ sơ không PUBLIC hoặc không tồn tại}
+  /profiles/{userId}/portfolio/media/{mediaId}:
+    parameters:
+      - {name: userId, in: path, required: true, schema: {type: string, format: uuid}}
+      - {name: mediaId, in: path, required: true, schema: {type: string, format: uuid}}
+    get:
+      summary: Đọc nội dung ảnh IMAGE (inline)
+      description: Chủ hồ sơ luôn đọc được; người khác chỉ khi hồ sơ PUBLIC và dự án visible.
+      responses:
+        '200':
+          description: Ảnh
+          content:
+            image/jpeg: {schema: {type: string, format: binary}}
+            image/png: {schema: {type: string, format: binary}}
+        '404': {description: Không có hoặc không được xem}
+components:
+  securitySchemes:
+    bearerAuth: {type: http, scheme: bearer, bearerFormat: JWT}
+  schemas:
+    PortfolioProjectInput:
+      type: object
+      required: [name]
+      properties:
+        name: {type: string, maxLength: 255}
+        role: {type: string, maxLength: 255, nullable: true}
+        description: {type: string, maxLength: 5000, nullable: true}
+        techStack: {type: array, maxItems: 20, items: {type: string, maxLength: 50, pattern: '^[^,]+$'}}
+        repoUrl: {type: string, maxLength: 1000, nullable: true, pattern: '^https?://[^\s/?#]+([/?#]\S*)?$'}
+        demoUrl: {type: string, maxLength: 1000, nullable: true, pattern: '^https?://[^\s/?#]+([/?#]\S*)?$'}
+        startDate: {type: string, format: date, nullable: true}
+        endDate: {type: string, format: date, nullable: true, description: '>= startDate'}
+        visible: {type: boolean, default: true}
+    PortfolioProject:
+      type: object
+      properties:
+        id: {type: string, format: uuid}
+        source: {type: string, enum: [IOC, PERSONAL]}
+        verified: {type: boolean, description: true với dự án IOC}
+        internshipId: {type: string, format: uuid, nullable: true}
+        name: {type: string}
+        role: {type: string, nullable: true}
+        description: {type: string, nullable: true}
+        techStack: {type: array, items: {type: string}}
+        repoUrl: {type: string, nullable: true}
+        demoUrl: {type: string, nullable: true}
+        startDate: {type: string, format: date, nullable: true}
+        endDate: {type: string, format: date, nullable: true}
+        visible: {type: boolean}
+        sortOrder: {type: integer}
+        media: {type: array, items: {$ref: '#/components/schemas/PortfolioMedia'}}
+    PortfolioMedia:
+      type: object
+      properties:
+        id: {type: string, format: uuid}
+        type: {type: string, enum: [IMAGE, EVIDENCE]}
+        url: {type: string, description: 'IMAGE: /api/v1/profiles/{userId}/portfolio/media/{id}; EVIDENCE: link minh chứng'}
+        caption: {type: string, nullable: true}
+    ErrorResponse:
+      type: object
+      properties:
+        code: {type: string}
+        message: {type: string}
+        errors: {type: object, additionalProperties: {type: string}, nullable: true}

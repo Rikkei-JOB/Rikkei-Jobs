@@ -47,7 +47,7 @@ test("adds edits and clears self skills while refreshing HS-01 and preserving ve
   const skillProfile = page.getByRole("region", { name: "Skill Profile" });
   await expect(skillProfile.getByText("Tiếng Anh", { exact: true })).toBeVisible();
   await expect(skillProfile.getByText("65.0", { exact: true })).toBeVisible();
-  await expect(skillProfile.locator('[data-slot="card"]').filter({ has: page.getByText("Tiếng Anh", { exact: true }) }).getByText("Tự khai", { exact: true })).toBeVisible();
+  await expect(skillProfile.getByTestId("skill-row").filter({ has: page.getByText("Tiếng Anh", { exact: true }) }).getByText("Tự khai", { exact: true })).toBeVisible();
   await expect(skillProfile.getByText("80.0", { exact: true })).toBeVisible();
   await page.getByLabel("Điểm tự đánh giá 1", { exact: true }).fill("75");
   await page.getByRole("button", { name: "Lưu kỹ năng tự khai" }).click();
@@ -111,13 +111,13 @@ test("viewing another profile remains read-only without self-assessment controls
 
 test("mixed verified and self skill shows both declarations without replacing verified score", async ({ page }) => {
   await setup(page, [{ skillId: java.id, selfScore: 60 }]); await page.goto("/candidate/profile");
-  const javaCard = page.getByRole("region", { name: "Skill Profile" }).locator('[data-slot="card"]').filter({ has: page.getByText("Java", { exact: true }) });
-  await expect(page.getByRole("region", { name: "Skill Profile" }).getByText("Tự khai", { exact: true }).first().locator("../..")).toContainText("1");
+  const javaCard = page.getByRole("region", { name: "Skill Profile" }).getByTestId("skill-row").filter({ has: page.getByText("Java", { exact: true }) });
+  await expect(page.getByRole("region", { name: "Skill Profile" }).getByText(/1 có điểm tự đánh giá/)).toBeVisible();
   await expect(javaCard.getByText("Tự khai", { exact: true })).toBeVisible();
   await expect(javaCard.getByText("80.0", { exact: true })).toBeVisible();
-  await expect(javaCard.getByText("Điểm tự đánh giá: 60.0 / 100", { exact: true })).toBeVisible();
+  await expect(javaCard.getByText("Tự đánh giá 60.0", { exact: true })).toBeVisible();
   await page.getByLabel("Điểm tự đánh giá 1", { exact: true }).fill("75");
   await page.getByRole("button", { name: "Lưu kỹ năng tự khai" }).click();
-  await expect(javaCard.getByText("Điểm tự đánh giá: 75.0 / 100", { exact: true })).toBeVisible();
+  await expect(javaCard.getByText("Tự đánh giá 75.0", { exact: true })).toBeVisible();
   await expect(javaCard.getByText("80.0", { exact: true })).toBeVisible();
 });

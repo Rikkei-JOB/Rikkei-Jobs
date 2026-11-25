@@ -30,7 +30,8 @@
       {"source":"LMS","sourceCode":"JAVA01","sourceRef":"c3-java-final","title":"Java (mẫu đã chốt)","score":55,"recordedAt":"2026-10-01T08:00:00Z"},
       {"source":"LMS","sourceCode":"SQL01","sourceRef":"c3-sql-final","title":"Cơ sở dữ liệu (mẫu đã chốt)","score":60,"recordedAt":"2026-10-01T08:00:00Z"},
       {"source":"LMS","sourceCode":"WEB01","sourceRef":"c3-web-final","title":"HTML/CSS/JavaScript (mẫu đã chốt)","score":50,"recordedAt":"2026-10-01T08:00:00Z"},
-      {"source":"EXAM","sourceCode":"JAVA01","sourceRef":"EX-JAVA-2026-10","title":"Thi Java (mẫu điểm chính thức)","score":45,"recordedAt":"2026-10-20T01:00:00Z"}
+      {"source":"EXAM","sourceCode":"JAVA01","sourceRef":"EX-JAVA-2026-10","title":"Thi Java (mẫu điểm chính thức)","score":45,"recordedAt":"2026-10-20T01:00:00Z"},
+      {"source":"PM","sourceCode":"API_BACKEND","sourceRef":"IOC-JB-2026-09-c3-task-api","title":"API quản lý kho (mẫu đã nghiệm thu)","score":72,"recordedAt":"2026-09-28T10:00:00Z"}
     ]
   }
 ]

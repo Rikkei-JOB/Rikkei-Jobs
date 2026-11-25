@@ -1,5 +1,7 @@
 # Rikkei Jobs Platform
 
+HS-03 bổ sung Portfolio dự án (dự án thực tập IOC đã xác thực và dự án cá nhân, ảnh, sắp thứ tự) tại `/candidate/profile`. Xem [cách chạy, dữ liệu mẫu và OpenAPI](docs/api/HS-03-portfolio.md).
+
 UT-06 bổ sung đề xuất/chọn giờ phỏng vấn, phòng Meet, email/ICS, nhắc24h/1h và lịch tuần HR. Xem [hướng dẫn, API và kiểm chứng UT-06](docs/api/UT-06-interview-scheduling.md).
 
 HS-05 bổ sung gửi duyệt, trả lại, công khai và rút hồ sơ tại `/candidate/profile`. Xem [hướng dẫn chạy, dữ liệu mẫu và ảnh nghiệm thu](docs/api/HS-05-cong-khai-ho-so.md).
