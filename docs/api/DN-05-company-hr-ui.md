@@ -155,19 +155,19 @@ Các lớp test nằm ở `server/services/company-service/src/test` và `server
 - mở khoá hr2 → hr2 đăng nhập lại được;
 - HR sửa hồ sơ, đổi logo (xem trước rồi "Dùng ảnh này"), lưu, "Xem như ứng viên" hiện đúng bản đã lưu.
 
-> Các ảnh dưới đây chụp giao diện **trước khi làm lại** (DN-05 UI refresh); ảnh mới sẽ chụp lại sau lần chạy thật.
-
-**Ảnh minh chứng** (chụp 2026-11-19 khi chạy lại toàn hệ thống; Công ty A đã được đổi tên thành "RikkeiSoft" trên DB dev):
+**Ảnh minh chứng** (giao diện sau khi làm lại — DN-05 UI refresh, chụp ngày 2026-11-25; riêng ảnh đăng nhập bị khoá giữ từ lần chạy 2026-11-17. Công ty A trên DB dev tên "RikkeiSoft"):
 
 | Tiêu chí | Ảnh | Nội dung |
 | --- | --- | --- |
-| 6 | ![Danh sách công ty](screenshots/DN-05/company-list.png) | `/staff/companies`: bảng công ty với mã số thuế, số HR, số JD, trạng thái; nút "+ Tạo công ty" |
-| 6 | ![Tìm theo mã số thuế](screenshots/DN-05/find-company-by-taxID.png) | Tìm `0101234567` ra đúng RikkeiSoft |
-| — | ![Tạo công ty trùng mã số thuế](screenshots/DN-05/create-company-dialog.png) | Hộp "Tạo công ty" báo "Mã số thuế đã tồn tại" ngay trong hộp |
-| 4 | ![Khoá không lý do](screenshots/DN-05/lock-reason-required.png) | Khoá `hr-new1` để trống lý do: "Vui lòng nhập lý do khoá", không gửi request |
-| 1 | ![Khoá thành công](screenshots/DN-05/account-locked-successful.png) | "Đã khoá tài khoản hr-new1@rikkeijobs.test"; dòng HR hiện "Đã khoá", thời điểm và lý do, nút "Mở khoá" |
+| — | ![Thanh ngang cán bộ](screenshots/DN-05/staff-topbar.png) | staff1: thanh ngang, nhóm "Duyệt ▾" đang mở (Duyệt hồ sơ, Duyệt JD), mục "Doanh nghiệp" đang chọn (chữ đỏ, gạch chân) |
+| 6 | ![Danh sách công ty](screenshots/DN-05/company-list.png) | `/staff/companies`: ô tìm + lọc trạng thái + "3 công ty" một hàng; mỗi dòng có logo hoặc chữ cái đầu, dòng phụ "thành phố · quy mô", nhãn "Hoạt động" xanh |
+| 6 | ![Tìm theo mã số thuế](screenshots/DN-05/find-company-by-taxID.png) | Tìm `0101234567` ra đúng RikkeiSoft ("1 công ty") |
+| — | ![Tạo công ty trùng mã số thuế](screenshots/DN-05/create-company-dialog.png) | Hộp "Tạo công ty" nhập mã số thuế `0101234567` đã có: báo "Mã số thuế đã tồn tại" ngay dưới ô, không tạo công ty |
+| 4 | ![Khoá không lý do](screenshots/DN-05/lock-reason-required.png) | Trang chi tiết RikkeiSoft (đầu trang công ty), khoá `hr-new1` để trống lý do: "Vui lòng nhập lý do khoá" |
+| 1 | ![Khoá thành công](screenshots/DN-05/account-locked-successful.png) | "Đã khoá tài khoản `hr-new1@rikkeijobs.test`"; dòng HR "Đã khoá" (đỏ) kèm thời điểm, lý do, nút "Mở khoá"; HR khác "Hoạt động" (xanh). Đã mở khoá lại sau khi chụp |
 | 2 | ![Đăng nhập bị khoá](screenshots/DN-05/login-account-locked.png) | hr-new1 đăng nhập: "Tài khoản đã bị khoá" |
-| 5 | ![Xem như ứng viên](screenshots/DN-05/hr-company-preview.png) | HR xem trang công ty như ứng viên thấy, đúng bản đã lưu (mục việc làm đang tuyển tạm thời luôn 0, theo thiết kế) |
+| 5 | ![Xem như ứng viên](screenshots/DN-05/hr-company-preview.png) | Trang xem trước: đầu trang công ty, Giới thiệu, Thông tin liên hệ, "Việc làm đang tuyển (2)" dạng thẻ với tin thật (JD6, JD7) |
+| 5 | ![Rời trang khi chưa lưu](screenshots/DN-05/hr-company-unsaved-confirm.png) | `/hr/company` đang sửa ô Ngành chưa lưu, bấm "Xem như ứng viên": hộp "Rời trang khi chưa lưu?" ("Ở lại" / "Vẫn xem trước") |
 
 Tiêu chí 3 (mở khoá rồi đăng nhập lại) không chụp lại; đã kiểm ở lần chạy 2026-11-17 phía trên và có test tự động ở mục 6.
 

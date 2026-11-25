@@ -277,16 +277,16 @@ Tên lớp test là các lớp trong `server/services/company-service/src/test` 
 - Người làm task kiểm tra lại trên giao diện với dữ liệu seed (hr1, hr2, candidate1, staff1), đạt: danh sách và lọc theo trạng thái; sửa JD bị trả lại (banner lý do, thanh trượt đổi bậc đúng mốc 40/70/85, chuyển khối, thêm kỹ năng) rồi gửi duyệt; JD chờ duyệt chỉ xem; tạo JD mới loại Thực tập với lỗi hạn nộp quá khứ, lương min > max, số lượng quá lớn; gửi duyệt thiếu kỹ năng bắt buộc bị chặn ở bước 2, bấm gửi hai lần chỉ gửi một lần; candidate1 ứng tuyển JD đang tuyển qua `/candidate/applications/new?jobId=…`, MailHog nhận email cho HR, nộp lại → 409; sửa JD đang tuyển → hộp xác nhận → Chờ duyệt, ứng tuyển lại bị chặn; hr2 mở JD của Công ty A → "Không tìm thấy JD"; cột Số JD ở `/staff/companies` đúng.
 - Chưa thử tay: đóng JD `APPROVED`, công ty `LOCKED` và HR bị khoá; các ca này có test tự động ở mục 8.
 
-**Ảnh minh chứng** (chụp 2026-11-19 khi chạy lại toàn hệ thống; Công ty A đã được đổi tên thành "RikkeiSoft", danh sách có thêm JD tạo trong các lần thử và hai JD mẫu của DN-06):
-
-> Các ảnh dưới đây chụp giao diện **trước khi làm lại** (DN-05 UI refresh); ảnh mới sẽ chụp lại sau lần chạy thật.
+**Ảnh minh chứng** (giao diện sau khi làm lại — DN-05 UI refresh, trong khung HR của hr1; chụp ngày 2026-11-25; Công ty A trên DB dev tên "RikkeiSoft"):
 
 | Ca (mục 8) | Ảnh | Nội dung |
 | --- | --- | --- |
-| 9 | ![Danh sách JD](screenshots/DN-02/list-job.png) | `/hr/jobs`: tab theo trạng thái, nhãn màu Nháp / Chờ duyệt / Đang tuyển / Đã đóng, phân trang "11 JD · Trang 1/1" |
-| 2 | ![Lỗi bước 1](screenshots/DN-02/step1-errors.png) | Tạo JD: lương tối đa nhỏ hơn tối thiểu và hạn nộp ở quá khứ báo lỗi ngay dưới từng ô; nút bước 1 có dấu lỗi |
-| 4 | ![Gửi duyệt thiếu kỹ năng bắt buộc](screenshots/DN-02/submit-no-required-skill.png) | Chỉ có kỹ năng ưu tiên, bấm Gửi duyệt: "Cần ít nhất một kỹ năng bắt buộc", ở lại bước 2 |
-| — | ![Bước kỹ năng](screenshots/DN-02/skills-step.png) | Bước 2 của JD đang tuyển: khối Bắt buộc / Ưu tiên, thanh trượt có mốc 40/70/85 và nhãn "60 · Khá", nút chuyển khối và nút xoá (chỉ mở xem, không lưu) |
-| 5 | ![JD chờ duyệt chỉ xem](screenshots/DN-02/pending-readonly.png) | JD "Chờ duyệt": "JD đang chờ duyệt, không sửa được.", mọi ô bị khoá |
+| 9 | ![Danh sách tin tuyển dụng](screenshots/DN-02/list-job.png) | `/hr/jobs` "Tin tuyển dụng": 6 thẻ số liệu (Tất cả 11, Nháp 2, Chờ duyệt 6, Đang tuyển 2, Bị trả lại 0, Đã đóng 1), dòng phụ dưới tiêu đề ("N kỹ năng bắt buộc" / "Chưa có kỹ năng bắt buộc"), hạn nộp kèm "còn N ngày" / "đã quá hạn". Lúc chụp không có JD đang tuyển nào hết hạn trong 7 ngày và không có JD bị trả lại, nên chưa thấy dòng "N sắp hết hạn" và dòng lý do trả lại (hai trường hợp này có test tự động) |
+| 5 | ![Menu thao tác](screenshots/DN-02/job-row-menu.png) | Menu ⋯ mở trên tin nháp "Middle Java Developer": "Sửa", "Gửi duyệt" |
+| 5 | ![Đóng tin từ menu](screenshots/DN-02/job-close-confirm.png) | Menu ⋯ → "Đóng JD" trên tin đang tuyển JD6: hộp "Đóng JD?" với nút "Đóng JD" màu đỏ (bấm Huỷ sau khi chụp, JD6 vẫn đang tuyển) |
+| 2 | ![Lỗi bước 1](screenshots/DN-02/step1-errors.png) | Tạo tin: lương tối đa nhỏ hơn tối thiểu và hạn nộp ở quá khứ báo lỗi dưới từng ô, bước 1 có dấu "!"; thẻ "Xem trước như ứng viên" bên phải; thanh nút dính đáy |
+| 4 | ![Gửi duyệt thiếu kỹ năng bắt buộc](screenshots/DN-02/submit-no-required-skill.png) | Chỉ có kỹ năng ưu tiên (Git, Docker), bấm Gửi duyệt: "Cần ít nhất một kỹ năng bắt buộc", ở lại bước 2, không gửi request nào |
+| — | ![Bước kỹ năng và xem trước](screenshots/DN-02/skills-step.png) | Bước 2: khối Bắt buộc (Java 70 · Tốt, Spring Boot 85 · Xuất sắc) / Ưu tiên (Git, Docker 40 · Khá), thanh trượt có mốc 40/70/85; thẻ xem trước hiện chip kỹ năng (bắt buộc đỏ, ưu tiên xám) |
+| 5 | ![Tin chờ duyệt chỉ xem](screenshots/DN-02/pending-readonly.png) | Tin "Chờ duyệt": "JD đang chờ duyệt, không sửa được.", mọi ô bị khoá, không có thanh nút |
 
 Hộp xác nhận "Lưu và gửi duyệt lại" (ca 6) không chụp lại; đã kiểm ở lần chạy ngày 18/11/2026 phía trên và có test tự động ở mục 8.
