@@ -47,7 +47,7 @@ test("HR đề xuất 1–5 khung, validation và gửi giờ +07", async ({ pag
     if (path.endsWith("/applications/app")) return route.fulfill({ headers: cors, json: { id: "app", jobId: "job", companyId: "company", companyName: "Rikkei", jobTitle: "Java", status: "INTERVIEW", candidate: { userId: "candidate", fullName: "Ứng viên", email: "a@test.local" }, cvId: "cv", cvSnapshotUrl: "cv", createdAt: "2026-11-19T00:00:00Z", updatedAt: "2026-11-19T00:00:00Z", rounds: [{ id: "round", roundNo: 1, name: "Kỹ thuật", interviewerEmail: "hr@test.local", result: "PENDING", slots: [], schedule: null }], roundRevisions: [], history: [], allowedTransitions: [], offer: null } });
     return path.endsWith("/auth/me") ? route.fallback() : route.fulfill({ headers: cors, json: {} });
   });
-  await page.goto("/hr/recruitment/app");
+  await page.goto("/hr/recruitment/app?tab=interviews");
   await page.getByLabel("Bắt đầu khung 1").fill("2030-01-01T09:00"); await page.getByLabel("Kết thúc khung 1").fill("2030-01-01T09:15");
   await page.getByRole("button", { name: "Gửi đề xuất" }).click(); await expect(page.getByRole("alert").filter({ hasText: "30 phút" })).toBeVisible(); expect(sent).toHaveLength(0);
   await page.getByLabel("Kết thúc khung 1").fill("2030-01-01T09:30"); await page.getByRole("button", { name: "Gửi đề xuất" }).click();

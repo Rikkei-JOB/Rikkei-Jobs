@@ -52,18 +52,18 @@ function HrJobsView() {
   const lastPage = data ? Math.max(1, Math.ceil(data.total / data.size)) : 1
 
   return (
-    <div className="mx-auto max-w-5xl space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <h1 className="font-heading text-lg font-semibold">JD của {company?.name ?? "công ty"}</h1>
+    <div className="hr-page">
+      <div className="hr-page-heading">
+        <div><p className="hr-eyebrow">QUẢN LÝ TUYỂN DỤNG</p><h1>Tin tuyển dụng</h1><p className="hr-description">Quản lý vị trí đang tuyển và tiến trình duyệt tin của {company?.name ?? "công ty"}.</p></div>
         {locked ? null : (
           <Button size="sm" render={<Link href="/hr/jobs/new" />} nativeButton={false}>
-            + Tạo JD
+            + Tạo tin tuyển dụng
           </Button>
         )}
       </div>
 
       {notice ? <Alert variant="success">{notice}</Alert> : null}
-      {locked ? <Alert>Công ty đang bị khoá, bạn chỉ xem được danh sách JD.</Alert> : null}
+      {locked ? <Alert>Công ty đang bị khoá, bạn chỉ xem được danh sách tin tuyển dụng.</Alert> : null}
 
       <Tabs value={status ?? ALL} onValueChange={(value) => navigate({ status: STATUS_ORDER.find((s) => s === value), page: 1 })}>
         <TabsList className="grid-cols-3 sm:grid-cols-6">
@@ -87,12 +87,12 @@ function HrJobsView() {
         </Alert>
       ) : null}
 
-      {data ? (
+      {data && !error ? (
         <div className={isFetching ? "opacity-60" : undefined}>
           <JobTable items={data.items} />
           <div className="mt-3 flex items-center justify-between text-xs text-muted-foreground">
             <span>
-              {data.total} JD · Trang {data.page}/{lastPage}
+              {data.total} tin tuyển dụng · Trang {data.page}/{lastPage}
             </span>
             <div className="flex gap-2">
               <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => navigate({ status, page: page - 1 })}>

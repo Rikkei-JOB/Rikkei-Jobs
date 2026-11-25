@@ -46,7 +46,7 @@ export function OfferPanel({ application, onChanged }: { application: HrApplicat
     finally { setBusy(false); }
   }
 
-  if (!eligible && !application.offer) return null;
+  if (!eligible && !application.offer) return <section className="rounded-xl border bg-background p-5"><h2 className="text-lg font-semibold">Chưa có offer</h2><p className="mt-2 text-sm text-muted-foreground">Có thể gửi offer khi hồ sơ ở bước phỏng vấn, tất cả vòng đã có kết quả và vòng cuối đạt.</p></section>;
   const confirmedAt = application.onboardConfirmedAt ?? locallyConfirmedAt;
   return <section className="rounded-xl border bg-background p-5">
     <h2 className="text-lg font-semibold">Offer</h2>
