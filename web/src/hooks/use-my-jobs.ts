@@ -25,6 +25,16 @@ export function useMyJobs(status: JobStatus | undefined, page: number, enabled =
   });
 }
 
+/** Số JD theo trạng thái cho các thẻ đầu trang danh sách. */
+export function useMyJobSummary(enabled = true) {
+  const userId = useAuthStore((state) => state.user?.id);
+  return useQuery({
+    queryKey: [...jobKeys.all(userId), "summary"] as const,
+    queryFn: () => jobService.summaryMine(),
+    enabled,
+  });
+}
+
 /** JD đang tuyển (APPROVED) còn hạn nộp; bỏ JD không có deadline hoặc đã quá hạn. */
 export function useOpenJobs(enabled = true) {
   const userId = useAuthStore((state) => state.user?.id);
@@ -52,6 +62,7 @@ function useAfterWrite() {
   return (job: Job) => {
     queryClient.setQueryData(jobKeys.detail(userId, job.id), job);
     void queryClient.invalidateQueries({ queryKey: [...jobKeys.all(userId), "open"] });
+    void queryClient.invalidateQueries({ queryKey: [...jobKeys.all(userId), "summary"] });
     return queryClient.invalidateQueries({ queryKey: [...jobKeys.all(userId), "list"] });
   };
 }

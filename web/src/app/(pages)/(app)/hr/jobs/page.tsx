@@ -5,18 +5,18 @@ import Link from "next/link"
 import { useRouter, useSearchParams } from "next/navigation"
 import { Alert } from "@/app/components/ui/alert"
 import { Button } from "@/app/components/ui/button"
-import { Tabs, TabsList, TabsTrigger } from "@/app/components/ui/tabs"
 import { JobTable } from "@/app/components/job/job-table"
 import { clearJobListNotice, peekJobListNotice } from "@/app/components/job/job-flash"
-import { STATUS_LABEL, STATUS_ORDER } from "@/app/components/job/job-labels"
+import { JobStats } from "@/app/components/job/job-stats"
+import type { JobRowFeedback } from "@/app/components/job/job-row-menu"
+import { STATUS_ORDER } from "@/app/components/job/job-labels"
 import { useAuthGuard } from "@/hooks/use-auth-guard"
 import { useMyCompany } from "@/hooks/use-my-company"
-import { useMyJobs } from "@/hooks/use-my-jobs"
+import { useMyJobSummary, useMyJobs } from "@/hooks/use-my-jobs"
 import type { JobStatus } from "@/interface/job"
 import { getErrorMessage } from "@/services/api"
 
 const BASE_PATH = "/hr/jobs"
-const ALL = "ALL"
 
 function HrJobsView() {
   const allowed = useAuthGuard({ roles: ["HR"] })
@@ -44,6 +44,8 @@ function HrJobsView() {
   React.useEffect(() => clearJobListNotice(), [])
 
   const { data: company } = useMyCompany(allowed)
+  const [feedback, setFeedback] = React.useState<JobRowFeedback | null>(null)
+  const { data: summary } = useMyJobSummary(allowed)
   const { data, error, isPending, isFetching, refetch } = useMyJobs(status, page, allowed)
 
   if (!allowed) return null
@@ -52,7 +54,7 @@ function HrJobsView() {
   const lastPage = data ? Math.max(1, Math.ceil(data.total / data.size)) : 1
 
   return (
-    <div className="mx-auto max-w-5xl space-y-4">
+    <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h1 className="font-heading text-lg font-semibold">JD của {company?.name ?? "công ty"}</h1>
         {locked ? null : (
@@ -65,16 +67,18 @@ function HrJobsView() {
       {notice ? <Alert variant="success">{notice}</Alert> : null}
       {locked ? <Alert>Công ty đang bị khoá, bạn chỉ xem được danh sách JD.</Alert> : null}
 
-      <Tabs value={status ?? ALL} onValueChange={(value) => navigate({ status: STATUS_ORDER.find((s) => s === value), page: 1 })}>
-        <TabsList className="grid-cols-3 sm:grid-cols-6">
-          <TabsTrigger value={ALL}>Tất cả</TabsTrigger>
-          {STATUS_ORDER.map((s) => (
-            <TabsTrigger key={s} value={s}>
-              {STATUS_LABEL[s]}
-            </TabsTrigger>
-          ))}
-        </TabsList>
-      </Tabs>
+      {feedback ? (
+        <Alert variant={feedback.variant} className="flex flex-wrap items-center justify-between gap-2">
+          <span>{feedback.message}</span>
+          {feedback.href ? (
+            <Link href={feedback.href} className="font-medium underline">
+              Mở để sửa
+            </Link>
+          ) : null}
+        </Alert>
+      ) : null}
+
+      <JobStats summary={summary} active={status} onSelect={(next) => navigate({ status: next, page: 1 })} />
 
       {isPending ? <p className="text-xs text-muted-foreground">Đang tải...</p> : null}
 
@@ -89,7 +93,7 @@ function HrJobsView() {
 
       {data ? (
         <div className={isFetching ? "opacity-60" : undefined}>
-          <JobTable items={data.items} />
+          <JobTable items={data.items} companyLocked={locked} onFeedback={setFeedback} />
           <div className="mt-3 flex items-center justify-between text-xs text-muted-foreground">
             <span>
               {data.total} JD · Trang {data.page}/{lastPage}

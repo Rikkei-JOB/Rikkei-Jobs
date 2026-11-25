@@ -1,11 +1,13 @@
 import { api } from "@/services/api";
 import type { PageResult } from "@/interface/company";
-import type { Job, JobListParams, JobPayload, JobSummary } from "@/interface/job";
+import type { Job, JobListParams, JobPayload, JobStatusSummary, JobSummary } from "@/interface/job";
 
 /** Các endpoint JD của company-service dành cho HR. */
 export const jobService = {
   listMine: async (params: JobListParams) =>
     (await api.get<PageResult<JobSummary>>("/companies/me/jobs", { params: { size: 20, ...params } })).data,
+
+  summaryMine: async () => (await api.get<JobStatusSummary>("/companies/me/jobs/summary")).data,
 
   get: async (id: string) => (await api.get<Job>(`/jobs/${id}`)).data,
 

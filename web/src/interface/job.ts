@@ -67,6 +67,13 @@ export interface JobPayload {
   skills: JobSkill[];
 }
 
+/** GET /companies/me/jobs/summary: số JD theo trạng thái cho các thẻ ở đầu danh sách. */
+export interface JobStatusSummary {
+  total: number;
+  byStatus: Record<JobStatus, number>;
+  expiringSoon: number;
+}
+
 export interface JobListParams {
   status?: JobStatus;
   page: number;
