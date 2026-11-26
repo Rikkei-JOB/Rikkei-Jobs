@@ -1,7 +1,8 @@
 "use client";
 
 import * as React from "react";
-import { useForm } from "react-hook-form";
+import { Controller, useForm } from "react-hook-form";
+import { SelectMenu } from "@/app/components/ui/select-menu";
 import { Languages as LanguagesIcon, Pencil, Plus, Trash2 } from "lucide-react";
 import { ADD_TILE, BADGE, BRAND_SOFT, ICON_ACTION, ICON_DANGER, ITEM_CARD, ITEM_TITLE, META, PRIMARY_CTA, SECONDARY_CTA, SECTION_TITLE, TONE } from "./display";
 import { Card, CardContent, CardHeader } from "@/app/components/ui/card";
@@ -20,7 +21,6 @@ import { CEFR_LEVELS, type CefrLevel, type Language } from "@/interface/profile-
 const CEFR_LABEL: Record<CefrLevel, string> = {
   A1: "Sơ cấp", A2: "Sơ trung cấp", B1: "Trung cấp", B2: "Trung cao cấp", C1: "Cao cấp", C2: "Thành thạo",
 };
-const SELECT_CLASS = "h-9 w-full min-w-0 rounded-md border border-input bg-input/20 px-2 py-1 text-sm outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/30 disabled:opacity-50";
 
 export function Languages() {
   const [items, setItems] = React.useState<Language[] | null>(null);
@@ -74,7 +74,7 @@ export function Languages() {
 }
 
 function LanguageForm({ item, onCancel, onSaved }: { item: Language | null; onCancel: () => void; onSaved: (item: Language) => void }) {
-  const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<LanguageValues>({
+  const { register, control, handleSubmit, formState: { errors, isSubmitting } } = useForm<LanguageValues>({
     resolver: zodResolver(languageSchema), defaultValues: { name: item?.name ?? "", level: item?.level ?? "", note: item?.note ?? "" },
   });
   const [error, setError] = React.useState<string | null>(null);
@@ -88,10 +88,11 @@ function LanguageForm({ item, onCancel, onSaved }: { item: Language | null; onCa
       <div className="grid gap-4 sm:grid-cols-2">
         <FormField label="Ngoại ngữ" htmlFor="language-name" error={errors.name?.message}><Input id="language-name" required maxLength={100} placeholder="Tiếng Anh" {...register("name")} /></FormField>
         <FormField label="Trình độ (CEFR)" htmlFor="language-level" error={errors.level?.message}>
-          <select id="language-level" required className={SELECT_CLASS} aria-invalid={Boolean(errors.level)} {...register("level")}>
-            <option value="">Chọn trình độ</option>
-            {CEFR_LEVELS.map(level => <option key={level} value={level}>{level} · {CEFR_LABEL[level]}</option>)}
-          </select>
+          <Controller name="level" control={control} render={({ field }) => (
+            <SelectMenu id="language-level" name={field.name} required value={field.value ?? ""} onValueChange={field.onChange} onBlur={field.onBlur}
+              aria-invalid={Boolean(errors.level)} placeholder="Chọn trình độ"
+              options={CEFR_LEVELS.map(level => ({ value: level, label: `${level} · ${CEFR_LABEL[level]}` }))} />
+          )} />
         </FormField>
       </div>
       <FormField label="Ghi chú" htmlFor="language-note" error={errors.note?.message}><Input id="language-note" maxLength={255} placeholder="IELTS 7.0, JLPT N2..." {...register("note")} /></FormField>
