@@ -25,7 +25,10 @@ interface HrAccountTableProps {
   onUnlock: (account: StaffHrAccount) => void
 }
 
-/** Bảng tài khoản HR của một công ty; mỗi dòng có nút Khoá hoặc Mở khoá theo trạng thái. */
+/**
+ * Bảng tài khoản HR của một công ty; mỗi dòng có nút Khoá hoặc Mở khoá theo khoá riêng (status). HR bị khoá theo
+ * công ty (DN-07) có thêm nhãn "Khoá theo công ty"; nhãn này chỉ gỡ được bằng mở khoá công ty.
+ */
 export function HrAccountTable({ accounts, onLock, onUnlock }: HrAccountTableProps) {
   if (accounts.length === 0) {
     return <p className="rounded-md border border-dashed py-8 text-center text-xs text-muted-foreground">Công ty chưa có tài khoản HR</p>
@@ -48,20 +51,28 @@ export function HrAccountTable({ accounts, onLock, onUnlock }: HrAccountTablePro
                 <div className="break-all text-muted-foreground">{account.email}</div>
               </td>
               <td className="px-3 py-2">
-                {account.status === "LOCKED" ? (
-                  <div className="space-y-0.5">
-                    <span className="inline-block rounded-full bg-destructive/10 px-2 py-0.5 text-destructive">Đã khoá</span>
-                    {account.lockedAt ? <div className="text-muted-foreground">Khoá lúc {formatDateTime(account.lockedAt)}</div> : null}
-                    {account.lockedReason ? <div className="text-muted-foreground">Lý do: {account.lockedReason}</div> : null}
-                  </div>
-                ) : (
-                  <div className="space-y-0.5">
-                    <span className="inline-block rounded-full bg-green-100 px-2 py-0.5 text-green-700">Hoạt động</span>
-                    {account.tempLockedUntil ? (
-                      <div className="text-muted-foreground">Tạm khoá do sai mật khẩu đến {formatTime(account.tempLockedUntil)}</div>
+                <div className="space-y-0.5">
+                  <div className="flex flex-wrap gap-1">
+                    {account.companyLocked ? (
+                      <span className="inline-block rounded-full border border-destructive/30 px-2 py-0.5 text-destructive">Khoá theo công ty</span>
                     ) : null}
+                    {account.status === "LOCKED" ? (
+                      <span className="inline-block rounded-full bg-destructive/10 px-2 py-0.5 text-destructive">Đã khoá</span>
+                    ) : account.companyLocked ? null : (
+                      // Bị khoá theo công ty thì không ghi "Hoạt động" (dễ hiểu nhầm là đăng nhập được).
+                      <span className="inline-block rounded-full bg-green-100 px-2 py-0.5 text-green-700">Hoạt động</span>
+                    )}
                   </div>
-                )}
+                  {account.status === "LOCKED" && account.lockedAt ? (
+                    <div className="text-muted-foreground">Khoá lúc {formatDateTime(account.lockedAt)}</div>
+                  ) : null}
+                  {account.status === "LOCKED" && account.lockedReason ? (
+                    <div className="text-muted-foreground">Lý do: {account.lockedReason}</div>
+                  ) : null}
+                  {account.status !== "LOCKED" && account.tempLockedUntil ? (
+                    <div className="text-muted-foreground">Tạm khoá do sai mật khẩu đến {formatTime(account.tempLockedUntil)}</div>
+                  ) : null}
+                </div>
               </td>
               <td className="px-3 py-2 text-right">
                 {account.status === "LOCKED" ? (

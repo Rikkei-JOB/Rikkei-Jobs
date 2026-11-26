@@ -14,19 +14,27 @@ import { ApiError, getErrorMessage } from "@/services/api"
 
 interface ReviewPanelProps {
   jobId: string
-  /** Duyệt / trả lại / đóng xong; message là thông báo cho cán bộ. */
-  onProcessed: (message: string) => void
-  /** 409 (INVALID_JOB_STATUS, JOB_EXPIRED, CONFLICT): message của backend; hàng chờ đã được làm mới. */
-  onConflict: (message: string) => void
+  /**
+   * Duyệt / trả lại / đóng xong JD processedId; message là thông báo cho cán bộ. Có thể được gọi sau khi khối này
+   * đã unmount (cán bộ chọn JD khác lúc đang chờ), nên bên gọi so processedId với JD đang chọn.
+   */
+  onProcessed: (processedId: string, message: string) => void
+  /** 409 (INVALID_JOB_STATUS, JOB_EXPIRED, CONFLICT) của JD processedId: message của backend; hàng chờ đã được làm mới. */
+  onConflict: (processedId: string, message: string) => void
 }
 
 function isConflict(error: unknown): error is ApiError {
   return error instanceof ApiError && error.status === 409
 }
 
+/** JD chờ duyệt mà hạn nộp đã qua (giờ VN): backend chỉ trả 409 JOB_EXPIRED nên không cho bấm "Duyệt". */
+function isExpiredPending(detail: StaffJobDetail): boolean {
+  return detail.status === "PENDING" && detail.job.deadline !== null && daysUntil(detail.job.deadline) < 0
+}
+
 /** Dải trên cùng: trạng thái, nhãn công ty bị khoá, lý do và người / thời điểm xử lý gần nhất. */
 function ReviewNotice({ detail }: { detail: StaffJobDetail }) {
-  const expired = detail.status === "PENDING" && detail.job.deadline !== null && daysUntil(detail.job.deadline) < 0
+  const expired = isExpiredPending(detail)
   const showReview = detail.status === "REJECTED" || detail.status === "CLOSED"
   return (
     <div className="space-y-2">
@@ -90,13 +98,13 @@ export function ReviewPanel({ jobId, onProcessed, onConflict }: ReviewPanelProps
     try {
       await approve.mutateAsync(jobId)
     } catch (err) {
-      if (isConflict(err)) onConflict(err.message)
+      if (isConflict(err)) onConflict(jobId, err.message)
       else setActionError(getErrorMessage(err))
       return
     } finally {
       approving.current = false
     }
-    onProcessed("Đã duyệt JD")
+    onProcessed(jobId, "Đã duyệt JD")
   }
 
   /** Lỗi 409 đóng hộp và báo lên trang; lỗi khác ném lại để hộp hiện (errors.reason dưới ô). */
@@ -107,11 +115,11 @@ export function ReviewPanel({ jobId, onProcessed, onConflict }: ReviewPanelProps
     } catch (err) {
       if (!isConflict(err)) throw err
       setDialog(null)
-      onConflict(err.message)
+      onConflict(jobId, err.message)
       return
     }
     setDialog(null)
-    onProcessed(action === "reject" ? "Đã trả lại JD" : "Đã đóng JD")
+    onProcessed(jobId, action === "reject" ? "Đã trả lại JD" : "Đã đóng JD")
   }
 
   return (
@@ -137,7 +145,7 @@ export function ReviewPanel({ jobId, onProcessed, onConflict }: ReviewPanelProps
                 >
                   Trả lại…
                 </Button>
-                <Button size="lg" disabled={busy} onClick={() => void runApprove()}>
+                <Button size="lg" disabled={busy || isExpiredPending(detail)} onClick={() => void runApprove()}>
                   {approve.isPending ? "Đang duyệt..." : "Duyệt"}
                 </Button>
               </>

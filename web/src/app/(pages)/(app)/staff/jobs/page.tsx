@@ -77,7 +77,14 @@ function StaffJobsView() {
   const pendingCount = useStaffJobs({ status: "PENDING", companyId, page: 1, size: 1 }, allowed)
 
   const items = React.useMemo(() => queue.data?.items ?? [], [queue.data])
-  const selectedId = jobId ?? items.find((item) => item.id !== doneId)?.id
+  // Không mặc định chọn JD đầu tiên khi hàng chờ đang là dữ liệu cũ (của tab / trang / công ty trước).
+  const selectedId = jobId ?? (queue.isPlaceholderData ? undefined : items.find((item) => item.id !== doneId)?.id)
+
+  // Lần render mới nhất: ReviewPanel có thể báo xử lý xong sau khi cán bộ đã chọn JD khác (callback cũ).
+  const latest = React.useRef({ selectedId, jobId, items, status, companyId, page })
+  React.useEffect(() => {
+    latest.current = { selectedId, jobId, items, status, companyId, page }
+  })
 
   // Xử lý xong JD cuối cùng của một trang (> 1) thì lùi về trang trước.
   const emptyPage = !!queue.data && !queue.isPlaceholderData && queue.data.items.length === 0 && page > 1
@@ -92,22 +99,30 @@ function StaffJobsView() {
   const companyMissing = !!companyId && !companyOptions.some((c) => c.id === companyId)
   const missingName = companyMissing ? items.find((i) => i.company.id === companyId)?.company.name : undefined
 
-  /** Sau khi JD rời hàng chờ: chọn JD kế tiếp (hoặc liền trước nếu là JD cuối trang). */
-  function handleProcessed(message: string) {
-    if (!selectedId) return
-    const index = items.findIndex((item) => item.id === selectedId)
-    const next = index >= 0 ? (items[index + 1] ?? items[index - 1]) : items.find((item) => item.id !== selectedId)
-    setDoneId(selectedId)
+  /**
+   * Sau khi JD rời hàng chờ: chọn JD kế tiếp (hoặc liền trước nếu là JD cuối trang), chỉ khi JD vừa xử lý vẫn là
+   * JD đang chọn; cán bộ đã chọn JD / tab khác trong lúc chờ thì giữ nguyên lựa chọn của họ.
+   */
+  function handleProcessed(processedId: string, message: string) {
+    const current = latest.current
+    setDoneId(processedId)
     setConflict("")
     setNotice(message)
-    navigate({ status, companyId, page, jobId: next?.id })
+    if (current.selectedId !== processedId) return
+    const index = current.items.findIndex((item) => item.id === processedId)
+    const next =
+      index >= 0 ? (current.items[index + 1] ?? current.items[index - 1]) : current.items.find((item) => item.id !== processedId)
+    navigate({ status: current.status, companyId: current.companyId, page: current.page, jobId: next?.id })
   }
 
   /** 409: giữ JD đang chọn (chi tiết đã tải lại, cán bộ thấy trạng thái mới), hàng chờ đã làm mới. */
-  function handleConflict(message: string) {
+  function handleConflict(processedId: string, message: string) {
+    const current = latest.current
     setNotice("")
     setConflict(message)
-    if (selectedId && selectedId !== jobId) navigate({ status, companyId, page, jobId: selectedId })
+    if (current.selectedId === processedId && processedId !== current.jobId) {
+      navigate({ status: current.status, companyId: current.companyId, page: current.page, jobId: processedId })
+    }
   }
 
   return (
@@ -179,7 +194,7 @@ function StaffJobsView() {
               <section aria-label="Chi tiết JD" className="min-w-0">
                 {selectedId ? (
                   <ReviewPanel key={selectedId} jobId={selectedId} onProcessed={handleProcessed} onConflict={handleConflict} />
-                ) : queue.data ? (
+                ) : queue.data && !queue.isPlaceholderData ? (
                   <p className="rounded-xl border border-dashed bg-card py-10 text-center text-xs text-muted-foreground">
                     Chọn một JD để xem chi tiết
                   </p>

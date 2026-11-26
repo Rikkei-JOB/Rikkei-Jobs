@@ -2,17 +2,12 @@
 
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuthStore } from "@/hooks/use-auth-store";
-import type { StaffJobListParams } from "@/interface/staff-job";
+import { staffCompanyKeys, staffJobKeys } from "@/hooks/staff-query-keys";
+import type { StaffJobDetail, StaffJobListParams } from "@/interface/staff-job";
 import { ApiError } from "@/services/api";
 import { staffJobService } from "@/services/staff-job.service";
 
-// Khoá cache gắn với id người dùng (như use-my-company.ts) để tài khoản khác trong cùng tab không đọc nhầm dữ liệu.
-export const staffJobKeys = {
-  all: (userId: string | undefined) => ["staff-jobs", userId ?? null] as const,
-  list: (userId: string | undefined, params: StaffJobListParams) =>
-    [...staffJobKeys.all(userId), "list", params] as const,
-  detail: (userId: string | undefined, id: string) => [...staffJobKeys.all(userId), "detail", id] as const,
-};
+export { staffJobKeys } from "@/hooks/staff-query-keys";
 
 /** Danh sách JD của cán bộ (GET /staff/jobs); Task 10 dùng lại cho tab "JD của công ty". */
 export function useStaffJobs(params: StaffJobListParams, enabled = true) {
@@ -36,17 +31,29 @@ export function useStaffJob(id: string | undefined, enabled = true) {
 
 /**
  * Xử lý xong (hoặc 409: JD đã bị người khác xử lý / quá hạn / xung đột) thì làm mới cả danh sách và chi tiết
- * JD của cán bộ, để hàng chờ và số "Chờ duyệt (n)" đúng với DB. Không chờ tải lại xong: màn duyệt cần chọn JD
- * kế tiếp theo hàng chờ cũ trước khi danh sách mới về.
+ * JD của cán bộ, để hàng chờ và số "Chờ duyệt (n)" đúng với DB, cùng lịch sử và chi tiết của công ty sở hữu JD
+ * (thao tác được ghi vào lịch sử công ty). Không chờ tải lại xong: màn duyệt cần chọn JD kế tiếp theo hàng chờ
+ * cũ trước khi danh sách mới về.
  */
 function useInvalidateStaffJobs() {
   const queryClient = useQueryClient();
   const userId = useAuthStore((state) => state.user?.id);
-  const invalidate = () => void queryClient.invalidateQueries({ queryKey: staffJobKeys.all(userId) });
+  const invalidate = (jobId: string, companyId: string | undefined) => {
+    // Lấy công ty trước khi làm mới: chi tiết JD đang có trong cache (màn duyệt đã tải nó).
+    const owner = companyId ?? queryClient.getQueryData<StaffJobDetail>(staffJobKeys.detail(userId, jobId))?.job.company.id;
+    void queryClient.invalidateQueries({ queryKey: staffJobKeys.all(userId) });
+    if (owner) {
+      void queryClient.invalidateQueries({ queryKey: staffCompanyKeys.histories(userId, owner) });
+      void queryClient.invalidateQueries({ queryKey: staffCompanyKeys.detail(userId, owner) });
+    }
+  };
   return {
-    onSuccess: invalidate,
-    onError: (error: unknown) => {
-      if (error instanceof ApiError && error.status === 409) invalidate();
+    onSuccess: (detail: StaffJobDetail, variables: string | { id: string }) =>
+      invalidate(typeof variables === "string" ? variables : variables.id, detail.job.company.id),
+    onError: (error: unknown, variables: string | { id: string }) => {
+      if (error instanceof ApiError && error.status === 409) {
+        invalidate(typeof variables === "string" ? variables : variables.id, undefined);
+      }
     },
   };
 }

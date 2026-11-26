@@ -56,7 +56,10 @@ export interface StaffCompanyItem {
   createdAt: string;
 }
 
-/** Tài khoản HR dưới góc nhìn cán bộ. LOCKED = cán bộ khoá; tempLockedUntil = khoá tạm do nhập sai mật khẩu. */
+/**
+ * Tài khoản HR dưới góc nhìn cán bộ. status chỉ nói về khoá riêng (LOCKED = cán bộ khoá riêng HR này);
+ * companyLocked = bị khoá theo công ty (DN-07); tempLockedUntil = khoá tạm do nhập sai mật khẩu.
+ */
 export interface StaffHrAccount {
   userId: string;
   email: string;
@@ -65,11 +68,38 @@ export interface StaffHrAccount {
   lockedReason: string | null;
   lockedAt: string | null;
   tempLockedUntil: string | null;
+  companyLocked: boolean;
 }
 
-/** GET /staff/companies/{id}. */
+/** Cán bộ thực hiện thao tác (StaffRef); fullName null khi không tra được identity-service. */
+export interface StaffActor {
+  id: string;
+  fullName: string | null;
+}
+
+/** Thông tin khoá công ty (CompanyLockInfo) từ dòng LOCK mới nhất của lịch sử. */
+export interface CompanyLockInfo {
+  lockedAt: string;
+  reason: string | null;
+  lockedBy: StaffActor;
+}
+
+/** GET /staff/companies/{id}. lock null khi công ty ACTIVE (hoặc LOCKED mà chưa có dòng LOCK, dữ liệu cũ). */
 export interface StaffCompanyDetail extends Company {
   hrAccounts: StaffHrAccount[];
+  lock: CompanyLockInfo | null;
+}
+
+export type CompanyActionType = "LOCK" | "UNLOCK" | "APPROVE_JD" | "REJECT_JD" | "CLOSE_JD";
+
+/** Một dòng trong GET /staff/companies/{id}/history; job null với LOCK/UNLOCK, title null khi JD không còn. */
+export interface CompanyActionItem {
+  id: string;
+  action: CompanyActionType;
+  createdAt: string;
+  reason: string | null;
+  staff: StaffActor;
+  job: { id: string; title: string | null } | null;
 }
 
 export interface StaffCompanyListParams {
