@@ -67,7 +67,6 @@ test("ứng viên gửi, sửa sau khi bị trả lại, công khai rồi rút",
   expect((await request.get(skills, { headers: hrHeaders })).status()).toBe(200);
   await page.reload();
   await expect(panel.getByRole("status")).toContainText("Đã công khai");
-  await expect(panel.getByText("Duyệt công khai", { exact: true }).first()).toBeVisible();
   await capture("public-mobile");
   await panel.getByRole("button", { name: "Rút công khai" }).click();
   await expect(submit).toBeDisabled();

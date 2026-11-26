@@ -9,6 +9,7 @@ import { Alert } from "@/app/components/ui/alert";
 import { Input } from "@/app/components/ui/input";
 import { Label } from "@/app/components/ui/label";
 import { FormDialog } from "@/app/components/profile/form-dialog";
+import { TaskBanner } from "@/app/components/ui/task-banner";
 import { ADD_TILE, BADGE, ICON_ACTION, ICON_DANGER, ITEM_CARD, META, PRIMARY_CTA, SECONDARY_CTA, SECTION_TITLE, TONE } from "@/app/components/profile/display";
 import { cvService } from "@/services/cv.service";
 import { ApiError, getErrorMessage } from "@/services/api";
@@ -43,14 +44,12 @@ export function CvBuilder() {
 
   const full = (cvs?.length ?? 0) >= MAX_CVS;
   return <div className="space-y-6">
-    <div className="flex flex-wrap items-center justify-between gap-3">
-      <div>
-        <h1 className="text-xl font-semibold">CV của tôi</h1>
-        <p className={META}>Mỗi CV lấy dữ liệu trực tiếp từ <Link href="/candidate/profile" className="underline">hồ sơ</Link>; sửa hồ sơ thì CV đổi theo. Tối đa {MAX_CVS} CV.</p>
-      </div>
-      <Button className={PRIMARY_CTA} onClick={() => setCreating(true)} disabled={cvs === null || full}
-        title={full ? `Đã đủ ${MAX_CVS} CV, xoá bớt để tạo mới` : undefined}><Plus aria-hidden />Tạo CV mới</Button>
-    </div>
+    <TaskBanner eyebrow="Hồ sơ ứng tuyển" title="CV của tôi" illustration="applications"
+      description={`Tạo CV riêng cho từng vị trí IT. Mỗi CV lấy dữ liệu trực tiếp từ hồ sơ, sửa hồ sơ thì CV đổi theo. Tối đa ${MAX_CVS} CV.`}>
+      <Button data-primary onClick={() => setCreating(true)} disabled={cvs === null || full}
+        title={full ? `Đã đủ ${MAX_CVS} CV, xoá bớt để tạo mới` : undefined}><Plus aria-hidden className="size-4" />Tạo CV mới</Button>
+      <Link href="/candidate/profile" className="underline">Cập nhật hồ sơ</Link>
+    </TaskBanner>
     {error ? <div className="space-y-2"><Alert variant="destructive">{error}</Alert>
       {cvs === null ? <Button onClick={() => { setError(null); setReload(v => v + 1); }}>Thử lại</Button> : null}</div> : null}
     {cvs === null && !error ? <p role="status">Đang tải CV...</p> : null}
@@ -161,7 +160,7 @@ function CvEditor({ id, onChanged }: { id: string; onChanged: () => void }) {
         </div>
       </CardContent>
     </Card>
-    <div className="space-y-3 lg:sticky lg:top-4">
+    <div className="space-y-3 lg:sticky lg:top-20">{/* dưới header sticky 64px */}
       <div className="flex flex-wrap gap-2">
         <Button className={PRIMARY_CTA} disabled={busy} onClick={() => void download()}><Download aria-hidden />Tải PDF</Button>
         <a href={cv.publicUrl} target="_blank" rel="noreferrer" className={`inline-flex items-center rounded-md border ${SECONDARY_CTA}`}>

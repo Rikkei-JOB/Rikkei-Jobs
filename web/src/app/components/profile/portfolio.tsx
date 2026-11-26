@@ -232,7 +232,8 @@ function useImageSrc(url: string | null) {
 function Cover({ media, name }: { media: PortfolioMedia[]; name: string }) {
   const images = media.filter(m => m.type === "IMAGE");
   const src = useImageSrc(images[0]?.url ?? null);
-  return <div className={`relative aspect-[4/3] overflow-hidden ${images.length ? "bg-slate-100" : BRAND_SOFT}`}>
+  // Không có ảnh: dải chữ viết tắt thấp, không chiếm khung 4:3 trống.
+  return <div className={`relative overflow-hidden ${images.length ? "aspect-[4/3] bg-slate-100" : `aspect-[3/1] ${BRAND_SOFT}`}`}>
     {src ? <picture><img src={src} alt={`Ảnh bìa dự án ${name}`} className="size-full object-cover transition-transform duration-200 motion-safe:group-hover:scale-105" /></picture>
       : images.length ? <div className="size-full animate-pulse bg-muted" />
       : <div className="flex size-full items-center justify-center text-3xl font-semibold tracking-wide" aria-hidden>{initials(name)}</div>}
