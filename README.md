@@ -1,5 +1,7 @@
 # Rikkei Jobs Platform
 
+UT-03 bổ sung bảo vệ email/phone ứng viên tại backend, HR xin/xem liên hệ có nhật ký, STAFF duyệt/tra cứu và lịch sử công ty cho ứng viên. Xem [API, dữ liệu demo và kiểm chứng UT-03](docs/api/UT-03-contact-privacy.md).
+
 HS-03 bổ sung Portfolio dự án (dự án thực tập IOC đã xác thực và dự án cá nhân, ảnh, sắp thứ tự) tại `/candidate/profile`. Xem [cách chạy, dữ liệu mẫu và OpenAPI](docs/api/HS-03-portfolio.md).
 
 UT-06 bổ sung đề xuất/chọn giờ phỏng vấn, phòng Meet, email/ICS, nhắc24h/1h và lịch tuần HR. Xem [hướng dẫn, API và kiểm chứng UT-06](docs/api/UT-06-interview-scheduling.md).

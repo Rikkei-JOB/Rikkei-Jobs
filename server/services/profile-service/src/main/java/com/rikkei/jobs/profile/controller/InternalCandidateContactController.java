@@ -19,6 +19,7 @@ import org.springframework.web.server.ResponseStatusException;
 @RequestMapping("/internal/profiles")
 public class InternalCandidateContactController {
     public record Contact(UUID userId, String phone) {}
+    public record Metadata(UUID userId, String fullName, String visibility) {}
     private final CandidateProfileRepository profiles;
     private final String key;
 
@@ -36,5 +37,18 @@ public class InternalCandidateContactController {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid internal service key");
         }
         return new Contact(userId, profiles.findById(userId).map(p -> p.getPhone()).orElse(null));
+    }
+
+    @GetMapping("/{userId}/contact-metadata")
+    @PreAuthorize("hasAnyRole('HR','STAFF','ADMIN')")
+    public Metadata metadata(@PathVariable UUID userId,
+        @RequestHeader(value = "X-Internal-Key", required = false) String provided) {
+        if (key == null || key.isBlank() || provided == null || !MessageDigest.isEqual(
+            key.getBytes(StandardCharsets.UTF_8), provided.getBytes(StandardCharsets.UTF_8))) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid internal service key");
+        }
+        var profile = profiles.findById(userId).orElseThrow(() ->
+            new com.rikkei.jobs.common.config.exception.ResourceNotFoundException("Không tìm thấy ứng viên."));
+        return new Metadata(userId, profile.getFullName(), profile.getVisibility());
     }
 }

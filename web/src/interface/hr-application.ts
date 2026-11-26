@@ -28,7 +28,7 @@ export interface HrApplicationPage { items: HrApplicationSummary[]; total: numbe
 export interface HrApplicationDetail {
   id: string; jobId: string; jobTitle: string; companyId: string; companyName: string;
   status: ApplicationStatus; createdAt: string; updatedAt: string;
-  candidate: { userId: string; fullName: string; email: string; phone?: string | null };
+  candidate: { userId: string; fullName: string; email: string | null; phone?: string | null };
   cvId: string; cvSnapshotUrl: string; coverLetter: string | null;
   match: MatchScore | null; matchStatus?: MatchStatus; rounds: InterviewRound[]; roundRevisions: RoundRevision[];
   history: ApplicationHistoryItem[]; allowedTransitions: ApplicationStatus[];

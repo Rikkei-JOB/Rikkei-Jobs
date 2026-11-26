@@ -41,8 +41,10 @@ public class HrApplicationReadService {
     public HrApplicationDetailResponse detail(AuthPrincipal actor, UUID id, String bearer) {
         var application = access.findReadable(actor,id);
         var identity = identities.get(application.getUserId());
-        var candidate = new CandidateIdentity(identity.userId(), identity.fullName(), identity.email(),
-            contacts.phone(application.getUserId(), bearer));
+        var candidate = actor.getRole() == Role.HR
+            ? new CandidateIdentity(identity.userId(), identity.fullName(), null, null)
+            : new CandidateIdentity(identity.userId(), identity.fullName(), identity.email(),
+                contacts.phone(application.getUserId(), bearer));
         // DN-06 authorizes HR and STAFF, but not ADMIN. ADMIN can inspect the workflow without a match lookup.
         var match = actor.getRole() == Role.ADMIN ? new MatchLookupResponse(MatchStatus.NOT_REQUESTED,null)
             : matches.lookup(application.getJobId(), application.getUserId(), bearer);

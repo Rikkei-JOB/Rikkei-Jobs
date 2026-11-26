@@ -1,4 +1,5 @@
 import { defineConfig, devices } from "@playwright/test";
+const port = process.env.PLAYWRIGHT_PORT ?? "3101";
 
 // Keep browser fixtures independent of a developer's local mock server addresses.
 // Explicit environment overrides still take precedence, as in the existing route tests.
@@ -13,12 +14,12 @@ export default defineConfig({
   retries: process.env.CI ? 1 : 0,
   reporter: "list",
   expect: { timeout: 10_000 },
-  use: { baseURL: "http://127.0.0.1:3101", trace: "retain-on-failure" },
+  use: { baseURL: `http://127.0.0.1:${port}`, trace: "retain-on-failure" },
   projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"], channel: process.env.UT01_BROWSER_CHANNEL } }],
   webServer: {
     env: { PLAYWRIGHT_TEST: "1" },
-    command: "npm run dev -- --hostname 127.0.0.1 --port 3101",
-    url: "http://127.0.0.1:3101",
+    command: `npm run dev -- --hostname 127.0.0.1 --port ${port}`,
+    url: `http://127.0.0.1:${port}`,
     reuseExistingServer: !process.env.CI,
     timeout: 120_000,
   },
