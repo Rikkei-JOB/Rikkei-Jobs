@@ -89,7 +89,7 @@ Mỗi ví dụ có test cho đúng con số này (`MatchCalculatorTest.example1�
 
 - Mọi `v = 0` nên mọi `s = 0`, `R = 0`, `P = 0`, điểm = 0.
 - `belowMinimum = true` (ba kỹ năng bắt buộc đều có `v = 0 < 0,5 × min_score`).
-- `met` rỗng; `missing` đủ 6 kỹ năng theo thứ tự Java, Spring Boot, SQL (bắt buộc), rồi Docker, Git, Giao tiếp (ưu tiên), mỗi kỹ năng `candidateScore = 0`.
+- `met` rỗng; `missing` đủ 6 kỹ năng theo thứ tự Java, Spring Boot, SQL (bắt buộc), rồi Docker, Giao tiếp, Git (ưu tiên), mỗi kỹ năng `candidateScore = 0`.
 - Ứng viên chỉ có điểm tự khai cũng ra kết quả như vậy (xem ví dụ 1: Giao tiếp).
 
 ## 5. Các quy tắc khác đã có test

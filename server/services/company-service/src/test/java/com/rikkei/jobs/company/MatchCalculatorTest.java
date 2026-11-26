@@ -90,7 +90,7 @@ class MatchCalculatorTest {
         assertThat(r.belowMinimum()).isTrue();
         assertThat(r.met()).isEmpty();
         assertThat(names(r.missing()))
-                .containsExactly("Java", "Spring Boot", "SQL", "Docker", "Git", "Giao tiếp");
+                .containsExactly("Java", "Spring Boot", "SQL", "Docker", "Giao tiếp", "Git");
         assertThat(r.missing()).allSatisfy(
                 m -> assertThat(m.candidateScore().compareTo(BigDecimal.ZERO)).isZero());
     }
