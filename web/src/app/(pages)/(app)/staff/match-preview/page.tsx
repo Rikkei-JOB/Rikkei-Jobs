@@ -18,7 +18,6 @@ export default function MatchPreviewPage() {
   const allowed = useAuthGuard({ roles: ["STAFF"] })
   const [jobId, setJobId] = React.useState("")
   const [userId, setUserId] = React.useState("")
-  // Chỉ khi bấm "Xem" mới gửi cặp mã đã kiểm tra sang hook.
   const [submitted, setSubmitted] = React.useState<{ jobId: string; userId: string } | null>(null)
   const [invalid, setInvalid] = React.useState(false)
 
@@ -39,11 +38,17 @@ export default function MatchPreviewPage() {
   }
 
   return (
-    <div className="mx-auto max-w-2xl space-y-4">
-      <h1 className="font-heading text-lg font-semibold">Xem điểm phù hợp</h1>
+    <div className="ptit-page max-w-3xl">
+      <div className="ptit-page-heading">
+        <div>
+          <p className="ptit-eyebrow">ĐỐI CHIẾU NĂNG LỰC</p>
+          <h1 className="ptit-page-title">Xem điểm phù hợp</h1>
+          <p className="ptit-page-desc">Kiểm tra mức độ đáp ứng kỹ năng của ứng viên với yêu cầu tin tuyển dụng.</p>
+        </div>
+      </div>
 
-      <div className="space-y-2">
-        <label className="block space-y-1 text-xs font-medium">
+      <div className="ptit-surface space-y-4 p-6">
+        <label className="block space-y-1.5 text-sm font-semibold text-heading">
           Mã JD
           <Input value={jobId} onChange={(e) => setJobId(e.target.value)} placeholder="UUID của JD" />
         </label>
@@ -54,14 +59,14 @@ export default function MatchPreviewPage() {
             </Button>
           ))}
         </div>
-        <label className="block space-y-1 text-xs font-medium">
+        <label className="block space-y-1.5 text-sm font-semibold text-heading">
           Mã ứng viên
           <Input value={userId} onChange={(e) => setUserId(e.target.value)} placeholder="UUID của ứng viên" />
         </label>
         <Button type="button" onClick={handleView}>
           Xem
         </Button>
-        {invalid ? <p className="text-xs text-destructive">Mã không hợp lệ</p> : null}
+        {invalid ? <p className="text-xs font-medium text-destructive">Mã không hợp lệ</p> : null}
       </div>
 
       {submitted ? <MatchScoreCard match={data} isLoading={isFetching && !data} error={error} onRetry={() => void refetch()} /> : null}

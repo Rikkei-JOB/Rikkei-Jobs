@@ -11,11 +11,11 @@ interface FormFieldProps {
 /** Nhãn + ô nhập + thông báo lỗi dưới ô nhập. */
 export function FormField({ label, htmlFor, error, children }: FormFieldProps) {
   return (
-    <div className="space-y-1.5">
+    <div className="space-y-2">
       <Label htmlFor={htmlFor}>{label}</Label>
       {children}
       {error ? (
-        <p id={`${htmlFor}-error`} role="alert" className="text-xs/relaxed text-destructive">
+        <p id={`${htmlFor}-error`} role="alert" className="text-xs font-medium text-destructive">
           {error}
         </p>
       ) : null}

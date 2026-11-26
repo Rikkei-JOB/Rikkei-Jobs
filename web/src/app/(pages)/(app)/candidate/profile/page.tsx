@@ -8,12 +8,19 @@ import { Portfolio } from "@/app/components/profile/portfolio"
 
 /**
  * Hồ sơ cá nhân HS-02, portfolio HS-03 và hồ sơ năng lực kỹ năng HS-01 của ứng viên.
- * Đăng nhập và vai trò do layout (app) kiểm; đường dẫn tĩnh này được ưu tiên hơn trang tạm [role]/[...section].
  */
 export default function CandidateProfilePage() {
   return (
-    <div className="mx-auto max-w-6xl space-y-6">
-      <h1 className="text-xl font-semibold">Hồ sơ của tôi</h1>
+    <div className="ptit-page max-w-6xl">
+      <div className="ptit-page-heading">
+        <div>
+          <p className="ptit-eyebrow">HỒ SƠ NĂNG LỰC CÁ NHÂN</p>
+          <h1 className="ptit-page-title">Hồ sơ của tôi</h1>
+          <p className="ptit-page-desc">
+            Quản lý thông tin cá nhân, quá trình đào tạo, dự án thực tế và hồ sơ kỹ năng xác thực từ LMS.
+          </p>
+        </div>
+      </div>
       <PersonalProfile />
       <Educations />
       <Certificates />

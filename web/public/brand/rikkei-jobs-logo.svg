@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-4 -4 396 108" role="img" aria-labelledby="title">
+  <title id="title">Rikkei Jobs</title>
+  <!-- RIKKEI: vẽ lại theo logo gốc; đơn vị theo ảnh gốc, nét dày 9 -->
+  <path fill="#BC2026" fill-rule="evenodd" d="M0 0H28C40 0 47 8 47 20.5C47 31 41 38.5 31 40.5L56 77H45L21 41.5H9V77H0ZM9 8V33.5H27C34 33.5 38 28.5 38 20.5C38 12.5 34 8 27 8Z"/>
+  <g fill="#959293">
+    <rect x="61" y="0" width="9" height="8"/>
+    <rect x="61" y="11" width="9" height="66"/>
+    <path d="M101 11H111L84 44L111 77H101L74 44Z"/>
+    <rect x="135" y="11" width="38" height="9"/>
+    <rect x="135" y="40" width="25" height="8"/>
+    <rect x="135" y="68" width="38" height="9"/>
+    <rect x="178" y="11" width="9" height="66"/>
+  </g>
+  <path fill="#BC2026" d="M119 11H130L103 44L130 77H119L93 44Z"/>
+  <!-- JOBS: cùng ngôn ngữ với RIKKEI (chữ hoa y 11–77, nét dày 9), mảnh rời toàn màu đỏ, nét cong mềm -->
+  <g fill="none" stroke="#BC2026" stroke-width="9">
+    <path d="M235.5 11V62A10.5 10.5 0 0 1 214.5 62V55"/>
+    <rect x="251.5" y="15.5" width="37" height="57" rx="18.5"/>
+    <path d="M314 15.5H322A12 12 0 0 1 322 39.5H314M322 39.5H325A16.5 16.5 0 0 1 325 72.5H314"/>
+    <path d="M383.5 15.5H364A12 12 0 0 0 364 39.5H370A16.5 16.5 0 0 1 370 72.5H354.5"/>
+  </g>
+  <g fill="#BC2026">
+    <rect x="212" y="11" width="14" height="9"/>
+    <rect x="300" y="11" width="9" height="66"/>
+  </g>
+  <text x="0" y="97" fill="#959293" font-family="Arial, Helvetica, sans-serif" font-size="13.5" font-style="italic" textLength="187" lengthAdjust="spacingAndGlyphs">where the dream begins</text>
+</svg>
