@@ -5,7 +5,7 @@
 | Mã task | DN-02 |
 | Service | `company-service` (cổng 8085) qua `api-gateway`; đọc danh mục kỹ năng của `profile-service` (cổng 8082, `GET /skills`); tra email HR qua API nội bộ của `identity-service` (cổng 8081) |
 | Frontend | `/hr/jobs` (danh sách), `/hr/jobs/new` (tạo), `/hr/jobs/{id}` (sửa hoặc chỉ xem) trong `web/src/app/(pages)/(app)/hr/jobs` |
-| Phụ thuộc | DN-01, DN-05 (công ty, `company_hr`, `HrLockedFilter`), HS-01/HS-02 (danh mục 20 kỹ năng, `GET /skills`), UT-01 (hợp đồng `application-context`) |
+| Phụ thuộc | DN-01, DN-05 (công ty, `company_hr`, `HrLockedFilter`), HS-01/HS-02 (danh mục 19 kỹ năng, `GET /skills`), UT-01 (hợp đồng `application-context`) |
 | OpenAPI | [company-openapi.yaml](company-openapi.yaml) (tag `job`, `internal`) |
 | Request mẫu | [DN-02.http](DN-02.http) |
 | Thiết kế | [2026-11-17-dn-02-jobs-design.md](../superpowers/specs/2026-11-17-dn-02-jobs-design.md) |
@@ -66,7 +66,7 @@ Các cột nội dung để NULL được vì bản nháp chỉ bắt buộc `ti
 | `required` | BOOLEAN, NOT NULL | `true` bắt buộc, `false` ưu tiên |
 | `min_score` | INTEGER, NOT NULL | CHECK `BETWEEN 1 AND 100` |
 
-`min_score` là 1–100 (không phải 0–100): UT-02 coi `minScore <= 0` trong kết quả điểm khớp là lỗi hợp đồng (502 `MATCH_CONTRACT_ERROR`). API, zod và thanh trượt cùng giới hạn này. Tối đa 20 kỹ năng mỗi JD (bằng cỡ danh mục).
+`min_score` là 1–100 (không phải 0–100): UT-02 coi `minScore <= 0` trong kết quả điểm khớp là lỗi hợp đồng (502 `MATCH_CONTRACT_ERROR`). API, zod và thanh trượt cùng giới hạn này. Tối đa 20 kỹ năng mỗi JD.
 
 ## 3. API
 
@@ -179,7 +179,7 @@ docker compose --env-file .env -f infra/compose.yaml up -d postgres mailhog
 (cd mock && npm ci && npm start)                                      # mock LMS :9000 (SSO của staff1, candidate1)
 mvn -f server/pom.xml -pl services/identity-service,services/profile-service,services/company-service,api-gateway -am install -DskipTests
 mvn -f server/services/identity-service/pom.xml spring-boot:run "-Dspring-boot.run.profiles=dev"   # :8081, seed tài khoản mẫu
-mvn -f server/services/profile-service/pom.xml spring-boot:run                                     # :8082, danh mục 20 kỹ năng (Flyway)
+mvn -f server/services/profile-service/pom.xml spring-boot:run                                     # :8082, danh mục 19 kỹ năng (Flyway)
 mvn -f server/services/company-service/pom.xml spring-boot:run "-Dspring-boot.run.profiles=dev"    # :8085, seed Công ty A/B + 5 JD mẫu
 mvn -f server/api-gateway/pom.xml spring-boot:run                                                  # :8080
 (cd web && cp .env.example .env.local && npm ci && npm run dev -- --port 3000)                    # http://localhost:3000
@@ -222,7 +222,7 @@ Chỉ có khi chạy company-service với profile `dev` (`DEV_DATA_ENABLED=true
 
 | id (đuôi) | Tiêu đề | Cấp độ | Loại | Trạng thái | Kỹ năng / ghi chú |
 | --- | --- | --- | --- | --- | --- |
-| `…0001` | Junior Backend Developer (Java/Spring Boot) | JUNIOR | FULLTIME | `REJECTED` | lý do "Mức lương chưa rõ đơn vị, phần quyền lợi còn sơ sài."; bắt buộc `JAVA` 70, `OOP` 70, `SPRING_BOOT` 40, `SQL` 40, `REST_API` 40, `GIT` 70; ưu tiên `DOCKER` 40, `ENGLISH` 40, `AGILE` 20 |
+| `…0001` | Junior Backend Developer (Java/Spring Boot) | JUNIOR | FULLTIME | `REJECTED` | lý do "Mức lương chưa rõ đơn vị, phần quyền lợi còn sơ sài."; bắt buộc `JAVA` 70, `OOP` 70, `SPRING_BOOT` 40, `SQL` 40, `REST_API` 40, `GIT` 70; ưu tiên `DOCKER` 40, `COMMUNICATION` 40, `AGILE` 20 |
 | `…0002` | Fresher ReactJS | FRESHER | FULLTIME | `PENDING` | bắt buộc `REACTJS`, `JAVASCRIPT`, `HTML_CSS` 40 |
 | `…0003` | Thực tập sinh Tester | INTERN | INTERNSHIP | `APPROVED` | bắt buộc `TESTING` 40; dùng để ứng tuyển thử (UT-01) |
 | `…0004` | Middle Java Developer | MIDDLE | FULLTIME | `DRAFT` | chưa có hạn nộp, chưa có kỹ năng |

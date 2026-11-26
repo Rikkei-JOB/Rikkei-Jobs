@@ -34,7 +34,7 @@ class ProfileDemoDataSeederTest {
         UUID realCandidate = UUID.fromString("20000000-0000-0000-0000-000000000001");
         var skills = core.getSkills(realCandidate);
         assertThat(skills).hasSize(9);
-        assertThat(skills).filteredOn(v -> v.skill().code().equals("ENGLISH")).singleElement().satisfies(v -> {
+        assertThat(skills).filteredOn(v -> v.skill().code().equals("COMMUNICATION")).singleElement().satisfies(v -> {
             assertThat(v.verifiedScore()).isNull();
             assertThat(v.level()).isNull();
             assertThat(v.selfScore()).isEqualByComparingTo("65");
@@ -57,11 +57,11 @@ class ProfileDemoDataSeederTest {
             assertThat(state.isApproved()).isFalse();
         });
         // A user removed the demo self skill; a later dev startup must not restore it.
-        var english = skills.stream().filter(v -> v.skill().code().equals("ENGLISH")).findFirst().orElseThrow();
+        var selfOnly = skills.stream().filter(v -> v.skill().code().equals("COMMUNICATION")).findFirst().orElseThrow();
         evidences.deleteAll(evidences.findAllByUserId(realCandidate).stream()
                 .filter(e -> e.getSource() == EvidenceSource.SELF).toList());
-        scores.deleteById(new com.rikkei.jobs.profile.entity.SkillScoreId(realCandidate, english.skill().id()));
+        scores.deleteById(new com.rikkei.jobs.profile.entity.SkillScoreId(realCandidate, selfOnly.skill().id()));
         seeder.run(null);
-        assertThat(core.getSkills(realCandidate)).noneMatch(v -> v.skill().code().equals("ENGLISH"));
+        assertThat(core.getSkills(realCandidate)).noneMatch(v -> v.skill().code().equals("COMMUNICATION"));
     }
 }

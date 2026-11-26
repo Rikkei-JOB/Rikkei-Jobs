@@ -35,18 +35,19 @@ class CvApiTest {
     @Autowired JwtUtils jwt;
     @Autowired ObjectMapper json;
     @Autowired JdbcTemplate jdbc;
-    UUID owner, java, english;
+    UUID owner, java, communication;
     String bearer;
 
     @BeforeEach void setup() {
         owner = UUID.randomUUID();
         bearer = "Bearer " + jwt.generateJwtToken(owner, Role.CANDIDATE, null);
         java = jdbc.queryForObject("select id from profile.skills where code='JAVA'", UUID.class);
-        english = jdbc.queryForObject("select id from profile.skills where code='ENGLISH'", UUID.class);
+        communication = jdbc.queryForObject("select id from profile.skills where code='COMMUNICATION'", UUID.class);
         jdbc.update("insert into profile.candidate_profiles(user_id,full_name,email,phone,program,class_code,course_name,summary,visibility,updated_at) "
             + "values (?,'Nguyễn Thị Ánh','anh@example.com','0912345678','Java Fullstack','JV01','Khoá 2026','Thích <b>Java</b> & Spring','PRIVATE',CURRENT_TIMESTAMP)", owner);
         jdbc.update("insert into profile.skill_scores(user_id,skill_id,verified_score,level,updated_at) values (?,?,82,'GOOD',CURRENT_TIMESTAMP)", owner, java);
-        jdbc.update("insert into profile.skill_scores(user_id,skill_id,self_score,updated_at) values (?,?,70,CURRENT_TIMESTAMP)", owner, english);
+        jdbc.update("insert into profile.skill_scores(user_id,skill_id,self_score,updated_at) values (?,?,70,CURRENT_TIMESTAMP)", owner, communication);
+        jdbc.update("insert into profile.languages(id,user_id,name,level,note) values (?,?,'Tiếng Nhật','C1','JLPT N1')", UUID.randomUUID(), owner);
     }
 
     @Test void newCvHasEveryDefaultSectionAndListMatchesUt01Contract() throws Exception {
@@ -96,10 +97,34 @@ class CvApiTest {
         assertThat(new String(pdf, 0, 5)).isEqualTo("%PDF-");
         String text;
         try (var doc = PDDocument.load(pdf)) { text = new PDFTextStripper().getText(doc); }
-        assertThat(text).contains("Nguyễn Thị Ánh", "anh@example.com", "Java 82", "Verified by Rikkei");
+        assertThat(text).contains("Nguyễn Thị Ánh", "anh@example.com", "Java 82", "Verified by Rikkei", "Tiếng Nhật", "CEFR C1", "JLPT N1");
         // Tiêu đề in hoa có giãn chữ, trình trích văn bản có thể chèn khoảng trắng giữa các chữ cái.
         assertThat(text.replace(" ", "")).contains("JAVADEVELOPER", "SKILLS");
-        assertThat(text).doesNotContain("Tiếng Anh", "Thích");
+        assertThat(text).doesNotContain("Giao tiếp", "Thích");
+    }
+
+    @Test void previewRendersUnsavedDraftWithoutSavingIt() throws Exception {
+        String id = create("CV Backend", "Java Developer").get("id").asText();
+        var sections = new ArrayList<Map<String, Object>>();
+        sections.add(Map.of("section", "SKILLS", "included", true, "itemIds", List.of(java)));
+        for (String t : List.of("SUMMARY", "LANGUAGES", "INTERNSHIP", "PROJECTS", "EDUCATION", "CERTIFICATES")) {
+            sections.add(Map.of("section", t, "included", true));
+        }
+        byte[] pdf = mvc.perform(post("/profile/cvs/" + id + "/preview").header("Authorization", bearer)
+                .contentType(MediaType.APPLICATION_JSON).content(json.writeValueAsString(Map.of("sections", sections))))
+            .andExpect(status().isOk()).andExpect(content().contentType(MediaType.APPLICATION_PDF))
+            .andReturn().getResponse().getContentAsByteArray();
+        String text;
+        try (var doc = PDDocument.load(pdf)) { text = new PDFTextStripper().getText(doc); }
+        assertThat(text).contains("Java 82");
+
+        JsonNode saved = json.readTree(mvc.perform(get("/profile/cvs/" + id).header("Authorization", bearer))
+            .andExpect(status().isOk()).andReturn().getResponse().getContentAsString(UTF_8));
+        assertThat(section(saved, "SKILLS").get("allItems").asBoolean()).isTrue();
+
+        mvc.perform(post("/profile/cvs/" + id + "/preview").header("Authorization", bearer)
+                .contentType(MediaType.APPLICATION_JSON).content(json.writeValueAsString(Map.of("sections", sections.subList(0, 2)))))
+            .andExpect(status().isBadRequest());
     }
 
     @Test void otherCandidateCannotReadEditOrExportTheCv() throws Exception {

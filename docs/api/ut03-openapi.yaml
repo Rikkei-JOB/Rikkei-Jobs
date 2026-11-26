@@ -1,0 +1,813 @@
+openapi: 3.0.3
+info:
+  title: UT-03 Contact Privacy
+  version: 1.0.0
+  description: DN-03 ngoài phạm vi. Quyền từ đơn ứng tuyển giữ nguyên sau rút/từ chối;
+    chỉ endpoint contact trả dữ liệu HR.
+servers:
+- url: http://localhost:8080/api/v1
+security:
+- bearerAuth: []
+paths:
+  /candidates/{userId}/contact-requests:
+    post:
+      summary: Xin mở liên hệ cho công ty hiện hành
+      description: 'Vai trò: HR'
+      tags:
+      - HR
+      parameters:
+      - name: userId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '201':
+          description: Thành công
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ContactRequest'
+        '400':
+          description: Dữ liệu không hợp lệ
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Chưa đăng nhập hoặc HR bị khóa
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Sai vai trò hoặc CONTACT_LOCKED
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Không tìm thấy hồ sơ công khai/JD/yêu cầu
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: CONTACT_REQUEST_PENDING / CONTACT_ALREADY_ACCESSIBLE / CONTACT_REQUEST_ALREADY_REVIEWED
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Lưu dữ liệu hoặc commit audit thất bại; không trả contact
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '503':
+          description: Service phụ thuộc không sẵn sàng
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateRequest'
+  /candidates/{userId}/contact-access:
+    get:
+      summary: Đọc trạng thái quyền, không trả contact và không ghi log
+      description: 'Vai trò: HR'
+      tags:
+      - HR
+      parameters:
+      - name: userId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: Thành công
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ContactAccess'
+        '400':
+          description: Dữ liệu không hợp lệ
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Chưa đăng nhập hoặc HR bị khóa
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Sai vai trò hoặc CONTACT_LOCKED
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Không tìm thấy hồ sơ công khai/JD/yêu cầu
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: CONTACT_REQUEST_PENDING / CONTACT_ALREADY_ACCESSIBLE / CONTACT_REQUEST_ALREADY_REVIEWED
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Lưu dữ liệu hoặc commit audit thất bại; không trả contact
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '503':
+          description: Service phụ thuộc không sẵn sàng
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /candidates/{userId}/contact:
+    get:
+      summary: Kiểm tra quyền và commit một audit trước khi trả email/phone
+      description: 'Vai trò: HR'
+      tags:
+      - HR
+      parameters:
+      - name: userId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: Thành công
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Contact'
+        '400':
+          description: Dữ liệu không hợp lệ
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Chưa đăng nhập hoặc HR bị khóa
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Sai vai trò hoặc CONTACT_LOCKED
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Không tìm thấy hồ sơ công khai/JD/yêu cầu
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: CONTACT_REQUEST_PENDING / CONTACT_ALREADY_ACCESSIBLE / CONTACT_REQUEST_ALREADY_REVIEWED
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Lưu dữ liệu hoặc commit audit thất bại; không trả contact
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '503':
+          description: Service phụ thuộc không sẵn sàng
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /staff/contact-requests:
+    get:
+      summary: Danh sách yêu cầu mở liên hệ
+      description: 'Vai trò: STAFF'
+      tags:
+      - STAFF
+      parameters:
+      - name: status
+        in: query
+        required: false
+        schema:
+          type: string
+          enum:
+          - PENDING
+          - APPROVED
+          - REJECTED
+      - name: page
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 1
+          default: 1
+      - name: size
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 100
+          default: 20
+      responses:
+        '200':
+          description: Thành công
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RequestPage'
+        '400':
+          description: Dữ liệu không hợp lệ
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Chưa đăng nhập hoặc HR bị khóa
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Sai vai trò hoặc CONTACT_LOCKED
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Không tìm thấy hồ sơ công khai/JD/yêu cầu
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: CONTACT_REQUEST_PENDING / CONTACT_ALREADY_ACCESSIBLE / CONTACT_REQUEST_ALREADY_REVIEWED
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Lưu dữ liệu hoặc commit audit thất bại; không trả contact
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '503':
+          description: Service phụ thuộc không sẵn sàng
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /staff/contact-requests/{id}/approve:
+    post:
+      summary: Duyệt yêu cầu đang chờ
+      description: 'Vai trò: STAFF'
+      tags:
+      - STAFF
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: Thành công
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ContactRequest'
+        '400':
+          description: Dữ liệu không hợp lệ
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Chưa đăng nhập hoặc HR bị khóa
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Sai vai trò hoặc CONTACT_LOCKED
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Không tìm thấy hồ sơ công khai/JD/yêu cầu
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: CONTACT_REQUEST_PENDING / CONTACT_ALREADY_ACCESSIBLE / CONTACT_REQUEST_ALREADY_REVIEWED
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Lưu dữ liệu hoặc commit audit thất bại; không trả contact
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '503':
+          description: Service phụ thuộc không sẵn sàng
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /staff/contact-requests/{id}/reject:
+    post:
+      summary: Từ chối yêu cầu đang chờ và lưu lý do riêng
+      description: 'Vai trò: STAFF'
+      tags:
+      - STAFF
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: Thành công
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ContactRequest'
+        '400':
+          description: Dữ liệu không hợp lệ
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Chưa đăng nhập hoặc HR bị khóa
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Sai vai trò hoặc CONTACT_LOCKED
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Không tìm thấy hồ sơ công khai/JD/yêu cầu
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: CONTACT_REQUEST_PENDING / CONTACT_ALREADY_ACCESSIBLE / CONTACT_REQUEST_ALREADY_REVIEWED
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Lưu dữ liệu hoặc commit audit thất bại; không trả contact
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '503':
+          description: Service phụ thuộc không sẵn sàng
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RejectRequest'
+  /staff/contact-access-logs:
+    get:
+      summary: Tra cứu từng lần xem liên hệ; UTC [from,to)
+      description: 'Vai trò: STAFF'
+      tags:
+      - STAFF
+      parameters:
+      - name: companyId
+        in: query
+        required: false
+        schema:
+          type: string
+          format: uuid
+      - name: userId
+        in: query
+        required: false
+        schema:
+          type: string
+          format: uuid
+      - name: from
+        in: query
+        required: false
+        schema:
+          type: string
+          format: date-time
+          description: ISO-8601 có offset; inclusive
+      - name: to
+        in: query
+        required: false
+        schema:
+          type: string
+          format: date-time
+          description: ISO-8601 có offset; exclusive
+      - name: page
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 1
+          default: 1
+      - name: size
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 100
+          default: 20
+      responses:
+        '200':
+          description: Thành công
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LogPage'
+        '400':
+          description: Dữ liệu không hợp lệ
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Chưa đăng nhập hoặc HR bị khóa
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Sai vai trò hoặc CONTACT_LOCKED
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Không tìm thấy hồ sơ công khai/JD/yêu cầu
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: CONTACT_REQUEST_PENDING / CONTACT_ALREADY_ACCESSIBLE / CONTACT_REQUEST_ALREADY_REVIEWED
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Lưu dữ liệu hoặc commit audit thất bại; không trả contact
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '503':
+          description: Service phụ thuộc không sẵn sàng
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /me/contact-access-logs:
+    get:
+      summary: Lịch sử của ứng viên trong JWT, không nhận userId
+      description: 'Vai trò: CANDIDATE'
+      tags:
+      - CANDIDATE
+      parameters:
+      - name: page
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 1
+          default: 1
+      - name: size
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 100
+          default: 20
+      responses:
+        '200':
+          description: Thành công
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LogPage'
+        '400':
+          description: Dữ liệu không hợp lệ
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Chưa đăng nhập hoặc HR bị khóa
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Sai vai trò hoặc CONTACT_LOCKED
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Không tìm thấy hồ sơ công khai/JD/yêu cầu
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: CONTACT_REQUEST_PENDING / CONTACT_ALREADY_ACCESSIBLE / CONTACT_REQUEST_ALREADY_REVIEWED
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Lưu dữ liệu hoặc commit audit thất bại; không trả contact
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '503':
+          description: Service phụ thuộc không sẵn sàng
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    Error:
+      type: object
+      properties:
+        code:
+          type: string
+        message:
+          type: string
+      required:
+      - code
+      - message
+    CreateRequest:
+      type: object
+      properties:
+        jobId:
+          type: string
+          format: uuid
+        reason:
+          type: string
+          minLength: 1
+          maxLength: 2000
+          description: Trim trước khi kiểm tra độ dài
+      required:
+      - jobId
+      - reason
+    RejectRequest:
+      type: object
+      properties:
+        reason:
+          type: string
+          minLength: 1
+          maxLength: 2000
+      required:
+      - reason
+    Contact:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+          nullable: true
+        phone:
+          type: string
+          nullable: true
+      required:
+      - email
+      - phone
+    ContactRequest:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        companyId:
+          type: string
+          format: uuid
+        companyName:
+          type: string
+          nullable: true
+        userId:
+          type: string
+          format: uuid
+        candidateName:
+          type: string
+          nullable: true
+        jobId:
+          type: string
+          format: uuid
+        reason:
+          type: string
+        status:
+          type: string
+          enum:
+          - PENDING
+          - APPROVED
+          - REJECTED
+        rejectionReason:
+          type: string
+          nullable: true
+        createdBy:
+          type: string
+          format: uuid
+        createdAt:
+          type: string
+          format: date-time
+        reviewedBy:
+          type: string
+          format: uuid
+          nullable: true
+        reviewedAt:
+          type: string
+          format: date-time
+          nullable: true
+      required:
+      - id
+      - companyId
+      - companyName
+      - userId
+      - candidateName
+      - jobId
+      - reason
+      - status
+      - rejectionReason
+      - createdBy
+      - createdAt
+      - reviewedBy
+      - reviewedAt
+    ContactAccess:
+      type: object
+      properties:
+        userId:
+          type: string
+          format: uuid
+        fullName:
+          type: string
+        canSeeContact:
+          type: boolean
+        via:
+          type: string
+          enum:
+          - APPLICATION
+          - APPROVED_REQUEST
+          nullable: true
+        requestStatus:
+          type: string
+          enum:
+          - PENDING
+          - APPROVED
+          - REJECTED
+          nullable: true
+        latestRequest:
+          allOf:
+          - $ref: '#/components/schemas/ContactRequest'
+          nullable: true
+      required:
+      - userId
+      - fullName
+      - canSeeContact
+      - via
+      - requestStatus
+      - latestRequest
+    ContactLog:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        companyId:
+          type: string
+          format: uuid
+        companyName:
+          type: string
+        hrId:
+          type: string
+          format: uuid
+        hrName:
+          type: string
+          nullable: true
+        userId:
+          type: string
+          format: uuid
+        candidateName:
+          type: string
+          nullable: true
+        via:
+          type: string
+          enum:
+          - APPLICATION
+          - APPROVED_REQUEST
+        createdAt:
+          type: string
+          format: date-time
+      required:
+      - id
+      - companyId
+      - companyName
+      - hrId
+      - hrName
+      - userId
+      - candidateName
+      - via
+      - createdAt
+    RequestPage:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/ContactRequest'
+        total:
+          type: integer
+          format: int64
+        page:
+          type: integer
+          minimum: 1
+        size:
+          type: integer
+          minimum: 1
+          maximum: 100
+      required:
+      - items
+      - total
+      - page
+      - size
+    LogPage:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/ContactLog'
+        total:
+          type: integer
+          format: int64
+        page:
+          type: integer
+          minimum: 1
+        size:
+          type: integer
+          minimum: 1
+          maximum: 100
+      required:
+      - items
+      - total
+      - page
+      - size

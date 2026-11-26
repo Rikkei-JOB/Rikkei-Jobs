@@ -17,6 +17,9 @@ khác cùng trả 404.
 | GET | `/profiles/me/certificates` | Mảng chứng chỉ |
 | POST | `/profiles/me/certificates` | 201 bản ghi mới |
 | PUT / DELETE | `/profiles/me/certificates/{id}` | 200 bản ghi sau sửa / 204 |
+| GET | `/profiles/me/languages` | Mảng ngoại ngữ, trình độ cao trước |
+| POST | `/profiles/me/languages` | 201 bản ghi mới; trùng tên (không phân biệt hoa thường) → 409 |
+| PUT / DELETE | `/profiles/me/languages/{id}` | 200 bản ghi sau sửa / 204 |
 | POST | `/files` | Multipart field `file`; 201 `{url}` |
 | GET | `/files/{id}` | Nội dung nhị phân, chỉ chủ file được tải |
 | PUT | `/profiles/me/avatar` | `{fileUrl}`; trả hồ sơ cá nhân sau cập nhật |
@@ -76,6 +79,7 @@ file hay job thu gom file chưa được gắn. Cần theo dõi dung lượng l�
 
 - V6 tạo `profile.uploaded_files`, lưu owner, MIME, size và thời điểm upload.
 - V7 tạo `profile.educations`, `profile.certificates`; không sửa migration cũ.
+- V14 tạo `profile.languages`: `name` (≤100), `level` CEFR `A1`–`C2` (CHECK), `note` (≤255, ví dụ "IELTS 7.0").
 - `PROFILE_FILES_DIR` mặc định `.runtime/profile-files` khi chạy Java, tính từ
   working directory. Docker đặt `/app/data/profile-files`, dùng named volume
   `profile_files`, writable cho uid 10001. Giữ volume khi dừng stack.

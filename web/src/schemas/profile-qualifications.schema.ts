@@ -1,5 +1,5 @@
 import { z } from "zod";
-import type { CertificatePayload, EducationPayload } from "@/interface/profile-qualifications";
+import { CEFR_LEVELS, type CefrLevel, type CertificatePayload, type EducationPayload, type LanguagePayload } from "@/interface/profile-qualifications";
 
 const date = z.string().refine(value => {
   const parsed = new Date(`${value}T00:00:00Z`);
@@ -27,6 +27,16 @@ export const certificateSchema = z.object({
 export type CertificateValues = z.infer<typeof certificateSchema>;
 export function certificatePayload(values: CertificateValues, fileUrl: string | null): CertificatePayload {
   return { ...values, expiresAt: values.expiresAt || null, fileUrl };
+}
+
+export const languageSchema = z.object({
+  name: z.string().trim().min(1, "Vui lòng nhập ngoại ngữ").max(100, "Ngoại ngữ tối đa 100 ký tự"),
+  level: z.union([z.literal(""), z.enum(CEFR_LEVELS)]).refine(value => value.length > 0, "Vui lòng chọn trình độ"),
+  note: z.string().trim().max(255, "Ghi chú tối đa 255 ký tự"),
+});
+export type LanguageValues = z.infer<typeof languageSchema>;
+export function languagePayload(values: LanguageValues): LanguagePayload {
+  return { ...values, level: values.level as CefrLevel, note: values.note || null };
 }
 
 export const PROFILE_FILE_LIMIT = 5 * 1024 * 1024;

@@ -27,7 +27,7 @@ spring:
           filters: [StripPrefix=2]
         - id: recruitment
           uri: ${RECRUITMENT_SERVICE_URL:http://localhost:8083}
-          predicates: [Path=/api/v1/recruitment/**]
+          predicates: ["Path=/api/v1/recruitment/**,/api/v1/candidates/*/contact,/api/v1/candidates/*/contact-access,/api/v1/candidates/*/contact-requests,/api/v1/staff/contact-requests,/api/v1/staff/contact-requests/**,/api/v1/staff/contact-access-logs,/api/v1/me/contact-access-logs"]
           filters: [StripPrefix=2]
         - id: learning
           uri: ${LEARNING_SERVICE_URL:http://localhost:8084}

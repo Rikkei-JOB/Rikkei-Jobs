@@ -51,7 +51,7 @@ class JobMatchApiTest extends CompanyApiTestSupport {
     private static final UUID SQL = skill(3);
     private static final UUID GIT = skill(4);
     private static final UUID DOCKER = skill(11);
-    private static final UUID ENGLISH = skill(17);
+    private static final UUID COMMUNICATION = skill(18);
 
     private static final UUID C1 = UUID.fromString("00000000-0000-0000-0002-000000000001");
     private static final UUID C3 = UUID.fromString("00000000-0000-0000-0002-000000000003");
@@ -74,9 +74,9 @@ class JobMatchApiTest extends CompanyApiTestSupport {
                 new CatalogSkill(SQL, "SQL", "SQL"),
                 new CatalogSkill(GIT, "GIT", "Git"),
                 new CatalogSkill(DOCKER, "DOCKER", "Docker"),
-                new CatalogSkill(ENGLISH, "ENGLISH", "Tiếng Anh")));
+                new CatalogSkill(COMMUNICATION, "COMMUNICATION", "Giao tiếp")));
         when(skillCatalog.skillIds(anyString())).thenReturn(
-                Set.of(JAVA, SPRING_BOOT, SQL, GIT, DOCKER, ENGLISH));
+                Set.of(JAVA, SPRING_BOOT, SQL, GIT, DOCKER, COMMUNICATION));
         when(profileSkills.verifiedScores(eq(C1), anyString())).thenReturn(c1Scores(new BigDecimal("81.153846")));
         when(profileSkills.verifiedScores(eq(C3), anyString())).thenReturn(Map.of(
                 JAVA, new BigDecimal("49.117647"), SQL, new BigDecimal("58.846154")));
@@ -94,14 +94,14 @@ class JobMatchApiTest extends CompanyApiTestSupport {
                 GIT, new BigDecimal("90"));
     }
 
-    /** JD6: bắt buộc Java 80, Spring Boot 70, SQL 90; ưu tiên Docker 50, Tiếng Anh 60, Git 60. */
+    /** JD6: bắt buộc Java 80, Spring Boot 70, SQL 90; ưu tiên Docker 50, Giao tiếp 60, Git 60. */
     private Job jd6(UUID companyId, JobStatus status) {
         Job job = saveJob(companyId, status);
         jobSkills.save(new JobSkill(job.getId(), JAVA, true, 80));
         jobSkills.save(new JobSkill(job.getId(), SPRING_BOOT, true, 70));
         jobSkills.save(new JobSkill(job.getId(), SQL, true, 90));
         jobSkills.save(new JobSkill(job.getId(), DOCKER, false, 50));
-        jobSkills.save(new JobSkill(job.getId(), ENGLISH, false, 60));
+        jobSkills.save(new JobSkill(job.getId(), COMMUNICATION, false, 60));
         jobSkills.save(new JobSkill(job.getId(), GIT, false, 60));
         return job;
     }
@@ -153,7 +153,7 @@ class JobMatchApiTest extends CompanyApiTestSupport {
                 .andExpect(jsonPath("$.score").value(78))
                 .andExpect(jsonPath("$.belowMinimum").value(false))
                 .andExpect(jsonPath("$.met[0].skill").value("Java"))
-                .andExpect(jsonPath("$.missing[2].skill").value("Tiếng Anh"))
+                .andExpect(jsonPath("$.missing[2].skill").value("Giao tiếp"))
                 .andExpect(jsonPath("$.missing[2].candidateScore").value(0));
     }
 
@@ -273,7 +273,7 @@ class JobMatchApiTest extends CompanyApiTestSupport {
 
         putSkills(job.getId(), List.of(
                 skillBody(JAVA, true, 80), skillBody(SPRING_BOOT, true, 70), skillBody(SQL, true, 80),
-                skillBody(DOCKER, false, 50), skillBody(ENGLISH, false, 60), skillBody(GIT, false, 60)))
+                skillBody(DOCKER, false, 50), skillBody(COMMUNICATION, false, 60), skillBody(GIT, false, 60)))
                 .andExpect(status().isOk());
 
         assertThat(matchScores.findById(new MatchScoreId(job.getId(), C1)).orElseThrow().isStale()).isTrue();
@@ -344,7 +344,7 @@ class JobMatchApiTest extends CompanyApiTestSupport {
                 new CatalogSkill(SPRING_BOOT, "SPRING_BOOT", "Spring Boot"),
                 new CatalogSkill(SQL, "SQL", "SQL"),
                 new CatalogSkill(GIT, "GIT", "Git"),
-                new CatalogSkill(ENGLISH, "ENGLISH", "Tiếng Anh")));
+                new CatalogSkill(COMMUNICATION, "COMMUNICATION", "Giao tiếp")));
         Job job = jd6(company.getId(), JobStatus.APPROVED);
 
         meAs(C1, Role.CANDIDATE, job.getId())
@@ -359,7 +359,7 @@ class JobMatchApiTest extends CompanyApiTestSupport {
                 new CatalogSkill(SPRING_BOOT, "SPRING_BOOT", "Spring Boot"),
                 new CatalogSkill(SQL, "SQL", "SQL"),
                 new CatalogSkill(GIT, "GIT", "Git"),
-                new CatalogSkill(ENGLISH, "ENGLISH", "Tiếng Anh"),
+                new CatalogSkill(COMMUNICATION, "COMMUNICATION", "Giao tiếp"),
                 new CatalogSkill(DOCKER, "", "")));
         Job job = jd6(company.getId(), JobStatus.APPROVED);
 

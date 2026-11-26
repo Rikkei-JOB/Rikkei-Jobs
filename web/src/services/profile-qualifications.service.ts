@@ -1,5 +1,5 @@
 import { api } from "@/services/api";
-import type { Certificate, CertificatePayload, Education, EducationPayload } from "@/interface/profile-qualifications";
+import type { Certificate, CertificatePayload, Education, EducationPayload, Language, LanguagePayload } from "@/interface/profile-qualifications";
 import type { CandidateProfile } from "@/interface/candidate-profile";
 
 export const qualificationService = {
@@ -13,6 +13,11 @@ export const qualificationService = {
     ? (await api.put<Certificate>(`/profiles/me/certificates/${id}`, body)).data
     : (await api.post<Certificate>("/profiles/me/certificates", body)).data,
   deleteCertificate: async (id: string) => { await api.delete(`/profiles/me/certificates/${id}`); },
+  languages: async () => (await api.get<Language[]>("/profiles/me/languages")).data,
+  saveLanguage: async (id: string | null, body: LanguagePayload) => id
+    ? (await api.put<Language>(`/profiles/me/languages/${id}`, body)).data
+    : (await api.post<Language>("/profiles/me/languages", body)).data,
+  deleteLanguage: async (id: string) => { await api.delete(`/profiles/me/languages/${id}`); },
   upload: async (file: File) => {
     const form = new FormData(); form.append("file", file);
     return (await api.post<{ url: string }>("/files", form, { headers: { "Content-Type": "multipart/form-data" } })).data.url;

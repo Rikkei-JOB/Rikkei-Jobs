@@ -36,12 +36,17 @@ class ApplicationRoleAlignmentTest extends ApplicationIntegrationSupport {
             .andExpect(status().isForbidden());
     }
 
-    @Test void phoneAppearsOnlyAfterApplicationAuthorization() throws Exception {
+    @Test void contactRequiresExplicitAuditedReadAfterApplicationAuthorization() throws Exception {
         UUID id = apply();
         when(contacts.phone(eq(user), anyString())).thenReturn("0912345678");
         mvc.perform(get("/recruitment/applications/{id}", id)
             .header("Authorization", token(UUID.randomUUID(), Role.HR, company)))
-            .andExpect(status().isOk()).andExpect(jsonPath("$.candidate.phone").value("0912345678"));
+            .andExpect(status().isOk()).andExpect(jsonPath("$.candidate.phone").isEmpty())
+            .andExpect(jsonPath("$.candidate.email").isEmpty());
+        verifyNoInteractions(contacts);
+        mvc.perform(get("/candidates/{id}/contact", user)
+            .header("Authorization", token(UUID.randomUUID(), Role.HR, company)))
+            .andExpect(status().isOk()).andExpect(jsonPath("$.phone").value("0912345678"));
         clearInvocations(contacts);
         mvc.perform(get("/recruitment/applications/{id}", id)
             .header("Authorization", token(UUID.randomUUID(), Role.HR, UUID.randomUUID())))

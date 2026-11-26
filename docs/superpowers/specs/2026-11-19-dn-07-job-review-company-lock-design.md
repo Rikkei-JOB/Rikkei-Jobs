@@ -46,9 +46,9 @@ Ngoài phạm vi:
 
 ## 3. Dữ liệu
 
-### 3.1 company-service — `V5__job_review.sql`
+### 3.1 company-service — `V6__job_review.sql`
 
-Migration hiện có: V1–V4 (V4 của DN-06). SQL chạy được trên cả PostgreSQL và H2 `MODE=PostgreSQL`, không ghi tên schema.
+Migration hiện có: V1–V5 (V4 của DN-06, V5 `drop_english_skill` của HS-04). SQL chạy được trên cả PostgreSQL và H2 `MODE=PostgreSQL`, không ghi tên schema.
 
 `company_actions` (cột theo đề, thêm `CLOSE_JD`; kiểu do người thiết kế chọn):
 
@@ -241,7 +241,7 @@ Test backend không cần Postgres (H2 + Flyway như các service hiện có). G
 | 13 | identity `company-lock`: thiếu / sai khoá nội bộ → 401; khoá → HR đăng nhập 403 `ACCOUNT_DISABLED`, token cũ 401, quên mật khẩu bị chặn, `lookup` `LOCKED` + `companyLocked`; mở khoá → đăng nhập lại được; HR đang khoá riêng vẫn bị khoá sau khi mở khoá công ty; mở khoá riêng không xoá cờ công ty; id không phải HR bị bỏ qua | identity | 3 |
 | 14 | HR detail `GET /companies/me/jobs/{id}` giữ đúng hành vi cũ của `GET /jobs/{id}` (404 công ty khác, quyền HR) | company | — |
 | 15 | Gateway chuyển `/api/v1/staff/jobs/**` tới company-service | gateway | — |
-| 16 | Seeder: thêm 2 JD của Công ty B, đặt `reviewed_at` cho JD đã xử lý, chạy hai lần không trùng; migration V5 backfill `reviewed_at` | company | 6 |
+| 16 | Seeder: thêm 2 JD của Công ty B, đặt `reviewed_at` cho JD đã xử lý, chạy hai lần không trùng; migration V6 backfill `reviewed_at` | company | 6 |
 | 17 | Khoá đồng thời hai lần → một lần thành công, một lần 409, chỉ một dòng `LOCK`; commit lỗi sau khi identity đã nhận → identity được gọi bù | company | 3 |
 | 18 | `StaffHrAccount`: HR khoá theo công ty có `companyLocked = true`, `status` vẫn theo khoá riêng | company | — |
 

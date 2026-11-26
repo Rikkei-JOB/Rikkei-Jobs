@@ -37,6 +37,7 @@ public class CvService {
     private final SkillProfileService skills;
     private final EducationRepository educations;
     private final CertificateRepository certificates;
+    private final LanguageRepository languages;
     private final PortfolioProjectRepository projects;
     private final SkillProfileStateRepository states;
     private final ObjectMapper json;
@@ -44,11 +45,11 @@ public class CvService {
     private final String webBaseUrl;
 
     public CvService(CvRepository cvs, CvSectionRepository sections, CandidateProfileRepository profiles,
-        SkillProfileService skills, EducationRepository educations, CertificateRepository certificates,
+        SkillProfileService skills, EducationRepository educations, CertificateRepository certificates, LanguageRepository languages,
         PortfolioProjectRepository projects, SkillProfileStateRepository states, ObjectMapper json,
         @Qualifier("skillProfileClock") Clock clock, @Value("${app.profile.web-base-url}") String webBaseUrl) {
         this.cvs = cvs; this.sections = sections; this.profiles = profiles; this.skills = skills;
-        this.educations = educations; this.certificates = certificates; this.projects = projects;
+        this.educations = educations; this.certificates = certificates; this.languages = languages; this.projects = projects;
         this.states = states; this.json = json; this.clock = clock;
         this.webBaseUrl = webBaseUrl.endsWith("/") ? webBaseUrl.substring(0, webBaseUrl.length() - 1) : webBaseUrl;
     }
@@ -99,10 +100,7 @@ public class CvService {
     @Transactional
     public CvDetail replaceSections(UUID owner, UUID id, SectionsRequest request) {
         var cv = cv(owner, id);
-        var types = request.sections().stream().map(SectionRequest::section).toList();
-        if (types.size() != CvSection.Type.values().length || !EnumSet.copyOf(types).equals(EnumSet.allOf(CvSection.Type.class))) {
-            throw new BadRequestException("Danh sách phần phải gồm đúng mỗi phần một lần: " + Arrays.toString(CvSection.Type.values()));
-        }
+        validate(request);
         Map<CvSection.Type, CvSection> existing = sections.findAllByCvIdOrderBySortOrderAsc(cv.getId()).stream()
             .collect(Collectors.toMap(CvSection::getSection, Function.identity()));
         List<CvSection> rows = new ArrayList<>();
@@ -111,7 +109,7 @@ public class CvService {
             // Cập nhật tại chỗ: xoá rồi chèn lại cùng khoá chính sẽ đụng thứ tự flush của Hibernate.
             var row = existing.getOrDefault(r.section(), section(cv.getId(), r.section(), i, r.included(), null));
             row.setSortOrder(i); row.setIncluded(r.included());
-            row.setItemIds(r.section() == CvSection.Type.SUMMARY || r.itemIds() == null ? null : write(new LinkedHashSet<>(r.itemIds())));
+            row.setItemIds(itemIds(r));
             rows.add(row);
         }
         sections.saveAll(rows);
@@ -119,11 +117,24 @@ public class CvService {
         return detail(cvs.save(cv));
     }
 
-    public Rendered render(UUID owner, UUID id) {
+    public Rendered render(UUID owner, UUID id) { return render(owner, id, null); }
+
+    /** draft != null: dựng theo bản nháp chưa lưu (xem trước trực tiếp), không ghi gì xuống DB. */
+    public Rendered render(UUID owner, UUID id, SectionsRequest draft) {
         var cv = cv(owner, id);
         var profile = profiles.findById(owner).orElseThrow(() -> new ProfileFileException(409, "PROFILE_REQUIRED",
             "Hãy hoàn thiện thông tin cá nhân trước khi xuất CV."));
-        var visible = buildSections(cv, profile).stream().filter(SectionView::included)
+        List<CvSection> rows;
+        if (draft == null) rows = sections.findAllByCvIdOrderBySortOrderAsc(cv.getId());
+        else {
+            validate(draft);
+            rows = new ArrayList<>();
+            for (int i = 0; i < draft.sections().size(); i++) {
+                var r = draft.sections().get(i);
+                rows.add(section(cv.getId(), r.section(), i, r.included(), itemIds(r)));
+            }
+        }
+        var visible = buildSections(cv, profile, rows).stream().filter(SectionView::included)
             .map(s -> new SectionView(s.section(), s.label(), true, s.allItems(), s.text(),
                 s.items().stream().filter(ItemView::selected).toList()))
             .filter(s -> s.section() == CvSection.Type.SUMMARY ? s.text() != null && !s.text().isBlank() : !s.items().isEmpty())
@@ -152,10 +163,21 @@ public class CvService {
     private CvDetail detail(Cv cv) {
         var profile = profiles.findById(cv.getUserId()).orElse(null);
         return new CvDetail(cv.getId(), cv.getName(), cv.getTargetPosition(), cv.getTemplate(), publicUrl(cv),
-            cv.getCreatedAt(), cv.getUpdatedAt(), buildSections(cv, profile));
+            cv.getCreatedAt(), cv.getUpdatedAt(), buildSections(cv, profile, sections.findAllByCvIdOrderBySortOrderAsc(cv.getId())));
     }
 
-    private List<SectionView> buildSections(Cv cv, CandidateProfile profile) {
+    private static void validate(SectionsRequest request) {
+        var types = request.sections().stream().map(SectionRequest::section).toList();
+        if (types.size() != CvSection.Type.values().length || !EnumSet.copyOf(types).equals(EnumSet.allOf(CvSection.Type.class))) {
+            throw new BadRequestException("Danh sách phần phải gồm đúng mỗi phần một lần: " + Arrays.toString(CvSection.Type.values()));
+        }
+    }
+
+    private String itemIds(SectionRequest r) {
+        return r.section() == CvSection.Type.SUMMARY || r.itemIds() == null ? null : write(new LinkedHashSet<>(r.itemIds()));
+    }
+
+    private List<SectionView> buildSections(Cv cv, CandidateProfile profile, List<CvSection> rows) {
         UUID owner = cv.getUserId();
         List<ItemView> skillItems = skills.getSkills(owner).stream()
             .filter(s -> s.verifiedScore() != null || s.selfScore() != null).map(CvService::skillItem).toList();
@@ -166,12 +188,11 @@ public class CvService {
         items.put(CvSection.Type.PROJECTS, allProjects.stream().filter(p -> !p.isIoc()).map(p -> projectItem(p, false)).toList());
         items.put(CvSection.Type.EDUCATION, educations.findAllByUserIdOrderByFromDateDescIdAsc(owner).stream().map(CvService::educationItem).toList());
         items.put(CvSection.Type.CERTIFICATES, certificates.findAllByUserIdOrderByIssuedAtDescIdAsc(owner).stream().map(CvService::certificateItem).toList());
-        // shortcut: chưa có dữ liệu ngoại ngữ trong hồ sơ, phần LANGUAGES luôn rỗng cho tới khi có task ngoại ngữ.
-        items.put(CvSection.Type.LANGUAGES, List.of());
+        items.put(CvSection.Type.LANGUAGES, languages.findAllByUserIdOrderByLevelDescNameAsc(owner).stream().map(CvService::languageItem).toList());
         items.put(CvSection.Type.SUMMARY, List.of());
         String summary = profile == null ? null : firstNonBlank(profile.getSummary(), profile.getHeadline());
 
-        return sections.findAllByCvIdOrderBySortOrderAsc(cv.getId()).stream().map(s -> {
+        return rows.stream().map(s -> {
             Set<UUID> chosen = s.getItemIds() == null ? null : new HashSet<>(read(s.getItemIds()));
             var marked = items.get(s.getSection()).stream()
                 .map(i -> new ItemView(i.id(), i.title(), i.subtitle(), i.period(), i.detail(), i.verified(),
@@ -203,6 +224,10 @@ public class CvService {
         if (e.getNote() != null && !e.getNote().isBlank()) parts.add(e.getNote().strip());
         return new ItemView(e.getId(), e.getSchool(), e.getMajor(), period(e.getFromDate(), e.getToDate()),
             parts.isEmpty() ? null : String.join("\n", parts), null, true);
+    }
+
+    private static ItemView languageItem(Language l) {
+        return new ItemView(l.getId(), l.getName(), "CEFR " + l.getLevel(), null, l.getNote(), null, true);
     }
 
     private static ItemView certificateItem(Certificate c) {

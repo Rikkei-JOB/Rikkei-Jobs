@@ -15,6 +15,7 @@ Mọi đường dẫn dưới đây đi qua gateway với tiền tố `/api/v1`.
 | DELETE | `/profile/cvs/{id}` | CANDIDATE | 204. Đơn đã nộp vẫn giữ snapshot PDF |
 | PUT | `/profile/cvs/{id}/sections` | CANDIDATE | Body `{sections: [{section, included, itemIds}]}`, đủ 7 phần, mỗi phần một lần; thứ tự trong mảng là thứ tự trên CV |
 | GET | `/profile/cvs/{id}/pdf` | CANDIDATE, chủ CV | `application/pdf`, `attachment; filename="cv-{id}.pdf"`. `?inline=true` cho khung xem trước. Chưa có hồ sơ cá nhân → 409 `PROFILE_REQUIRED` |
+| POST | `/profile/cvs/{id}/preview` | CANDIDATE, chủ CV | Body như `PUT .../sections`; dựng PDF `inline` theo bản nháp chưa lưu để khung xem trước cập nhật ngay, không ghi DB. Lỗi giống `PUT .../sections` và `GET .../pdf` |
 | GET | `/profile/public/{token}` | Công khai | Trang QR dẫn tới. Token sai → 404. Hồ sơ không PUBLIC → 200 `{visible: false}` |
 
 CV của người khác trả 404, không lộ sự tồn tại. recruitment-service gọi thẳng `GET /profile/cvs/{id}/pdf` trên profile-service, chuyển tiếp JWT ứng viên.
@@ -27,7 +28,7 @@ CV của người khác trả 404, không lộ sự tồn tại. recruitment-ser
 | --- | --- | --- |
 | SUMMARY | `candidate_profiles.summary`, thiếu thì `headline` | luôn `null` |
 | SKILLS | điểm kỹ năng HS-01 có điểm xác thực hoặc tự khai | id kỹ năng |
-| LANGUAGES | chưa có dữ liệu ngoại ngữ trong hồ sơ, luôn rỗng | — |
+| LANGUAGES | ngoại ngữ HS-02 (`/profiles/me/languages`), trình độ cao trước; PDF in tên, `CEFR <bậc>` và ghi chú | id ngoại ngữ |
 | INTERNSHIP | dự án portfolio nguồn `IOC` | id dự án |
 | PROJECTS | dự án portfolio nguồn `PERSONAL` | id dự án |
 | EDUCATION | học vấn HS-02 | id học vấn |

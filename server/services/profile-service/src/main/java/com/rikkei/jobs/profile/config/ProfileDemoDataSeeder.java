@@ -90,7 +90,7 @@ public class ProfileDemoDataSeeder implements ApplicationRunner {
     private void seedSelfOnlySkill(UUID userId) {
         // Demo SELF belongs only to the first seed; never resurrect a user's removed skill.
         if (states.existsById(userId)) return;
-        UUID skillId = skills.findByCode("ENGLISH").orElseThrow().getId();
+        UUID skillId = skills.findByCode("COMMUNICATION").orElseThrow().getId();
         boolean present = evidences.findAllByUserId(userId).stream()
                 .anyMatch(e -> e.getSource() == EvidenceSource.SELF && e.getSkillId().equals(skillId));
         if (present) {
@@ -100,8 +100,8 @@ public class ProfileDemoDataSeeder implements ApplicationRunner {
         evidence.setUserId(userId);
         evidence.setSkillId(skillId);
         evidence.setSource(EvidenceSource.SELF);
-        evidence.setSourceRef("hs01-demo-self-english");
-        evidence.setTitle("Tự đánh giá tiếng Anh (mẫu)");
+        evidence.setSourceRef("hs01-demo-self-communication");
+        evidence.setTitle("Tự đánh giá kỹ năng giao tiếp (mẫu)");
         evidence.setScore(new BigDecimal("65"));
         evidence.setWeight(BigDecimal.ONE);
         evidence.setRecordedAt(Instant.parse("2026-10-20T00:00:00Z"));

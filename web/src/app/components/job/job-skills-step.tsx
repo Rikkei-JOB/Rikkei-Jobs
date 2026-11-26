@@ -9,7 +9,7 @@ import type { JobSkill } from "@/interface/job"
 import type { Skill } from "@/interface/skill"
 import { DEFAULT_MIN_SCORE, MAX_JOB_SKILLS, type JobFormValues } from "@/schemas/job.schema"
 
-/** Bỏ dấu tiếng Việt và viết thường để tìm "tieng anh" ra "Tiếng Anh". */
+/** Bỏ dấu tiếng Việt và viết thường để tìm "giao tiep" ra "Giao tiếp". */
 function normalize(text: string): string {
   return text.normalize("NFD").replace(/\p{Diacritic}/gu, "").replace(/đ/g, "d").replace(/Đ/g, "d").toLowerCase()
 }

@@ -35,7 +35,6 @@ class MentorSkillCatalogTest {
             Map.entry("JAVASCRIPT", "JavaScript"),
             Map.entry("REACTJS", "ReactJS"),
             Map.entry("DOCKER", "Docker"),
-            Map.entry("ENGLISH", "Tiếng Anh"),
             Map.entry("TESTING", "Kiểm thử phần mềm"),
             Map.entry("LINUX", "Linux"),
             Map.entry("OOP", "Lập trình hướng đối tượng"),
@@ -49,9 +48,9 @@ class MentorSkillCatalogTest {
     );
 
     @Test
-    void catalogMatchesExactTwentyMentorSkillsFromConventionsDoc() {
+    void catalogMatchesExactMentorSkillsFromConventionsDoc() {
         var allSkills = skillRepository.findAll();
-        assertThat(allSkills).hasSize(20);
+        assertThat(allSkills).hasSize(19);
 
         Map<String, String> actualMap = allSkills.stream()
                 .collect(Collectors.toMap(Skill::getCode, Skill::getName));

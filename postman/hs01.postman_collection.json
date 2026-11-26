@@ -11,7 +11,7 @@
       "type": "string"
     },
     {
-      "key": "englishSelfScore",
+      "key": "communicationSelfScore",
       "value": "65",
       "type": "string"
     },
@@ -221,14 +221,14 @@
             "exec": [
               "pm.response.to.have.status(200);",
               "const skills = pm.response.json();",
-              "pm.test(\"Candidate1 has eight verified skills plus SELF-only English\", function () {",
+              "pm.test(\"Candidate1 has eight verified skills plus SELF-only Communication\", function () {",
               "    pm.expect(skills.length).to.equal(9);",
               "    pm.expect(skills.filter(function (s) { return s.verifiedScore !== null; }).length).to.equal(8);",
-              "    const english = skills.find(function (s) { return s.skill.code === \"ENGLISH\"; });",
-              "    pm.expect(english.verifiedScore).to.equal(null);",
-              "    pm.expect(english.level).to.equal(null);",
-              "    pm.expect(english.selfScore).to.equal(Number(pm.collectionVariables.get(\"englishSelfScore\")));",
-              "    pm.expect(english.evidences.every(function (e) { return e.source === \"SELF\" && !e.verified; })).to.equal(true);",
+              "    const communication = skills.find(function (s) { return s.skill.code === \"COMMUNICATION\"; });",
+              "    pm.expect(communication.verifiedScore).to.equal(null);",
+              "    pm.expect(communication.level).to.equal(null);",
+              "    pm.expect(communication.selfScore).to.equal(Number(pm.collectionVariables.get(\"communicationSelfScore\")));",
+              "    pm.expect(communication.evidences.every(function (e) { return e.source === \"SELF\" && !e.verified; })).to.equal(true);",
               "});",
               "pm.test(\"Java retains normalized scores and original source dates\", function () {",
               "    const java = skills.find(function (s) { return s.skill.code === \"JAVA\"; });",

@@ -26,7 +26,7 @@
 @SQL = 00000000-0000-0000-0001-000000000003
 @GIT = 00000000-0000-0000-0001-000000000004
 @DOCKER = 00000000-0000-0000-0001-000000000011
-@ENGLISH = 00000000-0000-0000-0001-000000000017
+@COMMUNICATION = 00000000-0000-0000-0001-000000000018
 
 ############################## 1. Token ##############################
 
@@ -125,7 +125,7 @@ Content-Type: application/json
   { "skillId": "{{SPRING_BOOT}}", "required": true, "minScore": 70 },
   { "skillId": "{{SQL}}", "required": true, "minScore": 90 },
   { "skillId": "{{DOCKER}}", "required": false, "minScore": 50 },
-  { "skillId": "{{ENGLISH}}", "required": false, "minScore": 60 },
+  { "skillId": "{{COMMUNICATION}}", "required": false, "minScore": 60 },
   { "skillId": "{{GIT}}", "required": false, "minScore": 60 }
 ]
 
@@ -143,7 +143,7 @@ Content-Type: application/json
   { "skillId": "{{SPRING_BOOT}}", "required": true, "minScore": 70 },
   { "skillId": "{{SQL}}", "required": true, "minScore": 80 },
   { "skillId": "{{DOCKER}}", "required": false, "minScore": 50 },
-  { "skillId": "{{ENGLISH}}", "required": false, "minScore": 60 },
+  { "skillId": "{{COMMUNICATION}}", "required": false, "minScore": 60 },
   { "skillId": "{{GIT}}", "required": false, "minScore": 60 }
 ]
 

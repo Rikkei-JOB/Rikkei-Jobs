@@ -1,0 +1,45 @@
+@base = http://localhost:8080/api/v1
+@candidateId = replace-with-candidate-user-id
+@jobId = replace-with-company-job-id
+@requestId = replace-with-request-id
+@hrToken = replace-locally
+@staffToken = replace-locally
+@candidateToken = replace-locally
+
+### Permission metadata, no contact and no audit row
+GET {{base}}/candidates/{{candidateId}}/contact-access
+Authorization: Bearer {{hrToken}}
+
+### Request for this HR's company
+POST {{base}}/candidates/{{candidateId}}/contact-requests
+Authorization: Bearer {{hrToken}}
+Content-Type: application/json
+
+{"jobId":"{{jobId}}","reason":"Cần trao đổi vị trí Java."}
+
+### Staff pending inbox
+GET {{base}}/staff/contact-requests?status=PENDING&page=1&size=20
+Authorization: Bearer {{staffToken}}
+
+### Approve
+POST {{base}}/staff/contact-requests/{{requestId}}/approve
+Authorization: Bearer {{staffToken}}
+
+### Reject with a separate reason
+POST {{base}}/staff/contact-requests/{{requestId}}/reject
+Authorization: Bearer {{staffToken}}
+Content-Type: application/json
+
+{"reason":"Cần bổ sung mục đích tuyển dụng."}
+
+### Each successful call commits exactly one log
+GET {{base}}/candidates/{{candidateId}}/contact
+Authorization: Bearer {{hrToken}}
+
+### Staff filters, UTC half-open range
+GET {{base}}/staff/contact-access-logs?userId={{candidateId}}&from=2026-11-25T17:00:00Z&to=2026-11-26T17:00:00Z&page=1&size=20
+Authorization: Bearer {{staffToken}}
+
+### Candidate identity always comes from JWT
+GET {{base}}/me/contact-access-logs?page=1&size=20
+Authorization: Bearer {{candidateToken}}

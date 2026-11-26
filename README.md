@@ -1,5 +1,7 @@
 # Rikkei Jobs Platform
 
+UT-03 bổ sung bảo vệ email/phone ứng viên tại backend, HR xin/xem liên hệ có nhật ký, STAFF duyệt/tra cứu và lịch sử công ty cho ứng viên. Xem [API, dữ liệu demo và kiểm chứng UT-03](docs/api/UT-03-contact-privacy.md).
+
 HS-03 bổ sung Portfolio dự án (dự án thực tập IOC đã xác thực và dự án cá nhân, ảnh, sắp thứ tự) tại `/candidate/profile`. Xem [cách chạy, dữ liệu mẫu và OpenAPI](docs/api/HS-03-portfolio.md).
 
 UT-06 bổ sung đề xuất/chọn giờ phỏng vấn, phòng Meet, email/ICS, nhắc24h/1h và lịch tuần HR. Xem [hướng dẫn, API và kiểm chứng UT-06](docs/api/UT-06-interview-scheduling.md).
@@ -440,7 +442,7 @@ npm run evaluation-links -- IOC-JB-2026-09
 
 ### 7. Email và tài khoản demo
 
-Email dev đi qua MailHog: `docker compose --env-file .env -f infra/compose.yaml up -d mailhog`, xem thư ở `http://localhost:8025`. Tài khoản demo và Công ty A/B được seed khi chạy `identity-service` và `company-service` với profile `dev` (bảng ở [NT-01-authentication.md](docs/api/NT-01-authentication.md#9-dữ-liệu-mẫu)). Sáu định danh trong `mock/data.json` phục vụ SSO. 20 kỹ năng trong [conventions](docs/conventions.md) chưa được seed. Backend gửi SMTP tới `localhost:1025` theo `MAIL_HOST`, `MAIL_PORT`, `MAIL_FROM` trong `.env.example`; không có thư nào được gửi ra ngoài thật.
+Email dev đi qua MailHog: `docker compose --env-file .env -f infra/compose.yaml up -d mailhog`, xem thư ở `http://localhost:8025`. Tài khoản demo và Công ty A/B được seed khi chạy `identity-service` và `company-service` với profile `dev` (bảng ở [NT-01-authentication.md](docs/api/NT-01-authentication.md#9-dữ-liệu-mẫu)). Sáu định danh trong `mock/data.json` phục vụ SSO. 19 kỹ năng trong [conventions](docs/conventions.md) chưa được seed. Backend gửi SMTP tới `localhost:1025` theo `MAIL_HOST`, `MAIL_PORT`, `MAIL_FROM` trong `.env.example`; không có thư nào được gửi ra ngoài thật.
 
 ### 8. Dừng và xử lý lỗi
 

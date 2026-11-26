@@ -57,7 +57,7 @@ public class DevDataSeeder implements ApplicationRunner {
     private static final UUID DOCKER = skill(11);
     private static final UUID OOP = skill(13);
     private static final UUID TESTING = skill(15);
-    private static final UUID ENGLISH = skill(17);
+    private static final UUID COMMUNICATION = skill(18);
 
     private final CompanyRepository companyRepository;
     private final CompanyHrRepository companyHrRepository;
@@ -118,7 +118,7 @@ public class DevDataSeeder implements ApplicationRunner {
                 new JobSkill(null, JAVA, true, 70), new JobSkill(null, OOP, true, 70),
                 new JobSkill(null, SPRING_BOOT, true, 40), new JobSkill(null, SQL, true, 40),
                 new JobSkill(null, REST_API, true, 40), new JobSkill(null, GIT, true, 70),
-                new JobSkill(null, DOCKER, false, 40), new JobSkill(null, ENGLISH, false, 40),
+                new JobSkill(null, DOCKER, false, 40), new JobSkill(null, COMMUNICATION, false, 40),
                 new JobSkill(null, AGILE, false, 20)));
 
         saveJob(job(2, "Fresher ReactJS", JobLevel.FRESHER, JobType.FULLTIME, JobStatus.PENDING,
@@ -140,7 +140,7 @@ public class DevDataSeeder implements ApplicationRunner {
                 today.plusDays(45)), List.of(
                 new JobSkill(null, JAVA, true, 80), new JobSkill(null, SPRING_BOOT, true, 70),
                 new JobSkill(null, SQL, true, 90), new JobSkill(null, DOCKER, false, 50),
-                new JobSkill(null, ENGLISH, false, 60), new JobSkill(null, GIT, false, 60)));
+                new JobSkill(null, COMMUNICATION, false, 60), new JobSkill(null, GIT, false, 60)));
 
         saveJob(job(7, "Fresher Java (mẫu DN-06)", JobLevel.FRESHER, JobType.FULLTIME, JobStatus.APPROVED,
                 today.plusDays(45)), List.of(
@@ -149,10 +149,10 @@ public class DevDataSeeder implements ApplicationRunner {
 
         // JD8/JD9 của Công ty B: một JD đã duyệt (hiện cho ứng viên) và một JD chờ duyệt (cho cán bộ thử duyệt).
         saveJob(job(8, COMPANY_B_ID, HR2_ID, "Thực tập sinh Marketing", JobLevel.INTERN, JobType.INTERNSHIP,
-                JobStatus.APPROVED, today.plusDays(45)), List.of(new JobSkill(null, ENGLISH, true, 40)));
+                JobStatus.APPROVED, today.plusDays(45)), List.of(new JobSkill(null, COMMUNICATION, true, 40)));
 
         saveJob(job(9, COMPANY_B_ID, HR2_ID, "Nhân viên vận hành sàn TMĐT", JobLevel.JUNIOR, JobType.FULLTIME,
-                JobStatus.PENDING, today.plusDays(45)), List.of(new JobSkill(null, ENGLISH, true, 40)));
+                JobStatus.PENDING, today.plusDays(45)), List.of(new JobSkill(null, COMMUNICATION, true, 40)));
     }
 
     private Job job(int n, String title, JobLevel level, JobType type, JobStatus status, LocalDate deadline) {
