@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState, type FormEvent } from "react";
 import { Button } from "@/app/components/ui/button";
+import { TaskBanner } from "@/app/components/ui/task-banner";
 import { contactService } from "@/services/contact.service";
 import { getErrorMessage } from "@/services/api";
 import type { ContactPage, ContactLog, ContactLogFilters } from "@/interface/contact";
@@ -29,8 +30,10 @@ export function ContactAccessLogs({ staff = false }: { staff?: boolean }) {
   }
   const groups = new Map<string, ContactLog[]>();
   data?.items.forEach(log => groups.set(log.companyId, [...(groups.get(log.companyId) || []), log]));
-  return <div className="mx-auto w-full max-w-6xl space-y-5 p-4 md:p-6">
-    <header><h1 className="text-2xl font-bold text-heading">{staff ? "Nhật ký xem liên hệ" : "Công ty đã xem liên hệ"}</h1><p className="mt-2 text-sm text-muted-foreground">{staff ? "Tra cứu từng lần công ty nhận thông tin liên hệ của ứng viên." : "Mỗi dòng là một lần công ty đã xem thông tin liên hệ của bạn."}</p></header>
+  return <div className={staff ? "w-full space-y-5" : "mx-auto w-full max-w-6xl space-y-5"}>
+    <TaskBanner compact={staff} eyebrow={staff ? "Bảo mật liên hệ" : "Quyền riêng tư"} illustration="applications"
+      title={staff ? "Nhật ký xem liên hệ" : "Công ty đã xem liên hệ"}
+      description={staff ? "Tra cứu từng lần công ty nhận thông tin liên hệ của ứng viên." : "Mỗi dòng là một lần công ty đã xem thông tin liên hệ của bạn."} />
     {staff && <form onSubmit={apply} className="grid gap-4 rounded-xl border bg-card p-5 sm:grid-cols-2 lg:grid-cols-4">
       <label className="text-sm font-medium">ID công ty<input name="companyId" className={controlClass} placeholder="UUID công ty" pattern="[0-9a-fA-F-]{36}" /></label>
       <label className="text-sm font-medium">ID ứng viên<input name="userId" className={controlClass} placeholder="UUID ứng viên" pattern="[0-9a-fA-F-]{36}" /></label>

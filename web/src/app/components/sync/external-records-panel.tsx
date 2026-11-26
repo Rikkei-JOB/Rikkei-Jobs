@@ -11,6 +11,7 @@ import { useExternalRecords, useOverrideRecord } from "@/hooks/use-sync";
 import { ApiError, getErrorMessage } from "@/services/api";
 import type { ExternalRecord, OverrideField } from "@/interface/sync";
 import { SOURCE_LABEL, formatDate, formatDateTime } from "./sync-format";
+import { SelectMenu } from "@/app/components/ui/select-menu";
 
 const FIELD_LABEL: Record<OverrideField, string> = { score: "Điểm", title: "Tiêu đề" };
 
@@ -131,15 +132,13 @@ function OverrideForm({ record, userId, onDone }: { record: ExternalRecord; user
       <form onSubmit={submit} className="grid gap-3 md:grid-cols-[140px_1fr_2fr_auto] md:items-end">
         <div className="space-y-1">
           <Label htmlFor={`field-${record.id}`}>Trường</Label>
-          <select
+          <SelectMenu
             id={`field-${record.id}`}
             value={field}
-            onChange={(e) => changeField(e.target.value as OverrideField)}
-            className="h-7 w-full rounded-md border border-input bg-input/20 px-2 text-xs"
-          >
-            <option value="score">Điểm (thang {record.scoreMax})</option>
-            <option value="title">Tiêu đề</option>
-          </select>
+            onValueChange={(value) => changeField(value as OverrideField)}
+            className="ui-select-trigger h-7 min-h-7 rounded-md px-2 text-xs"
+            options={[{ value: "score", label: `Điểm (thang ${record.scoreMax})` }, { value: "title", label: "Tiêu đề" }]}
+          />
         </div>
         <div className="space-y-1">
           <Label htmlFor={`value-${record.id}`}>Giá trị mới</Label>

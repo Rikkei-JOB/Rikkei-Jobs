@@ -18,8 +18,8 @@ export function initials(name: string) {
 
 /** Nền nhấn nhẹ cho avatar, ô chữ viết tắt, ảnh bìa trống. */
 export const BRAND_SOFT = "bg-[#FFF1F2] text-[#B4232D]";
-export const SECTION_TITLE = "text-xl font-semibold text-[#18233A]";
-export const ITEM_TITLE = "text-lg leading-[26px] font-semibold text-[#18233A] break-words";
+export const SECTION_TITLE = "text-xl font-bold text-[#051A53]";
+export const ITEM_TITLE = "text-lg leading-[26px] font-bold text-[#051A53] break-words";
 export const META = "text-xs leading-[18px] text-[#64748B]";
 
 /** Nút hành động chính của mỗi khu vực. */

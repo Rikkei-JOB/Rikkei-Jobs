@@ -1,7 +1,8 @@
 "use client";
 
 import * as React from "react";
-import { useForm } from "react-hook-form";
+import { Controller, useForm } from "react-hook-form";
+import { SelectMenu } from "@/app/components/ui/select-menu";
 import { Button } from "@/app/components/ui/button";
 import { Input } from "@/app/components/ui/input";
 import { FormField } from "@/app/components/auth/form-field";
@@ -46,6 +47,7 @@ const CONTACT_FIELDS: readonly string[] = ["address", "city", "website"];
 export function CompanyProfileForm({ company, disabled, tab, onTabChange, onDirtyChange }: CompanyProfileFormProps) {
   const {
     register,
+    control,
     handleSubmit,
     reset,
     setError,
@@ -119,14 +121,21 @@ export function CompanyProfileForm({ company, disabled, tab, onTabChange, onDirt
             <Input id="industry" disabled={disabled} aria-invalid={Boolean(errors.industry)} {...register("industry")} />
           </FormField>
           <FormField label="Quy mô" htmlFor="size" error={errors.size?.message}>
-            <select id="size" disabled={disabled} className={`${CONTROL_CLASS} h-7`} {...register("size")}>
-              <option value="">Chưa chọn</option>
-              {COMPANY_SIZES.map((s) => (
-                <option key={s} value={s}>
-                  {s} nhân sự
-                </option>
-              ))}
-            </select>
+            <Controller
+              name="size"
+              control={control}
+              render={({ field }) => (
+                <SelectMenu
+                  id="size"
+                  disabled={disabled}
+                  value={field.value ?? ""}
+                  onValueChange={field.onChange}
+                  onBlur={field.onBlur}
+                  className="ui-select-trigger h-7 min-h-7 rounded-md px-2 text-sm md:text-xs"
+                  options={[{ value: "", label: "Chưa chọn" }, ...COMPANY_SIZES.map((s) => ({ value: s, label: `${s} nhân sự` }))]}
+                />
+              )}
+            />
           </FormField>
         </div>
         <h2 className="border-t pt-6 text-xl font-semibold">Giới thiệu doanh nghiệp</h2>

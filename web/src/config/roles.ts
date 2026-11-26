@@ -9,6 +9,12 @@ export const ROLE_HOME: Record<Role, string> = {
   ADMIN: "/admin",
 };
 
+/**
+ * Trang đến sau đăng nhập. Ứng viên vào thẳng trang chủ tìm việc (như các trang việc làm),
+ * vai trò khác vào không gian làm việc. ROLE_HOME vẫn dùng để nhận vai trò từ đường dẫn.
+ */
+export const ROLE_LANDING: Record<Role, string> = { ...ROLE_HOME, CANDIDATE: "/" };
+
 export const ROLE_LABEL: Record<Role, string> = {
   CANDIDATE: "Ứng viên",
   HR: "Doanh nghiệp (HR)",

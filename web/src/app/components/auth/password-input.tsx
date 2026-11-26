@@ -10,14 +10,14 @@ export const PasswordInput = React.forwardRef<HTMLInputElement, Omit<React.Compo
     const [visible, setVisible] = React.useState(false)
     return (
       <div className="relative">
-        <Input ref={ref} type={visible ? "text" : "password"} className="pr-8" {...props} />
+        <Input ref={ref} type={visible ? "text" : "password"} className="pr-11" {...props} />
         <button
           type="button"
           onClick={() => setVisible((v) => !v)}
           aria-label={visible ? "Ẩn mật khẩu" : "Hiện mật khẩu"}
-          className="absolute inset-y-0 right-0 flex w-8 items-center justify-center text-muted-foreground hover:text-foreground"
+          className="absolute inset-y-0 right-0 flex w-10 items-center justify-center rounded-r-lg text-muted-foreground transition-colors hover:text-primary"
         >
-          {visible ? <EyeOff className="size-3.5" /> : <Eye className="size-3.5" />}
+          {visible ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
         </button>
       </div>
     )

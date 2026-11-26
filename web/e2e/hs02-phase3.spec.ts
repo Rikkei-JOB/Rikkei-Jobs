@@ -1,5 +1,6 @@
 import { test, expect, type Page } from "@playwright/test";
 import { signIn, userId } from "./ut01-fixtures";
+import { chooseOption } from "./select-menu";
 
 const java = { id: "00000000-0000-0000-0001-000000000001", code: "JAVA", name: "Java", group: "Backend" };
 const english = { id: "00000000-0000-0000-0001-000000000002", code: "ENGLISH", name: "Tiếng Anh", group: "Soft skills" };
@@ -40,7 +41,7 @@ test("adds edits and clears self skills while refreshing HS-01 and preserving ve
   const state = await setup(page); await page.goto("/candidate/profile");
   await expect(page.getByRole("heading", { name: "Kỹ năng tự đánh giá", exact: true })).toBeVisible();
   await page.getByRole("button", { name: "Thêm kỹ năng tự khai" }).click();
-  await page.getByLabel("Kỹ năng 1", { exact: true }).selectOption(english.id);
+  await chooseOption(page.getByLabel("Kỹ năng 1", { exact: true }), english.id);
   await page.getByLabel("Điểm tự đánh giá 1", { exact: true }).fill("65");
   await page.getByRole("button", { name: "Lưu kỹ năng tự khai" }).click();
   await expect(page.getByRole("status").filter({ hasText: "Đã lưu kỹ năng tự khai" })).toBeVisible();
@@ -73,7 +74,9 @@ test("rejects invalid scores and prevents duplicate selection before saving", as
   await page.getByRole("button", { name: "Lưu kỹ năng tự khai" }).click();
   await expect(page.getByText("Vui lòng nhập điểm", { exact: true })).toBeVisible();
   await page.getByRole("button", { name: "Thêm kỹ năng tự khai" }).click();
-  await expect(page.getByLabel("Kỹ năng 2", { exact: true }).locator(`option[value="${english.id}"]`)).toBeDisabled();
+  await page.getByLabel("Kỹ năng 2", { exact: true }).click();
+  await expect(page.locator(`[role="option"][data-value="${english.id}"]`)).toHaveAttribute("aria-disabled", "true");
+  await page.keyboard.press("Escape");
   expect(state.writes).toEqual([]);
 });
 

@@ -1,15 +1,16 @@
 import { test, expect } from "@playwright/test";
 import { signIn, apiFixtures, application, applicationId } from "./ut01-fixtures";
+import { chooseOption, expectOption } from "./select-menu";
 
 test.beforeEach(async ({ page }) => { await signIn(page); await apiFixtures(page); });
 
 test("keeps status filter on refresh and displays application cards", async ({ page }) => {
   await page.goto("/candidate/applications");
   await expect(page.getByText("Java Developer")).toBeVisible();
-  await page.getByLabel("Lọc theo trạng thái").selectOption("REJECTED");
+  await chooseOption(page.getByLabel("Lọc theo trạng thái"), "REJECTED");
   await expect(page).toHaveURL(/status=REJECTED/);
   await page.reload();
-  await expect(page.getByLabel("Lọc theo trạng thái")).toHaveValue("REJECTED");
+  await expectOption(page.getByLabel("Lọc theo trạng thái"), "REJECTED");
 });
 
 test("withdrawal requires a reason and refreshes status and history", async ({ page }) => {

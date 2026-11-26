@@ -7,12 +7,13 @@
   --secondary-foreground: var(--heading); --popover: var(--surface); --popover-foreground: var(--body);
   color-scheme: light; color: var(--body);
 }
-.hr-shell { --app-sticky-offset: 88px; min-height: 100dvh; background: var(--page-background); font-size: 14px; line-height: 22px; }
-.hr-header { position: sticky; top: 0; z-index: 30; background: var(--surface); border-bottom: 1px solid var(--surface-border); }
+.hr-shell { --app-sticky-offset: 88px; min-height: 100dvh; display: flex; flex-direction: column; background: var(--page-background); font-size: 14px; line-height: 22px; }
+.hr-header { position: sticky; top: 0; z-index: 30; background: var(--surface); border-bottom: 1px solid var(--surface-border); box-shadow: 0 2px 10px rgb(15 23 42 / .03); }
 .hr-topbar { display: flex; align-items: center; gap: 32px; height: 64px; max-width: 1440px; padding: 0 32px; margin: auto; }
-.hr-brand { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px; width: 164px; flex-shrink: 0; color: var(--heading); font-size: 21px; font-weight: 700; letter-spacing: -.5px; }
-.hr-brand > span:first-child { color: var(--brand); }
-.hr-brand .hr-brand-label { width: 100%; font-size: 9px; line-height: 12px; letter-spacing: 1.5px; color: var(--text-muted); font-weight: 500; }
+.hr-brand { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px; width: 168px; flex-shrink: 0; color: var(--heading); font-size: 21px; font-weight: 800; letter-spacing: -.03em; }
+.hr-brand > span:first-child { color: #da251d; }
+.hr-brand > svg { display: block; margin-bottom: 2px; }
+.hr-brand .hr-brand-label { width: 100%; font-size: 9px; line-height: 12px; letter-spacing: 1.5px; color: #1d4ed8; font-weight: 700; }
 .hr-desktop-nav { display: flex; align-self: stretch; gap: 24px; }
 .hr-nav-link { display: inline-flex; align-items: center; border-bottom: 2px solid transparent; white-space: nowrap; font-weight: 500; }
 .hr-nav-link:hover, .hr-nav-link[aria-current=page] { color: var(--brand); }
@@ -25,7 +26,7 @@
 .hr-icon-button { width: 44px; height: 44px; display: inline-flex; align-items: center; justify-content: center; border-radius: 8px; flex-shrink: 0; }
 .hr-icon-button svg { width: 20px; height: 20px; }
 .hr-mobile-trigger { display: none; }
-.hr-main { width: 100%; max-width: 1248px; padding: 32px 24px; margin: auto; min-width: 0; }
+.hr-main { width: 100%; flex: 1; max-width: 1248px; padding: 32px 24px; margin: 0 auto; min-width: 0; }
 .hr-main h1 { color: var(--heading); font-size: 30px; line-height: 40px; font-weight: 700; }
 .hr-main h2, .hr-main h3 { color: var(--heading); }
 .hr-main :is(button, [data-slot=button]) { min-height: 44px; font-size: 14px; }
@@ -59,7 +60,8 @@
 .hr-detail-aside button { white-space: normal; }
 .hr-detail-tabs [data-slot=tabs-list] { display: flex; gap: 4px; background: var(--surface); padding: 4px; border: 1px solid var(--surface-border); overflow-x: auto; }
 .hr-detail-tabs [data-slot=tabs-trigger] { flex: 1; padding: 10px 12px; min-width: max-content; }
-.hr-detail-tabs [data-slot=tabs-trigger][data-active] { background: var(--brand-soft); color: var(--brand); box-shadow: none; }
+/* Base UI 1.9 đánh dấu tab đang chọn bằng aria-selected (không còn data-active). */
+.hr-detail-tabs [data-slot=tabs-trigger]:is([data-active],[aria-selected=true]) { background: var(--brand-soft); color: var(--brand); box-shadow: none; }
 .hr-detail-tabs [data-slot=tabs-content][hidden] { display: none; }
 .hr-overlay { z-index: 40; }
 .hr-popup { background: var(--surface); border: 1px solid var(--surface-border); border-radius: 12px; box-shadow: 0 12px 40px rgb(15 23 42 / .12); max-width: calc(100vw - 32px); max-height: min(720px, var(--available-height)); overflow-y: auto; font-size: 14px; line-height: 22px; }

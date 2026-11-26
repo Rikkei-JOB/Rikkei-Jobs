@@ -1,0 +1,92 @@
+/* Bảng điều khiển HR (khung HrShell, biến màu ở hr-shell.css). Tiền tố hrd-. */
+.hrd :is(a, button):focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+.hrd-panel { border: 1px solid var(--surface-border); border-radius: 16px; background: var(--surface); }
+.hrd-panel-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 12px; padding: 16px 20px; border-bottom: 1px solid var(--surface-border); }
+.hrd-panel-head h2 { display: flex; align-items: center; gap: 8px; margin: 0; color: var(--heading); font-size: 17px; font-weight: 700; }
+.hrd-panel-head h2 svg { width: 18px; height: 18px; color: var(--brand); }
+.hrd-panel-body { padding: 8px 20px 12px; }
+.hrd-link { display: inline-flex; align-items: center; gap: 5px; min-height: 36px; color: var(--brand); font-size: 14px; font-weight: 600; text-decoration: none; white-space: nowrap; }
+.hrd-link:hover { text-decoration: underline; text-underline-offset: 3px; }
+.hrd-link svg { width: 15px; height: 15px; }
+.hrd-note { margin: 0; padding: 0 20px 16px; color: var(--text-muted); font-size: 12px; }
+
+/* Thẻ số liệu */
+.hrd-stats { display: grid; gap: 14px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+@media (min-width: 1024px) { .hrd-stats { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+.hrd-stat { position: relative; display: flex; flex-direction: column; gap: 2px; padding: 18px 20px; overflow: hidden; border: 1px solid var(--surface-border); border-radius: 14px; background: var(--surface); color: inherit; text-decoration: none; transition: border-color .15s ease, box-shadow .15s ease, transform .15s ease; }
+.hrd-stat::after { content: ""; position: absolute; right: -26px; top: -26px; width: 88px; height: 88px; border-radius: 50%; background: currentColor; opacity: .05; pointer-events: none; }
+.hrd-stat:hover { border-color: rgb(180 35 45 / .35); box-shadow: 0 10px 24px rgb(15 23 42 / .07); transform: translateY(-1px); }
+.hrd-stat strong { margin-top: 8px; color: var(--heading); font-size: 28px; line-height: 1.1; font-weight: 700; font-variant-numeric: tabular-nums; }
+.hrd-stat > span:not(.hrd-icon) { color: var(--heading); font-size: 14px; font-weight: 600; }
+.hrd-stat small { color: var(--text-muted); font-size: 12px; }
+.hrd-icon { display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; width: 40px; height: 40px; border-radius: 11px; background: #fff1f2; color: var(--brand); }
+.hrd-icon svg { width: 20px; height: 20px; }
+.hrd-stat[data-tone="green"] { color: #15803d; } .hrd-stat[data-tone="green"] .hrd-icon { background: #f0fdf4; color: #15803d; }
+.hrd-stat[data-tone="amber"] { color: #b45309; } .hrd-stat[data-tone="amber"] .hrd-icon { background: #fffbeb; color: #b45309; }
+.hrd-stat[data-tone="blue"] { color: #1d4ed8; } .hrd-stat[data-tone="blue"] .hrd-icon { background: #eff6ff; color: #1d4ed8; }
+.hrd-stat[data-tone="brand"] { color: var(--brand); }
+
+/* Quy trình */
+.hrd-pipeline { display: grid; gap: 10px; margin: 0; padding: 16px 20px; list-style: none; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+@media (min-width: 900px) { .hrd-pipeline { grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 0; } }
+.hrd-pipeline li { position: relative; display: flex; align-items: center; min-width: 0; }
+.hrd-step { display: grid; flex: 1; gap: 4px; min-width: 0; padding: 14px; border: 1px solid var(--surface-border); border-radius: 12px; background: #fff; color: inherit; text-decoration: none; transition: border-color .15s ease, background .15s ease; }
+.hrd-step:hover { border-color: rgb(180 35 45 / .35); background: #fffafa; }
+.hrd-step strong { color: var(--heading); font-size: 24px; line-height: 1.1; font-weight: 700; font-variant-numeric: tabular-nums; }
+.hrd-step > span:not(.hrd-step-index):not(.hrd-step-bar) { color: var(--text-muted); font-size: 13px; font-weight: 600; }
+.hrd-step-index { display: inline-flex; align-items: center; justify-content: center; width: 22px; height: 22px; border-radius: 50%; background: #f1f5f9; color: #475569; font-size: 11px; font-weight: 700; }
+.hrd-step-bar { display: block; height: 4px; margin-top: 4px; overflow: hidden; border-radius: 999px; background: #f1f5f9; }
+.hrd-step-bar i { display: block; height: 100%; border-radius: inherit; background: var(--brand); }
+.hrd-step[data-status="HIRED"] .hrd-step-bar i { background: #16a34a; }
+.hrd-step[data-status="HIRED"] .hrd-step-index { background: #f0fdf4; color: #15803d; }
+.hrd-step-arrow { display: none; flex-shrink: 0; width: 18px; height: 18px; margin: 0 2px; color: #cbd5e1; }
+@media (min-width: 900px) { .hrd-step-arrow { display: block; } }
+
+/* Hai cột */
+.hrd-columns { display: grid; gap: 20px; align-items: start; }
+@media (min-width: 1024px) { .hrd-columns { grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); } }
+.hrd-list { margin: 0; padding: 0; list-style: none; }
+.hrd-list li + li { border-top: 1px solid var(--surface-border); }
+.hrd-empty { display: flex; align-items: center; gap: 8px; margin: 0; padding: 20px 0; color: var(--text-muted); font-size: 14px; }
+.hrd-empty svg { width: 20px; height: 20px; color: #94a3b8; }
+.hrd-interview { display: flex; align-items: center; gap: 14px; padding: 12px 0; }
+.hrd-interview strong { display: block; color: var(--heading); font-size: 14px; font-weight: 700; overflow-wrap: anywhere; }
+.hrd-interview small { display: block; color: var(--text-muted); font-size: 12px; overflow-wrap: anywhere; }
+.hrd-date { display: grid; flex-shrink: 0; width: 54px; padding: 6px 0; border: 1px solid var(--surface-border); border-radius: 10px; background: #f8fafc; text-align: center; }
+.hrd-date strong { color: var(--heading); font-size: 20px; line-height: 1.1; }
+.hrd-date small { color: var(--text-muted); font-size: 10px; font-weight: 600; text-transform: uppercase; }
+.hrd-date[data-today] { border-color: var(--brand); background: #fff1f2; }
+.hrd-date[data-today] :is(strong, small) { color: var(--brand); }
+.hrd-meet { display: inline-flex; align-items: center; gap: 6px; flex-shrink: 0; min-height: 36px; padding: 0 12px; border: 1px solid var(--surface-border); border-radius: 8px; color: var(--heading); font-size: 13px; font-weight: 600; text-decoration: none; }
+.hrd-meet:hover { border-color: var(--brand); color: var(--brand); }
+.hrd-meet svg { width: 15px; height: 15px; }
+.hrd-attention { display: flex; align-items: center; gap: 12px; padding: 12px 0; color: inherit; text-decoration: none; }
+.hrd-attention strong { display: block; color: var(--heading); font-size: 14px; font-weight: 700; overflow-wrap: anywhere; }
+.hrd-attention small { display: block; color: var(--text-muted); font-size: 12px; overflow-wrap: anywhere; }
+.hrd-attention:hover strong { color: var(--brand); }
+.hrd-attention .hrd-icon { width: 36px; height: 36px; border-radius: 10px; }
+.hrd-attention .hrd-icon svg { width: 18px; height: 18px; }
+.hrd-attention[data-kind="rejected"] .hrd-icon { background: #fef2f2; color: #b91c1c; }
+.hrd-attention[data-kind="rejected"] small { color: #b91c1c; }
+.hrd-attention[data-kind="expiring"] .hrd-icon { background: #fffbeb; color: #b45309; }
+
+/* Hồ sơ công ty */
+.hrd-company { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 20px; padding: 18px 20px; background: linear-gradient(120deg, #fff 55%, #fff5f2); }
+.hrd-company h2 { margin: 0; color: var(--heading); font-size: 17px; font-weight: 700; overflow-wrap: anywhere; }
+.hrd-company p { margin: 2px 0 0; color: var(--text-muted); font-size: 13px; }
+@media (prefers-reduced-motion: reduce) { .hrd-stat, .hrd-step { transition: none; } .hrd-stat:hover { transform: none; } }
+
+/* Thực tập sinh */
+.hrd-avatar { display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; width: 38px; height: 38px; border-radius: 50%; background: #fff1f2; color: var(--brand); font-size: 13px; font-weight: 700; }
+.hrd-hired { flex-shrink: 0; padding: 3px 10px; border: 1px solid #bbf7d0; border-radius: 999px; background: #f0fdf4; color: #166534; font-size: 12px; font-weight: 600; white-space: nowrap; }
+@media (max-width: 479px) { .hrd-hired { display: none; } }
+.hrd-flow { display: grid; gap: 12px; margin: 0; padding: 16px 20px 20px; list-style: none; }
+@media (min-width: 768px) { .hrd-flow { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+.hrd-flow li { display: flex; gap: 12px; padding: 14px; border: 1px dashed #cbd5e1; border-radius: 12px; background: #fff; }
+.hrd-flow li[data-ready] { border-style: solid; border-color: #bbf7d0; background: #f7fef9; }
+.hrd-flow li[data-ready] .hrd-icon { background: #dcfce7; color: #15803d; }
+.hrd-flow li:not([data-ready]) .hrd-icon { background: #f1f5f9; color: #64748b; }
+.hrd-flow strong { color: var(--heading); font-size: 14px; font-weight: 700; }
+.hrd-flow p { margin: 2px 0 0; color: var(--text-muted); font-size: 13px; line-height: 1.5; }
+.hrd-flow small { display: inline-block; margin-top: 6px; padding: 1px 8px; border-radius: 6px; background: #f1f5f9; color: #475569; font-size: 11px; font-weight: 600; }
+@media (max-width: 519px) { .hrd-interview { flex-wrap: wrap; } .hrd-meet { margin-left: 68px; } }

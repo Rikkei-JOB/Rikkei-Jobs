@@ -14,6 +14,7 @@ import { ApplicationCard } from "./application-card";
 import { listPage } from "./journey-navigation";
 import "./candidate-journey.css";
 import { TaskBanner } from "@/app/components/ui/task-banner";
+import { SelectMenu } from "@/app/components/ui/select-menu";
 
 export function ApplicationsList() {
   const allowed = useAuthGuard({ roles: ["CANDIDATE"] });
@@ -34,7 +35,7 @@ export function ApplicationsList() {
     <TaskBanner title="Ứng tuyển của tôi" eyebrow="Hành trình nghề nghiệp" description="Mỗi hồ sơ, một cơ hội mới. Theo dõi phản hồi và bước tiếp theo trong hành trình ứng tuyển." illustration="applications">
       <Link href={applicationLinks.jobs}>Tìm việc làm mới <span aria-hidden="true">↗</span></Link>
     </TaskBanner>
-    <div className="journey-toolbar"><div><label htmlFor="application-filter">Lọc theo trạng thái</label><select id="application-filter" value={status ?? ""} onChange={e => router.push(url(e.target.value, 1))}><option value="">Tất cả trạng thái</option>{Object.entries(APPLICATION_STATUS).map(([key, value]) => <option key={key} value={key}>{value.label}</option>)}</select></div>{data && <p className="journey-muted">{data.total} đơn ứng tuyển</p>}</div>
+    <div className="journey-toolbar"><div><label htmlFor="application-filter">Lọc theo trạng thái</label><SelectMenu id="application-filter" value={status ?? ""} onValueChange={value => router.push(url(value, 1))} options={[{ value: "", label: "Tất cả trạng thái" }, ...Object.entries(APPLICATION_STATUS).map(([key, value]) => ({ value: key, label: value.label }))]} /></div>{data && <p className="journey-muted">{data.total} đơn ứng tuyển</p>}</div>
     {query.isFetching && <div className="journey-card" role="status" aria-busy="true">Đang tải đơn ứng tuyển…</div>}
     {query.isError && <div className="journey-error" role="alert"><p>{getErrorMessage(query.error)}</p><Button variant="outline" onClick={() => query.refetch()}>Thử lại</Button></div>}
     {data && (data.items.length ? <div className="journey-list">{data.items.map(a => <ApplicationCard key={a.id} application={a} returnTo={url(status ?? "", page)} />)}</div> : <section className="journey-card journey-empty"><BriefcaseBusiness aria-hidden="true" /><h2>Chưa có đơn ứng tuyển phù hợp</h2><p>{status ? "Thử chọn trạng thái khác để xem các đơn của bạn." : "Khám phá việc làm và gửi CV để bắt đầu hành trình mới."}</p>{status ? <Button variant="outline" onClick={() => router.push(url("", 1))}>Xoá bộ lọc</Button> : <Link href={applicationLinks.jobs} className="journey-link">Khám phá việc làm</Link>}</section>)}

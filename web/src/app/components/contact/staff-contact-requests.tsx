@@ -2,10 +2,12 @@
 import { Dialog } from "@base-ui/react/dialog";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { Button } from "@/app/components/ui/button";
+import { SelectMenu } from "@/app/components/ui/select-menu";
+import { TaskBanner } from "@/app/components/ui/task-banner";
 import { contactService } from "@/services/contact.service";
 import { ApiError, getErrorMessage } from "@/services/api";
 import type { ContactPage, ContactRequest, ContactRequestStatus } from "@/interface/contact";
-import { contactDate, statusLabels, controlClass, ContactPagination } from "./contact-history-shared";
+import { contactDate, statusLabels, ContactPagination } from "./contact-history-shared";
 
 export function StaffContactRequests() {
   const [status, setStatus] = useState<ContactRequestStatus | "">("PENDING");
@@ -36,11 +38,12 @@ export function StaffContactRequests() {
     finally { lock.current = false; if (alive.current) setBusy(null); }
   }
   function rejectSubmit(e: FormEvent) { e.preventDefault(); if (reject) void review(reject, false); }
-  return <div className="mx-auto w-full max-w-6xl space-y-5 p-4 md:p-6">
-    <header><h1 className="text-2xl font-bold text-heading">Yêu cầu mở liên hệ</h1><p className="mt-2 text-sm text-muted-foreground">Xem nhu cầu tuyển dụng và quyết định cấp quyền cho công ty.</p></header>
-    <label className="block max-w-xs text-sm font-medium">Trạng thái<select className={controlClass} value={status} onChange={e => { setStatus(e.target.value as ContactRequestStatus | ""); setPage(1); setData(null); setError(""); }}>
-      <option value="">Tất cả</option>{Object.entries(statusLabels).map(([value,label]) => <option key={value} value={value}>{label}</option>)}
-    </select></label>
+  return <div className="w-full space-y-5">
+    <TaskBanner compact eyebrow="Bảo mật liên hệ" title="Yêu cầu mở liên hệ" description="Xem nhu cầu tuyển dụng và quyết định cấp quyền cho công ty." illustration="company" />
+    <div className="max-w-xs"><label htmlFor="contact-status" className="block text-sm font-medium">Trạng thái</label>
+      <SelectMenu id="contact-status" className="ui-select-trigger mt-2" value={status} onValueChange={value => { setStatus(value as ContactRequestStatus | ""); setPage(1); setData(null); setError(""); }}
+        options={[{ value: "", label: "Tất cả" }, ...Object.entries(statusLabels).map(([value, label]) => ({ value, label }))]} />
+    </div>
     {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
     {!data && !error && <p role="status">Đang tải…</p>}
     {!data && error && <Button className="min-h-11" variant="outline" onClick={() => { setError(""); refresh(); }}>Thử lại</Button>}

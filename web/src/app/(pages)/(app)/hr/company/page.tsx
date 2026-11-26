@@ -4,6 +4,7 @@ import * as React from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { Alert } from "@/app/components/ui/alert"
+import { TaskBanner } from "@/app/components/ui/task-banner"
 import { Button } from "@/app/components/ui/button"
 import { CompanyHeader } from "@/app/components/company/company-header"
 import { CompanyOpenJobs } from "@/app/components/company/company-open-jobs"
@@ -35,9 +36,12 @@ export default function HrCompanyPage() {
 
   return (
     <div className="hr-page">
-      <div className="hr-page-heading">
-        <div><p className="hr-eyebrow">THÔNG TIN DOANH NGHIỆP</p><h1>Hồ sơ công ty</h1><p className="hr-description">Giới thiệu doanh nghiệp để ứng viên hiểu hơn về nơi làm việc.</p></div>
-      </div>
+      <TaskBanner
+        eyebrow="Thông tin doanh nghiệp"
+        title="Hồ sơ công ty"
+        description="Giới thiệu doanh nghiệp để ứng viên hiểu hơn về nơi làm việc. Hồ sơ đầy đủ giúp tin tuyển dụng đáng tin cậy hơn."
+        illustration="company"
+      />
 
       {isPending ? <p className="text-xs text-muted-foreground">Đang tải...</p> : null}
 

@@ -35,6 +35,8 @@ public class ProfileSecurityConfig {
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .requestMatchers("/actuator/health/**", "/actuator/info", "/actuator/prometheus").permitAll()
                         .requestMatchers(HttpMethod.GET, "/profile/public/*").permitAll()
+                        // Danh mục kỹ năng không nhạy cảm; bảng việc làm công khai cần tên kỹ năng cho khách.
+                        .requestMatchers(HttpMethod.GET, "/skills").permitAll()
                         .requestMatchers(SecurityConfig.API_DOCS_PATHS).permitAll()
                         .anyRequest().authenticated()
                 );

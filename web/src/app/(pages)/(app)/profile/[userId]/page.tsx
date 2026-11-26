@@ -9,9 +9,7 @@ import { SkillProfile } from "@/app/components/skills/skill-profile";
 import { Portfolio } from "@/app/components/profile/portfolio";
 
 /**
- * Xem hồ sơ kỹ năng của một ứng viên (chỉ đọc, HS-01). Mọi vai trò đã đăng nhập vào được;
- * backend chỉ trả dữ liệu khi hồ sơ đã công khai và được duyệt (ngược lại 404).
- * Đăng nhập, thanh trên và menu do layout (app) lo.
+ * Xem hồ sơ kỹ năng của một ứng viên (chỉ đọc, HS-01).
  */
 export default function CandidateProfilePage({
   params,
@@ -23,12 +21,12 @@ export default function CandidateProfilePage({
   if (!user) return null;
 
   return (
-    <div className="mx-auto max-w-6xl space-y-4">
+    <div className="ptit-page max-w-6xl">
       <Link
         href={ROLE_HOME[user.role] ?? "/"}
-        className="inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-foreground"
+        className="inline-flex w-fit items-center gap-1.5 text-sm font-semibold text-primary hover:underline"
       >
-        <ArrowLeft className="h-4 w-4" />
+        <ArrowLeft className="size-4" aria-hidden="true" />
         <span>Quay lại trang chủ</span>
       </Link>
       <SkillProfile userId={userId} readOnly={true} />

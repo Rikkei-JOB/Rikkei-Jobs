@@ -1,4 +1,4 @@
-import { ROLE_HOME } from "@/config/roles";
+import { ROLE_HOME, ROLE_LANDING } from "@/config/roles";
 import type { Role } from "@/interface/auth";
 
 /**
@@ -28,7 +28,7 @@ export function rememberNextPath(path: string): void {
   }
 }
 
-/** Trang sau đăng nhập: trang đã nhớ nếu thuộc vai trò này, ngược lại là trang chủ của vai trò. Đọc xong thì xoá. */
+/** Trang sau đăng nhập: trang đã nhớ nếu thuộc vai trò này, ngược lại là ROLE_LANDING (ứng viên về trang chủ). Đọc xong thì xoá. */
 export function pathAfterLogin(role: Role): string {
   let saved: string | null = null;
   try {
@@ -38,5 +38,5 @@ export function pathAfterLogin(role: Role): string {
     saved = null;
   }
   const home = ROLE_HOME[role];
-  return saved && safeNextPath(saved) && (saved === home || saved.startsWith(`${home}/`)) ? saved : home;
+  return saved && safeNextPath(saved) && (saved === home || saved.startsWith(`${home}/`)) ? saved : ROLE_LANDING[role];
 }

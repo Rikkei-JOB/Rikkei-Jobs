@@ -2,6 +2,7 @@
 import { Dialog } from "@base-ui/react/dialog";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { Button } from "@/app/components/ui/button";
+import { SelectMenu } from "@/app/components/ui/select-menu";
 import { jobService } from "@/services/job.service";
 import { contactService } from "@/services/contact.service";
 import { ApiError, getErrorMessage } from "@/services/api";
@@ -51,9 +52,8 @@ function RequestForm({ userId, jobId, onDone }: { userId: string; jobId?: string
   }
   return <form onSubmit={submit} className="mt-5 space-y-4">
     {!jobId && <div><label className="block text-sm font-medium" htmlFor="contact-job">JD liên quan</label>
-      <select id="contact-job" required value={selected} disabled={loading || busy} onChange={e => setSelected(e.target.value)} className="mt-2 min-h-11 w-full rounded-lg border bg-background px-3 text-base">
-        <option value="">{loading ? "Đang tải JD…" : "Chọn JD của công ty"}</option>{jobs.map(job => <option key={job.id} value={job.id}>{job.title}</option>)}
-      </select>{total > 100 && <div className="mt-2 flex items-center gap-3"><Button className="min-h-11" type="button" variant="outline" disabled={jobPage === 1 || busy} onClick={() => { setLoading(true); setSelected(""); setJobPage(p => p - 1); }}>JD trước</Button><span>Trang {jobPage}</span><Button className="min-h-11" type="button" variant="outline" disabled={jobPage * 100 >= total || busy} onClick={() => { setLoading(true); setSelected(""); setJobPage(p => p + 1); }}>JD tiếp</Button></div>}
+      <SelectMenu id="contact-job" required className="ui-select-trigger mt-2" value={selected} disabled={loading || busy} onValueChange={setSelected}
+        placeholder={loading ? "Đang tải JD…" : "Chọn JD của công ty"} options={jobs.map(job => ({ value: job.id, label: job.title }))} />{total > 100 && <div className="mt-2 flex items-center gap-3"><Button className="min-h-11" type="button" variant="outline" disabled={jobPage === 1 || busy} onClick={() => { setLoading(true); setSelected(""); setJobPage(p => p - 1); }}>JD trước</Button><span>Trang {jobPage}</span><Button className="min-h-11" type="button" variant="outline" disabled={jobPage * 100 >= total || busy} onClick={() => { setLoading(true); setSelected(""); setJobPage(p => p + 1); }}>JD tiếp</Button></div>}
       {!loading && jobs.length === 0 && <p className="mt-2 text-sm">Công ty chưa có JD để gửi yêu cầu.</p>}
     </div>}
     <div><label htmlFor="contact-reason" className="block text-sm font-medium">Lý do xin mở liên hệ</label>

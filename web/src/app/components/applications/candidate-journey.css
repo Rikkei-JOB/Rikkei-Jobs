@@ -75,7 +75,7 @@
 .journey-step[data-reached=true] { color: var(--heading); font-weight: 500; }
 .journey-tabs [data-slot=tabs-list] { display: flex; flex-wrap: wrap; padding: 4px; gap: 4px; background: white; border: 1px solid var(--surface-border); border-radius: 12px; margin-bottom: 12px; }
 .journey-tabs [data-slot=tabs-trigger] { min-height: 44px; height: auto; flex: 1; padding: 10px 16px; font-size: 14px; gap: 8px; white-space: nowrap; }
-.journey-tabs [data-slot=tabs-trigger][data-active] { background: var(--brand-soft); color: var(--brand); box-shadow: none; }
+.journey-tabs [data-slot=tabs-trigger]:is([data-active],[aria-selected=true]) { background: var(--brand-soft); color: var(--brand); box-shadow: none; }
 .journey-tab-count { font-size: 12px; background: #f1f5f9; border-radius: 12px; padding: 0 6px; }
 .journey-schedule { display: flex; align-items: center; gap: 20px; background: #f8fafc; border: 1px solid var(--surface-border); border-radius: 12px; padding: 16px; margin-top: 20px; }
 .journey-date { display: flex; flex-direction: column; align-items: center; justify-content: center; min-width: 64px; padding: 8px; background: white; border: 1px solid var(--surface-border); border-radius: 8px; color: var(--brand); }
