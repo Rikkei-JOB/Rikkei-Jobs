@@ -45,7 +45,7 @@ Tên trong lịch sử lấy theo metadata hiện hành, fallback về ID nếu 
 
 ## Kiểm chứng
 
-Backend dùng JUnit/MockMvc và PostgreSQL riêng; profile/company/gateway có kiểm thử boundary. ContactLiveFlowTest chạy HTTP thật, JWT thật, RestClient thật gọi upstream HTTP fixture và DB thật, kiểm luồng xin → STAFF duyệt → hai lần xem → lịch sử ứng viên. ContactCommitFailureTest dùng deferred PostgreSQL trigger để chứng minh lỗi tại commit không trả liên hệ.
+Backend dùng JUnit/MockMvc và PostgreSQL riêng; profile/company/gateway có kiểm thử boundary. ContactLiveFlowTest chạy HTTP thật, JWT thật, RestClient thật gọi upstream HTTP fixture và DB thật, kiểm luồng xin → STAFF duyệt → hai lần xem → lịch sử ứng viên. ContactCommitFailureTest dùng deferred PostgreSQL trigger để chứng minh lỗi tại commit không trả liên hệ. ContactDemoFixtureTest chạy fixture SQL với migration thật của identity/profile/company trên DB test và xác minh chạy lại không ghi đè quyết định STAFF.
 
 ```powershell
 # Maven trên PATH, Docker hoặc DB PostgreSQL test riêng theo ApplicationIntegrationSupport.

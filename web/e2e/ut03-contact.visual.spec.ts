@@ -17,5 +17,11 @@ for (const width of [1440,768,390]) {
     expect(await page.evaluate(()=>document.documentElement.scrollWidth)).toBeLessThanOrEqual(width);
     const dir=resolve(__dirname,"../../docs/api/screenshots/ut03");await mkdir(dir,{recursive:true});
     await page.screenshot({path:resolve(dir,name+"-"+width+".png"),fullPage:true});
+    if(name==="hr" || name==="staff-requests") {
+      await page.getByRole("button",{name:name==="hr"?"Xin mở liên hệ":"Từ chối",exact:true}).click();
+      await expect(page.getByRole("dialog")).toBeVisible();
+      if(name==="hr")await expect(page.getByLabel("JD liên quan")).toBeEnabled();
+      await page.screenshot({path:resolve(dir,name+"-dialog-"+width+".png"),fullPage:true});
+    }
   });
 }
