@@ -55,3 +55,25 @@ export function formatDate(value: string | null): string {
     year: "numeric",
   }).format(date);
 }
+
+/** ISO instant -> "dd/MM HH:mm" (hoặc "dd/MM/yyyy HH:mm" khi withYear) theo giờ Việt Nam; null/sai -> "—". */
+export function formatDateTime(value: string | null, withYear = false): string {
+  if (!value) return "—";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "—";
+  const parts = Object.fromEntries(
+    new Intl.DateTimeFormat("en-GB", {
+      timeZone: "Asia/Ho_Chi_Minh",
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+      hourCycle: "h23",
+    })
+      .formatToParts(date)
+      .map((p) => [p.type, p.value]),
+  );
+  const day = withYear ? `${parts.day}/${parts.month}/${parts.year}` : `${parts.day}/${parts.month}`;
+  return `${day} ${parts.hour}:${parts.minute}`;
+}
