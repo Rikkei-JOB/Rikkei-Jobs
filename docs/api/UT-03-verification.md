@@ -49,3 +49,5 @@ Backend theo module: common-core 14, gateway 24, profile 166 (1 skip), company 2
 ## Giới hạn đã thống nhất
 
 UT-03 bảo vệ email/phone có cấu trúc trong JSON. Không tự sửa nội dung CV/PDF/cover letter do ứng viên viết. Log xác nhận server đã phục vụ contact, không xác nhận người dùng đã đọc được response.
+
+PR bàn giao: [#41](https://github.com/Rikkei-JOB/Rikkei-Jobs/pull/41), base test, chưa merge.

@@ -138,7 +138,7 @@ Các ký hiệu sau là prefix đường dẫn chính xác, không phải thư m
 - [x] **5. Kiểm chứng backend/FE.** `mvn -f server/pom.xml -pl services/recruitment-service,services/profile-service,services/company-service,api-gateway -am test`; `npm --prefix web run type-check`; `npm --prefix web run lint`; `npm --prefix web run build`; `npm --prefix web run test:e2e -- e2e/ut03-hr-contact.spec.ts e2e/ut03-contact-workflow.spec.ts e2e/ut03-contact.visual.spec.ts`. Nếu lỗi nền đã có, phân biệt bằng bằng chứng và sửa lỗi thuộc phạm vi, không bỏ qua thất bại UT-03.
 - [x] **6. Demo API thật.** Seed chỉ trên DB demo được chỉ định; script gọi gateway với hai công ty và HR tương ứng, ứng viên PUBLIC chưa/có đơn, yêu cầu ba trạng thái. Chứng minh 403 khóa, cross-company, quyền sau rút/từ chối, STAFF approve, hai contact calls→hai DB logs, ứng viên đọc log mình. UI fixture test không thay thế kiểm chứng API thật.
 - [x] **7. Viết bàn giao.** OpenAPI/HTTP mẫu, migration/seed/cách chạy, account/URL demo, kết quả và ảnh kiểm chứng; giải thích contact JSON bảo vệ còn nội dung CV tự do không sửa. Đánh dấu design đã duyệt; cập nhật checklist kế hoạch theo thực tế.
-- [ ] **8. Commit và PR.** `feat(UT-03): add contact review and access history screens`; review toàn diff, `git diff --check`, xác minh không có file ngoài UT-03. Push feature branch, mở PR `[UT-03] Bảo vệ liên hệ ứng viên và ghi nhật ký truy cập` vào `test`, mô tả hành vi, migration và kiểm chứng thực chạy. Trả link PR; không merge.
+- [x] **8. Commit và PR.** `feat(UT-03): add contact review and access history screens`; review toàn diff, `git diff --check`, xác minh không có file ngoài UT-03. Push feature branch, mở PR `[UT-03] Bảo vệ liên hệ ứng viên và ghi nhật ký truy cập` vào `test`, mô tả hành vi, migration và kiểm chứng thực chạy. Trả link PR; không merge.
 
 ## Thứ tự và handoff
 
@@ -148,4 +148,4 @@ Kế hoạch đã tự đối chiếu spec: quyền/log/API/FE/phân trang/lỗi
 
 ## Kết quả thực thi 2026-11-26
 
-DB/BE/FE và tự review đã hoàn tất, không dùng subagent theo yêu cầu người dùng. Kết quả kiểm chứng và các điều chỉnh triển khai: `docs/api/UT-03-verification.md`. Bước mở PR còn theo dõi bên trên.
+DB/BE/FE và tự review đã hoàn tất, không dùng subagent theo yêu cầu người dùng. Kết quả kiểm chứng và các điều chỉnh triển khai: `docs/api/UT-03-verification.md`. PR đã mở vào test: https://github.com/Rikkei-JOB/Rikkei-Jobs/pull/41; chưa merge.
