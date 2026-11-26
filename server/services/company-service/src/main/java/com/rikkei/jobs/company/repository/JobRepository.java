@@ -21,6 +21,9 @@ public interface JobRepository extends JpaRepository<Job, UUID> {
 
     Page<Job> findByCompanyIdAndStatus(UUID companyId, JobStatus status, Pageable pageable);
 
+    /** Hàng chờ của cán bộ (mọi công ty); thứ tự do {@code pageable} mang. */
+    Page<Job> findByStatus(JobStatus status, Pageable pageable);
+
     /** Mỗi dòng là [companyId, số JD]; công ty không có JD phù hợp sẽ không xuất hiện. */
     @Query("select j.companyId, count(j) from Job j where j.companyId in :ids and j.status <> :excluded group by j.companyId")
     List<Object[]> countByCompanyIdsExcludingStatus(@Param("ids") Collection<UUID> ids,
