@@ -225,25 +225,57 @@ function SectionEditor({ draft, source, first, last, onChange, onMove }: {
 
 /** sections = bản nháp chưa lưu thì dựng theo nháp (không ghi DB), null thì dựng bản đã lưu. */
 function PdfPreview({ id, version, sections }: { id: string; version: number; sections: CvSectionPayload[] | null }) {
-  const [url, setUrl] = React.useState<string | null>(null);
+  // Vẽ PDF bằng pdf.js lên canvas ngoài DOM, vẽ xong mới thay một lần nên khung không nháy trắng.
+  const box = React.useRef<HTMLDivElement>(null);
+  const [ready, setReady] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
   const [retry, setRetry] = React.useState(0);
   const body = sections ? JSON.stringify(sections) : null;
   React.useEffect(() => {
-    let ignore = false; let created: string | null = null;
+    let ignore = false;
     // Chờ ngừng bấm 400ms rồi mới dựng, tránh dựng PDF cho từng cú click.
-    const timer = setTimeout(() => {
-      (body ? cvService.preview(id, JSON.parse(body) as CvSectionPayload[]) : cvService.pdf(id, true)).then(blob => {
-        if (ignore) return;
-        created = URL.createObjectURL(blob); setUrl(created); setError(null);
-      }).catch(async err => { if (!ignore) { setUrl(null); setError(await pdfError(err)); } });
+    const timer = setTimeout(async () => {
+      try {
+        const blob = await (body ? cvService.preview(id, JSON.parse(body) as CvSectionPayload[]) : cvService.pdf(id, true));
+        const canvases = await renderPdf(blob, box.current?.clientWidth || 600, () => ignore);
+        if (ignore || !canvases || !box.current) return;
+        box.current.replaceChildren(...canvases); setReady(true); setError(null);
+      } catch (err) { if (!ignore) setError(await pdfError(err)); }
     }, body ? 400 : 0);
-    return () => { ignore = true; clearTimeout(timer); if (created) URL.revokeObjectURL(created); };
+    return () => { ignore = true; clearTimeout(timer); };
   }, [id, version, retry, body]);
-  if (error) return <div className="space-y-2"><Alert variant="destructive">{error}</Alert>
-    <Button variant="outline" className={SECONDARY_CTA} onClick={() => { setError(null); setRetry(v => v + 1); }}><RefreshCw aria-hidden />Thử lại</Button></div>;
-  if (!url) return <div role="status" className="flex aspect-[1/1.414] items-center justify-center rounded-xl border bg-white text-sm text-[#64748B]">Đang dựng bản xem trước...</div>;
-  return <iframe title="Xem trước CV" src={url} className="aspect-[1/1.414] w-full rounded-xl border bg-white" />;
+  return <div className="space-y-2">
+    {error ? <><Alert variant="destructive">{error}</Alert>
+      <Button variant="outline" className={SECONDARY_CTA} onClick={() => { setError(null); setRetry(v => v + 1); }}><RefreshCw aria-hidden />Thử lại</Button></> : null}
+    <div className="relative aspect-[1/1.414] w-full overflow-y-auto rounded-xl border bg-[#F6F7FA]">
+      <div ref={box} role="img" aria-label="Xem trước CV" className="space-y-2" />
+      {!ready && !error ? <div role="status" className="absolute inset-0 flex items-center justify-center bg-white text-sm text-[#64748B]">Đang dựng bản xem trước...</div> : null}
+    </div>
+  </div>;
+}
+
+/** Vẽ từng trang PDF ra canvas rộng `width` px (nét theo devicePixelRatio). Trả null nếu bị huỷ giữa chừng. */
+async function renderPdf(blob: Blob, width: number, cancelled: () => boolean) {
+  const pdfjs = await import("pdfjs-dist");
+  if (!pdfjs.GlobalWorkerOptions.workerPort) {
+    pdfjs.GlobalWorkerOptions.workerPort = new Worker(new URL("pdfjs-dist/build/pdf.worker.min.mjs", import.meta.url), { type: "module" });
+  }
+  const task = pdfjs.getDocument({ data: new Uint8Array(await blob.arrayBuffer()) });
+  try {
+    const doc = await task.promise;
+    const canvases: HTMLCanvasElement[] = [];
+    for (let n = 1; n <= doc.numPages; n++) {
+      if (cancelled()) return null;
+      const page = await doc.getPage(n);
+      const viewport = page.getViewport({ scale: width / page.getViewport({ scale: 1 }).width * window.devicePixelRatio });
+      const canvas = document.createElement("canvas");
+      canvas.width = Math.floor(viewport.width); canvas.height = Math.floor(viewport.height);
+      canvas.className = "block h-auto w-full bg-white";
+      await page.render({ canvas, viewport }).promise;
+      canvases.push(canvas);
+    }
+    return canvases;
+  } finally { void task.destroy(); }
 }
 
 function CvForm({ initial, submitLabel, onSubmit, onCancel }: {
