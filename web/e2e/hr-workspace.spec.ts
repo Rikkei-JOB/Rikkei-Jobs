@@ -1,4 +1,5 @@
 import { test, expect, type Page } from "@playwright/test";
+import { chooseOption, expectOption } from "./select-menu";
 
 const appId = "20000000-0000-0000-0000-000000000002";
 const jobId = "50000000-0000-0000-0000-000000000002";
@@ -52,7 +53,7 @@ test("HR desktop top bar and account menu preserve role destinations", async ({ 
 test("HR position filter loads later JD pages and preserves the list on return", async ({ page }) => {
   await fixture(page);
   await page.goto("/hr/recruitment");
-  await page.getByLabel("Vị trí tuyển dụng", { exact: true }).selectOption(jobId);
+  await chooseOption(page.getByLabel("Vị trí tuyển dụng", { exact: true }), jobId);
   await expect(page).toHaveURL(new RegExp(`jobId=${jobId}`));
   await page.getByRole("link", { name: /Xem hồ sơ.*Trần Thị Mai Anh/ }).click();
   await expect(page.getByRole("heading", { level: 1, name: "Trần Thị Mai Anh" })).toBeVisible();
@@ -62,9 +63,9 @@ test("HR position filter loads later JD pages and preserves the list on return",
   await page.getByRole("tab", { name: /^Hồ sơ/ }).click();
   await expect(page.getByLabel("Ghi chú chuyển bước")).toHaveValue("Mời trao đổi kỹ thuật");
   await page.getByRole("link", { name: /Danh sách đơn ứng tuyển/ }).click();
-  await expect(page.getByLabel("Vị trí tuyển dụng", { exact: true })).toHaveValue(jobId);
+  await expectOption(page.getByLabel("Vị trí tuyển dụng", { exact: true }), jobId);
   await page.getByRole("button", { name: "Xoá bộ lọc" }).click();
-  await expect(page.getByLabel("Vị trí tuyển dụng", { exact: true })).toHaveValue("");
+  await expectOption(page.getByLabel("Vị trí tuyển dụng", { exact: true }), "");
 });
 
 test("HR mobile navigation dismisses on route change and fits 360px", async ({ page }) => {
@@ -99,10 +100,10 @@ test("HR keeps a selected job absent from list pages and resolves its title", as
   await page.route("**/api/v1/jobs/job-archived", route => route.fulfill({ headers: cors, json: { id: "job-archived", title: "Backend Engineer (đã đóng)" } }));
   await page.goto("/hr/recruitment?jobId=job-archived&status=SCREENING");
   const select = page.getByLabel("Vị trí tuyển dụng", { exact: true });
-  await expect(select).toHaveValue("job-archived");
-  await expect(select.getByRole("option", { name: "Backend Engineer (đã đóng)" })).toHaveCount(1);
+  await expectOption(select, "job-archived");
+  await expect(select).toContainText("Backend Engineer (đã đóng)");
   await page.reload();
-  await expect(select).toHaveValue("job-archived");
+  await expectOption(select, "job-archived");
 });
 
 test("HR filter failure offers retry without showing old rows as current", async ({ page }) => {
@@ -115,14 +116,14 @@ test("HR filter failure offers retry without showing old rows as current", async
   });
   await page.goto("/hr/recruitment");
   await expect(page.getByRole("link", { name: /Xem hồ sơ.*Trần Thị Mai Anh/ })).toBeVisible();
-  await page.getByLabel("Trạng thái", { exact: true }).selectOption("REJECTED");
+  await chooseOption(page.getByLabel("Trạng thái", { exact: true }), "REJECTED");
   await expect(page.getByRole("alert").filter({ hasText: "Không tải được hồ sơ" })).toBeVisible();
   await expect(page.getByRole("link", { name: /Xem hồ sơ.*Trần Thị Mai Anh/ })).toHaveCount(0);
   failed = false;
   await page.getByRole("button", { name: "Thử lại", exact: true }).click();
   await expect(page.getByRole("link", { name: /Xem hồ sơ.*Trần Thị Mai Anh/ })).toBeVisible();
   await page.goBack();
-  await expect(page.getByLabel("Trạng thái", { exact: true })).toHaveValue("");
+  await expectOption(page.getByLabel("Trạng thái", { exact: true }), "");
 });
 
 test("HR calendar has a mobile agenda and a desktop list switch", async ({ page }) => {

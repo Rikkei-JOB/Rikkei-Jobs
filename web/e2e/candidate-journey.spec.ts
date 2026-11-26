@@ -2,6 +2,7 @@ import { test, expect, type Page } from "@playwright/test";
 import { mkdir } from "node:fs/promises";
 import { application, applicationId, signIn, userId } from "./ut01-fixtures";
 import type { Offer } from "../src/interface/offer";
+import { chooseOption } from "./select-menu";
 
 const cors = { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Headers": "Authorization,Content-Type", "Access-Control-Allow-Methods": "GET,POST,OPTIONS" };
 const baseOffer: Offer = { id: "offer-a", applicationId, position: "Frontend Developer", salary: 18000000, startDate: "2030-02-01", workLocation: "Hà Nội · Văn phòng Rikkei", note: "Tham gia xây dựng sản phẩm công nghệ cùng đội ngũ phát triển.\nThời gian làm việc: Thứ Hai – Thứ Sáu.", responseDeadline: "2030-01-10T02:00:00Z", status: "SENT", respondedAt: null, declineReason: null, createdAt: "2026-11-25T01:00:00Z" };
@@ -232,10 +233,11 @@ test("filter errors hide stale application rows and can retry", async ({ page })
   });
   await page.goto("/candidate/applications");
   await expect(page.getByRole("link", { name: "Xem tiến trình" })).toBeVisible();
-  await page.getByLabel("Lọc theo trạng thái").selectOption("REJECTED");
-  await expect(page.getByRole("alert")).toBeVisible();
+  await chooseOption(page.getByLabel("Lọc theo trạng thái"), "REJECTED");
+  // Lọc riêng thông báo lỗi: vùng thông báo chuyển trang của Next.js cũng có role="alert".
+  await expect(page.getByRole("alert").filter({ hasText: "Không tải được danh sách" })).toBeVisible();
   await expect(page.getByRole("link", { name: "Xem tiến trình" })).toHaveCount(0);
-  await page.getByLabel("Lọc theo trạng thái").selectOption("INTERVIEW");
+  await chooseOption(page.getByLabel("Lọc theo trạng thái"), "INTERVIEW");
   await expect(page.getByRole("link", { name: "Xem tiến trình" })).toBeVisible();
 });
 

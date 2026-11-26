@@ -1,11 +1,12 @@
 import { test, expect } from "@playwright/test";
 import { signIn, apiFixtures, jobId, cvId } from "./ut01-fixtures";
+import { chooseOption } from "./select-menu";
 
 test("selects a CV and submits the introduction once", async ({ page }) => {
   await signIn(page); await apiFixtures(page);
   await page.goto(`/candidate/applications/new?jobId=${jobId}`);
   await expect(page.getByRole("dialog")).toBeVisible();
-  await page.getByLabel("Chọn CV").selectOption(cvId);
+  await chooseOption(page.getByLabel("Chọn CV"), cvId);
   await page.getByLabel("Thư giới thiệu").fill("Tôi muốn ứng tuyển vị trí Java.");
   const request = page.waitForRequest(r => r.method() === "POST" && r.url().endsWith(`/jobs/${jobId}/apply`));
   await page.getByRole("button", { name: "Gửi ứng tuyển", exact: true }).click();
@@ -33,7 +34,7 @@ test("closed JD keeps the introduction and does not report success", async ({ pa
   await page.route(`**/api/v1/recruitment/jobs/${jobId}/apply`, route => route.fulfill({ status: 409,
     headers: { "Access-Control-Allow-Origin": "*" }, json: { code: "CONFLICT", message: "Vị trí hiện không nhận hồ sơ ứng tuyển." } }));
   await page.goto(`/candidate/applications/new?jobId=${jobId}`);
-  await page.getByLabel("Chọn CV").selectOption(cvId);
+  await chooseOption(page.getByLabel("Chọn CV"), cvId);
   await page.getByLabel("Thư giới thiệu").fill("Giữ lại nội dung này.");
   await page.getByRole("button", { name: "Gửi ứng tuyển", exact: true }).click();
   await expect(page.getByRole("alert")).toContainText("Vị trí hiện không nhận hồ sơ ứng tuyển.");

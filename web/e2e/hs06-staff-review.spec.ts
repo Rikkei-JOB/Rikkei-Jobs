@@ -1,6 +1,7 @@
 import { expect, test, type Page } from "@playwright/test";
 import { mkdir } from "node:fs/promises";
 import { join } from "node:path";
+import { chooseOption } from "./select-menu";
 
 async function signIn(page: Page, role: string) {
   const user = { id: "reviewer", fullName: "Phạm Minh", role, mustChangePassword: false, companyId: null };
@@ -68,7 +69,7 @@ test("STAFF sửa giới thiệu, trả lại hồ sơ rồi duyệt hồ sơ k�
   await expect(page.getByRole("heading", { name: "Nguyễn Thu Hà" })).toBeVisible();
   await expect(page.getByRole("region", { name: "Bản xem trước của HR" }).getByText("Java", { exact: true }).first()).toBeVisible();
   await capture("xem-truoc");
-  await page.getByLabel("Trường cần chỉnh sửa").selectOption("summary");
+  await chooseOption(page.getByLabel("Trường cần chỉnh sửa"), "summary");
   await page.getByLabel("Giá trị mới").fill("Phát triển ứng dụng Java.");
   await expect(page.getByRole("button", { name: "Lưu chỉnh sửa" })).toBeDisabled();
   await page.getByLabel("Lý do chỉnh sửa").fill("Chuẩn hóa giới thiệu.");

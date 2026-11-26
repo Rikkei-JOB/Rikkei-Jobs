@@ -148,5 +148,6 @@ for (const saved of ["https://evil.example", "//evil.example", "/candidate/\\evi
   await page.goto("/login");
   await page.evaluate(value => sessionStorage.setItem("rikkei-jobs-next-path", value), saved);
   await sso(page);
-  await expect(page).toHaveURL(/\/candidate(?:\/profile)?$/);
+  // Ứng viên về trang chủ "/" (ROLE_LANDING); đích không an toàn hoặc của vai trò khác bị bỏ qua.
+  await expect(page).toHaveURL(/^https?:\/\/[^/]+\/(?:candidate(?:\/profile)?)?$/);
 });
