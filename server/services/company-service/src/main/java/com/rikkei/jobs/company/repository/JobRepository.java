@@ -10,10 +10,11 @@ import java.util.UUID;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
-public interface JobRepository extends JpaRepository<Job, UUID> {
+public interface JobRepository extends JpaRepository<Job, UUID>, JpaSpecificationExecutor<Job> {
 
     Optional<Job> findByIdAndCompanyId(UUID id, UUID companyId);
 
@@ -31,4 +32,16 @@ public interface JobRepository extends JpaRepository<Job, UUID> {
     List<Object[]> countByStatus(@Param("companyId") UUID companyId);
 
     long countByCompanyIdAndStatusAndDeadlineBetween(UUID companyId, JobStatus status, LocalDate from, LocalDate to);
+
+    /**
+     * Mỗi dòng là [companyId, số tin đang hiển thị với ứng viên] (APPROVED, chưa quá hạn); không lọc trạng thái công ty,
+     * nơi gọi tự bỏ công ty không ACTIVE.
+     */
+    @Query("select j.companyId, count(j) from Job j where j.status = :status "
+            + "and (j.deadline is null or j.deadline >= :today) group by j.companyId")
+    List<Object[]> countOpenByCompany(@Param("status") JobStatus status, @Param("today") LocalDate today);
+
+    /** DN-07: mỗi dòng là [status, số JD] trên mọi công ty, bỏ trạng thái {@code excluded} (DRAFT). */
+    @Query("select j.status, count(j) from Job j where j.status <> :excluded group by j.status")
+    List<Object[]> countAllByStatusExcluding(@Param("excluded") JobStatus excluded);
 }

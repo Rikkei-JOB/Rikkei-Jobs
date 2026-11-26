@@ -38,8 +38,9 @@ class SelfSkillsApiTest {
         java = jdbc.queryForObject("select id from profile.skills where code='JAVA'", UUID.class);
         communication = jdbc.queryForObject("select id from profile.skills where code='COMMUNICATION'", UUID.class);
     }
-    @Test void catalogueRequiresAuthAndReturnsDatabaseSkillsInStableOrder() throws Exception {
-        mvc.perform(get("/skills")).andExpect(status().isUnauthorized());
+    @Test void catalogueIsPublicAndReturnsDatabaseSkillsInStableOrder() throws Exception {
+        // Bảng việc làm công khai cần tên kỹ năng cho khách chưa đăng nhập.
+        mvc.perform(get("/skills")).andExpect(status().isOk());
         JsonNode list = json.readTree(mvc.perform(get("/skills").header("Authorization", bearer))
             .andExpect(status().isOk()).andReturn().getResponse().getContentAsString());
         assertThat(list.size()).isEqualTo(jdbc.queryForObject("select count(*) from profile.skills", Integer.class));

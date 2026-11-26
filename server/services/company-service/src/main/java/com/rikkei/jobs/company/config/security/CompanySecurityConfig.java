@@ -45,6 +45,9 @@ public class CompanySecurityConfig {
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .requestMatchers("/actuator/health/**", "/actuator/info", "/actuator/prometheus").permitAll()
                         .requestMatchers(HttpMethod.GET, "/companies/logos/**").permitAll()
+                        // Bảng việc làm công khai (PublicJobController): khách chưa đăng nhập cũng xem được.
+                        .requestMatchers(HttpMethod.GET, "/public/jobs", "/public/jobs/*", "/public/companies",
+                                "/public/companies/*").permitAll()
                         .requestMatchers(SecurityConfig.API_DOCS_PATHS).permitAll()
                         // /internal/** do InternalKeyFilter bảo vệ, JWT không áp dụng.
                         .requestMatchers(InternalKeyFilter.INTERNAL_PATTERN).permitAll()
