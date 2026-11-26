@@ -27,7 +27,10 @@ public class ProfileFileService {
         this.files = files; this.root = Path.of(directory).toAbsolutePath().normalize(); this.clock = clock;
     }
     @Transactional
-    public String upload(UUID owner, MultipartFile file) {
+    public String upload(UUID owner, MultipartFile file) { return upload(owner, file, false); }
+    @Transactional
+    public String uploadImage(UUID owner, MultipartFile file) { return upload(owner, file, true); }
+    private String upload(UUID owner, MultipartFile file, boolean imagesOnly) {
         if (file.getSize() > MAX_BYTES)
             throw new ProfileFileException(413, "FILE_TOO_LARGE", "Tệp vượt quá 5MB.");
         if (file.isEmpty()) throw new BadRequestException("Vui lòng chọn tệp PDF, JPG hoặc PNG.");
@@ -36,6 +39,7 @@ public class ProfileFileService {
         try {
             byte[] bytes = file.getBytes();
             String contentType = detectType(bytes);
+            if (imagesOnly && !contentType.startsWith("image/")) throw new BadRequestException("Chỉ nhận ảnh JPG hoặc PNG.");
             var uploaded = new UploadedFile();
             uploaded.setId(UUID.randomUUID()); uploaded.setUserId(owner);
             uploaded.setContentType(contentType); uploaded.setSizeBytes(bytes.length); uploaded.setCreatedAt(clock.instant());

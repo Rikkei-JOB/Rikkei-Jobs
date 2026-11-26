@@ -2,6 +2,7 @@ import axios, { type AxiosResponse } from "axios";
 import { env } from "@/config/env";
 import { useAuthStore } from "@/hooks/use-auth-store";
 import type { ApiErrorBody } from "@/interface/auth";
+import { rememberNextPath } from "@/helper/next-path";
 
 /** Lỗi đã chuẩn hoá từ response lỗi của backend: { code, message, errors }. */
 export class ApiError extends Error {
@@ -17,7 +18,7 @@ export class ApiError extends Error {
 }
 
 /** Các endpoint này tự xử lý 401 (sai mật khẩu, vé hết hạn...), không được coi là "phiên hết hạn". */
-const PUBLIC_AUTH_PATHS = ["/auth/login", "/auth/sso", "/auth/forgot-password", "/auth/reset-password"];
+const PUBLIC_AUTH_PATHS = ["/auth/login", "/auth/sso", "/auth/forgot-password", "/auth/reset-password", "/profile/public/"];
 
 export const api = axios.create({
   baseURL: env.apiUrl,
@@ -53,13 +54,19 @@ api.interceptors.response.use(
     const url = error.config?.url ?? "";
     const isPublicAuthCall = PUBLIC_AUTH_PATHS.some((path) => url.startsWith(path));
 
-    if (typeof window !== "undefined") {
+    // A delayed response from a previous login must not invalidate the new session.
+    const currentToken = useAuthStore.getState().token;
+    const requestAuthorization = error.config?.headers?.get("Authorization");
+    const belongsToCurrentSession = Boolean(currentToken) && requestAuthorization === `Bearer ${currentToken}`;
+    if (typeof window !== "undefined" && belongsToCurrentSession) {
       if (status === 401 && !isPublicAuthCall) {
+        rememberNextPath(window.location.pathname);
         useAuthStore.getState().clear();
         // Điều hướng cứng (tải lại trang) để xoá sạch trạng thái của phiên đã hết hạn.
         // eslint-disable-next-line @next/next/no-location-assign-relative-destination
         window.location.assign("/login");
       } else if (status === 403 && apiError.code === "MUST_CHANGE_PASSWORD") {
+        rememberNextPath(window.location.pathname);
         useAuthStore.getState().setMustChangePassword(true);
         if (window.location.pathname !== "/change-password") {
           // eslint-disable-next-line @next/next/no-location-assign-relative-destination

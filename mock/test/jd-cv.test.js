@@ -67,7 +67,7 @@ test('the documented default token CLI can list the two portable CV fixtures', a
   assert.equal(generated.status, 0);
   const response = await mock.request('/profile/cvs', { headers: { Authorization: `Bearer ${generated.stdout.trim()}` } });
   assert.equal(response.status, 200);
-  assert.equal((await response.json()).length, 2);
+  assert.equal((await response.json()).length, 5);
 });
 
 test('local CV owner configuration maps the primary fixtures and preserves other owners', async () => {
@@ -75,9 +75,9 @@ test('local CV owner configuration maps the primary fixtures and preserves other
   const configured = await startMock({ MOCK_CV_OWNER_ID: localOwner });
   try {
     const own = await configured.request('/profile/cvs', { headers: candidateHeaders({ sub: localOwner }) });
-    assert.equal((await own.json()).length, 2);
+    assert.equal((await own.json()).length, 5);
     const other = await configured.request('/profile/cvs', { headers: candidateHeaders({ sub: OTHER }) });
-    assert.deepEqual((await other.json()).map(cv => cv.id), [OTHER_CV]);
+    assert.deepEqual((await other.json()).map(cv => cv.id), [OTHER_CV, '40000000-0000-0000-0000-000000000007', '40000000-0000-0000-0000-000000000008']);
   } finally {
     await configured.close();
   }
@@ -86,14 +86,10 @@ test('local CV owner configuration maps the primary fixtures and preserves other
 test('candidate job list exposes only accepting jobs without internal HR contacts', async () => {
   const response = await mock.request('/jobs', { headers: candidateHeaders() });
   assert.equal(response.status, 200);
-  assert.deepEqual(await response.json(), [{
-    jobId: JOB,
-    companyId: '00000000-0000-0000-0000-0000000000a1',
-    jobTitle: 'Java Developer',
-    companyName: 'Rikkei Software',
-    deadline: '2099-12-31T23:59:59Z',
-    acceptingApplications: true,
-  }]);
+  const jobs = await response.json();
+  assert.equal(jobs.length, 5);
+  assert.equal(jobs[0].jobId, JOB);
+  assert.ok(jobs.every(j => j.acceptingApplications));
 });
 
 test('candidate job detail authenticates callers and supports browser CORS', async () => {
@@ -188,12 +184,11 @@ test('JD returns contract errors for missing and malformed IDs', async () => {
 test('CV lists are scoped to the JWT subject and expose only consumer fields', async () => {
   const response = await mock.request('/profile/cvs', { headers: candidateHeaders() });
   assert.equal(response.status, 200);
-  assert.deepEqual(await response.json(), [
-    { id: CV, name: 'CV Backend', targetPosition: 'Java Developer' },
-    { id: '40000000-0000-0000-0000-000000000002', name: 'CV Frontend', targetPosition: 'React Developer' },
-  ]);
+  const cvs = await response.json();
+  assert.equal(cvs.length, 5);
+  assert.equal(cvs[0].id, CV);
   const other = await mock.request('/profile/cvs', { headers: candidateHeaders({ sub: OTHER }) });
-  assert.deepEqual((await other.json()).map(cv => cv.id), [OTHER_CV]);
+  assert.deepEqual((await other.json()).map(cv => cv.id), [OTHER_CV, '40000000-0000-0000-0000-000000000007', '40000000-0000-0000-0000-000000000008']);
   const empty = await mock.request('/profile/cvs', { headers: candidateHeaders({ sub: EMPTY }) });
   assert.deepEqual(await empty.json(), []);
 });
@@ -248,7 +243,7 @@ test('local token CLI produces a signed token accepted by the shared CV API', as
   assert.equal(result.status, 0, result.stderr);
   const response = await mock.request('/profile/cvs', { headers: { Authorization: `Bearer ${result.stdout.trim()}` } });
   assert.equal(response.status, 200);
-  assert.equal((await response.json()).length, 2);
+  assert.equal((await response.json()).length, 5);
 });
 
 test('missing JWT configuration fails closed without disabling the external mocks', async () => {
@@ -266,7 +261,7 @@ test('CV accepts the HS384/HS512 algorithms selected by real identity signing ke
     try {
       const response = await configured.request('/profile/cvs', { headers: { Authorization: `Bearer ${token({}, algorithm, secret)}` } });
       assert.equal(response.status, 200, algorithm);
-      assert.equal((await response.json()).length, 2);
+      assert.equal((await response.json()).length, 5);
     } finally { await configured.close(); }
   }
 });

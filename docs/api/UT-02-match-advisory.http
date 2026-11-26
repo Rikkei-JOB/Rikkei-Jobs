@@ -1,0 +1,33 @@
+@base = http://localhost:8080/api/v1/recruitment
+@applicationId = replace-with-existing-application-id
+@hrToken = replace-with-own-company-hr-jwt
+@staffToken = replace-with-staff-jwt
+@adminToken = replace-with-admin-jwt
+@otherHrToken = replace-with-other-company-hr-jwt
+
+### Chi tiết: thêm matchStatus, giữ match và các trường hiện tại
+GET {{base}}/applications/{{applicationId}}
+Authorization: Bearer {{hrToken}}
+
+### HR lấy điểm hiện hành; nếu DN-06 tạm lỗi vẫn200 UNAVAILABLE/null
+GET {{base}}/applications/{{applicationId}}/match
+Authorization: Bearer {{hrToken}}
+
+### STAFF dùng quyền đọc hiện tại
+GET {{base}}/applications/{{applicationId}}/match
+Authorization: Bearer {{staffToken}}
+
+### ADMIN xem chi tiết được, matchStatus NOT_REQUESTED và match null
+GET {{base}}/applications/{{applicationId}}
+Authorization: Bearer {{adminToken}}
+
+### ADMIN retry phải403, không gọi DN-06
+GET {{base}}/applications/{{applicationId}}/match
+Authorization: Bearer {{adminToken}}
+
+### HR công ty khác phải404 trước lookup
+GET {{base}}/applications/{{applicationId}}/match
+Authorization: Bearer {{otherHrToken}}
+
+### Không JWT phải401
+GET {{base}}/applications/{{applicationId}}/match

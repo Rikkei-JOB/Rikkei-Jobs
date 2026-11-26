@@ -4,6 +4,7 @@ import com.rikkei.jobs.common.config.security.principle.AuthPrincipal;
 import com.rikkei.jobs.common.config.security.principle.Roles;
 import com.rikkei.jobs.common.dto.response.PageResponse;
 import com.rikkei.jobs.company.dto.response.JobResponse;
+import com.rikkei.jobs.company.dto.response.JobStatusSummary;
 import com.rikkei.jobs.company.dto.response.JobSummary;
 import com.rikkei.jobs.company.entity.JobStatus;
 import com.rikkei.jobs.company.service.JobService;
@@ -59,5 +60,19 @@ public class MyCompanyJobController {
     @PreAuthorize(Roles.HR)
     public JobResponse get(@PathVariable UUID id, @AuthenticationPrincipal AuthPrincipal principal) {
         return jobService.get(principal.getUserId(), id);
+    }
+
+    @Operation(
+            summary = "Tổng hợp JD của công ty mình",
+            description = "Vai trò: HR. Số JD theo từng trạng thái (đủ 5 khoá) và số JD APPROVED hết hạn trong 7 ngày tới. "
+                    + "Công ty LOCKED vẫn xem được.")
+    @ApiResponse(responseCode = "200", description = "{total, byStatus, expiringSoon}")
+    @ApiResponse(responseCode = "401", description = "UNAUTHORIZED: thiếu hoặc sai token; ACCOUNT_DISABLED: HR bị khoá")
+    @ApiResponse(responseCode = "403", description = "FORBIDDEN: không phải HR")
+    @ApiResponse(responseCode = "404", description = "NOT_FOUND: HR chưa được liên kết công ty")
+    @GetMapping("/summary")
+    @PreAuthorize(Roles.HR)
+    public JobStatusSummary summary(@AuthenticationPrincipal AuthPrincipal principal) {
+        return jobService.summaryMine(principal.getUserId());
     }
 }

@@ -55,9 +55,9 @@ function StaffCompaniesView() {
   const lastPage = data ? Math.max(1, Math.ceil(data.total / data.size)) : 1
 
   return (
-    <div className="mx-auto max-w-5xl space-y-4">
+    <div className="space-y-4">
       <div className="flex items-center justify-between gap-2">
-        <h1 className="font-heading text-lg font-semibold">Doanh nghiệp</h1>
+        <h1 className="text-xl font-semibold text-[#18233a]">Doanh nghiệp</h1>
         <Button onClick={() => setCreating(true)}>+ Tạo công ty</Button>
       </div>
 
@@ -71,7 +71,7 @@ function StaffCompaniesView() {
         />
       ) : null}
 
-      <div className="flex flex-wrap gap-2">
+      <div className="flex flex-wrap items-center gap-2">
         <Input
           type="search"
           value={search}
@@ -90,6 +90,7 @@ function StaffCompaniesView() {
           <option value="ACTIVE">Hoạt động</option>
           <option value="LOCKED">Đã khoá</option>
         </select>
+        {data ? <span className="text-xs text-muted-foreground">{data.total} công ty</span> : null}
       </div>
 
       {isPending && allowed ? <p className="text-xs text-muted-foreground">Đang tải...</p> : null}
@@ -108,7 +109,7 @@ function StaffCompaniesView() {
           <CompanyTable items={data.items} />
           <div className="mt-3 flex items-center justify-between text-xs text-muted-foreground">
             <span>
-              {data.total} công ty · Trang {data.page}/{lastPage}
+              Trang {data.page}/{lastPage}
             </span>
             <div className="flex gap-2">
               <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => navigate({ q, status, page: page - 1 })}>

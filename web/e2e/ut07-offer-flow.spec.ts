@@ -44,7 +44,7 @@ test("HR gửi offer lương gross theo tháng từ đơn có vòng cuối PASS"
     } });
     return route.fulfill({ headers: cors, json: {} });
   });
-  await page.goto(`/hr/recruitment/${applicationId}`);
+  await page.goto(`/hr/recruitment/${applicationId}?tab=offer`);
   await page.getByLabel("Vị trí offer").fill("Java Developer");
   await page.getByLabel("Lương gross/tháng (VND)").fill("12.000.000");
   await page.getByLabel("Ngày bắt đầu").fill("2030-02-01");
@@ -77,7 +77,7 @@ test("HR tải lại vẫn thấy xác nhận đi làm và không xác nhận l�
     } });
     return route.fulfill({ headers: cors, json: {} });
   });
-  await page.goto(`/hr/recruitment/${applicationId}`);
+  await page.goto(`/hr/recruitment/${applicationId}?tab=offer`);
   await expect(page.getByText(/Đã phản hồi:/)).toBeVisible();
   await page.getByRole("button", { name: "Xác nhận đã đi làm" }).click();
   await page.reload();
@@ -106,6 +106,7 @@ test("ứng viên nhận offer và thấy kinh nghiệm trên hồ sơ", async (
   await expect(page.getByText("12.000.000 VND/tháng (gross)")).toBeVisible();
   await page.screenshot({ path: "../docs/api/screenshots/ut07-candidate-offer.png", fullPage: true });
   await page.getByRole("button", { name: "Nhận offer" }).click();
+  await page.getByRole("button", { name: "Xác nhận nhận offer", exact: true }).click();
   await expect(page.getByText("Đã nhận", { exact: true })).toBeVisible();
   await page.goto("/candidate/profile");
   await expect(page.getByText("Java Developer tại Công ty A")).toBeVisible();
@@ -134,9 +135,10 @@ test("từ chối cần lý do và offer quá hạn không thể nhận", async 
     return route.fulfill({ headers: cors, json: [] });
   });
   await page.goto(`/candidate/offers/${offerId}`);
-  await expect(page.getByRole("button", { name: "Từ chối offer" })).toBeDisabled();
+  await page.getByRole("button", { name: "Từ chối offer", exact: true }).click();
+  await expect(page.getByRole("button", { name: "Xác nhận từ chối", exact: true })).toBeDisabled();
   await page.getByLabel("Lý do từ chối").fill("Đã chọn công việc khác");
-  await page.getByRole("button", { name: "Từ chối offer" }).click();
+  await page.getByRole("button", { name: "Xác nhận từ chối", exact: true }).click();
   await expect(page.getByText("Lý do từ chối: Đã chọn công việc khác")).toBeVisible();
   expect(declinedReason).toBe("Đã chọn công việc khác");
   status = "SENT";
@@ -166,6 +168,7 @@ test("server báo 409 khi offer vừa hết hạn thì tải lại trạng thái
   });
   await page.goto(`/candidate/offers/${offerId}`);
   await page.getByRole("button", { name: "Nhận offer" }).click();
+  await page.getByRole("button", { name: "Xác nhận nhận offer", exact: true }).click();
   await expect(page.getByRole("alert").filter({ hasText: "Offer đã hết hạn." })).toBeVisible();
   await expect(page.getByText("Đã hết hạn", { exact: true })).toBeVisible();
   await expect(page.getByRole("button", { name: "Nhận offer" })).toHaveCount(0);

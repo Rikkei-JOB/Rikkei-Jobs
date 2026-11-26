@@ -5,6 +5,7 @@
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
+    --color-heading: var(--heading);
     --font-heading: var(--font-sans);
     --font-sans: var(--font-sans);
     --color-sidebar-ring: var(--sidebar-ring);
@@ -48,6 +49,16 @@
 }
 
 :root {
+    --brand: #B4232D;
+    --brand-hover: #941C25;
+    --brand-soft: #FFF1F2;
+    --page-background: #F6F7FA;
+    --surface: #FFFFFF;
+    --heading: #18233A;
+    --body: #334155;
+    --text-muted: #64748B;
+    --surface-border: #E2E8F0;
+    --control-border: #64748B;
     --background: oklch(1 0 0);
     --foreground: oklch(0.145 0 0);
     --card: oklch(1 0 0);
@@ -80,6 +91,21 @@
     --sidebar-accent-foreground: oklch(0.205 0 0);
     --sidebar-border: oklch(0.922 0 0);
     --sidebar-ring: oklch(0.708 0 0);
+}
+
+/* Khung cán bộ (ManagerShell): đỏ Rikkei, nền xám nhạt; không đụng :root.
+   body:has(.hr-shell): hộp thoại/menu của trang HR portal ra body, ngoài .hr-theme của HrShell, nên cũng cần token đỏ. */
+.admin-theme,
+body:has(.hr-shell) {
+    --background: oklch(0.972 0.003 265);
+    --foreground: oklch(0.372 0.039 257);
+    --card: oklch(1 0 0);
+    --popover: oklch(1 0 0);
+    --primary: oklch(0.5 0.185 24);
+    --primary-foreground: oklch(1 0 0);
+    --ring: oklch(0.5 0.185 24);
+    --border: oklch(0.929 0.013 256);
+    --input: oklch(0.929 0.013 256);
 }
 
 .dark {

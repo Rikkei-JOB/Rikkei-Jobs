@@ -51,13 +51,6 @@ public class LoginServiceImpl implements LoginService {
             throw new ApiException(ErrorCode.INVALID_CREDENTIALS);
         }
 
-        // Khoá bởi cán bộ: từ chối cả khi sai mật khẩu, không đụng tới bộ đếm.
-        if (user.isAdminLocked()) {
-            throw new ApiException(ErrorCode.ACCOUNT_DISABLED);
-        }
-        if (user.isCompanyLocked()) {
-            throw new ApiException(ErrorCode.ACCOUNT_DISABLED, COMPANY_LOCKED_MESSAGE);
-        }
         // Đang bị khoá: từ chối cả khi nhập đúng mật khẩu.
         if (user.isLockedAt(now)) {
             throw locked(user, now);
@@ -81,6 +74,16 @@ public class LoginServiceImpl implements LoginService {
         }
 
         user.setFailedLoginCount(0);
+        // Khoá bởi cán bộ (riêng tài khoản hoặc theo công ty) chỉ được báo khi mật khẩu đúng.
+        // Báo sớm hơn thì ai cũng dò được email nào đang bị khoá.
+        if (user.isAdminLocked()) {
+            userRepository.save(user);
+            throw new ApiException(ErrorCode.ACCOUNT_DISABLED);
+        }
+        if (user.isCompanyLocked()) {
+            userRepository.save(user);
+            throw new ApiException(ErrorCode.ACCOUNT_DISABLED, COMPANY_LOCKED_MESSAGE);
+        }
         return userRepository.save(user);
     }
 

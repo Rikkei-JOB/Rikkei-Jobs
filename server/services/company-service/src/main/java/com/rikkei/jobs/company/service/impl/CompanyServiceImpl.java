@@ -113,6 +113,19 @@ public class CompanyServiceImpl implements CompanyService {
         return companyMapper.toResponse(companyRepository.save(company));
     }
 
+    @Override
+    @Transactional
+    public CompanyResponse updateCompany(UUID hrUserId, UUID companyId, UpdateCompanyRequest request) {
+        // Công ty khác và công ty không tồn tại trả cùng một lỗi 404, không lộ id có thật.
+        boolean ownsIt = companyHrRepository.findById(hrUserId)
+                .map(link -> link.getCompanyId().equals(companyId))
+                .orElse(false);
+        if (!ownsIt) {
+            throw OwnershipGuard.notFound("Không tìm thấy công ty");
+        }
+        return updateMine(hrUserId, request);
+    }
+
     /**
      * Cố ý không @Transactional bao ngoài: ghi tệp mới trước, lưu DB (giao dịch riêng của save),
      * chỉ xoá tệp cũ sau khi DB đã cập nhật để lỗi không bao giờ để công ty trỏ vào tệp không còn.

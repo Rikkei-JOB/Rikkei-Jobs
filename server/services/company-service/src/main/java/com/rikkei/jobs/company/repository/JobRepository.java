@@ -41,4 +41,10 @@ public interface JobRepository extends JpaRepository<Job, UUID> {
 
     @Query("select j " + VISIBLE_TO_CANDIDATES + " and j.id = :id")
     Optional<Job> findVisibleToCandidatesById(@Param("id") UUID id, @Param("today") LocalDate today);
+
+    /** Mỗi dòng là [status, số JD]; trạng thái không có JD sẽ không xuất hiện. */
+    @Query("select j.status, count(j) from Job j where j.companyId = :companyId group by j.status")
+    List<Object[]> countByStatus(@Param("companyId") UUID companyId);
+
+    long countByCompanyIdAndStatusAndDeadlineBetween(UUID companyId, JobStatus status, LocalDate from, LocalDate to);
 }

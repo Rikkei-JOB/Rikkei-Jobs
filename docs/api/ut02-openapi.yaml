@@ -16,7 +16,7 @@ paths:
         - $ref: '#/components/parameters/ApplicationId'
       responses:
         '200':
-          description: Chi tiết ứng viên, CV, điểm khớp hiện tại, vòng và lịch sử
+          description: Chi tiết ứng viên, CV, điểm tham khảo hiện tại, vòng và lịch sử; lỗi riêng DN-06 trả200 với matchStatus UNAVAILABLE
           content:
             application/json:
               schema: { $ref: '#/components/schemas/ApplicationDetail' }
@@ -29,6 +29,22 @@ paths:
               schema: { $ref: '#/components/schemas/Error' }
         '502': { $ref: '#/components/responses/Error' }
         '503': { $ref: '#/components/responses/Error' }
+  /applications/{id}/match:
+    get:
+      summary: HR/STAFF tải lại riêng điểm DN-06 tham khảo sau khi kiểm quyền đơn
+      operationId: getApplicationAdvisoryMatch
+      description: Không thay đổi trạng thái đơn. HR chỉ công ty mình, STAFF theo quyền đọc UT-02. ADMIN không được gọi. Lỗi riêng DN-06 vẫn trả200 UNAVAILABLE/null; lỗi quyền của API này vẫn401/403/404.
+      parameters:
+        - $ref: '#/components/parameters/ApplicationId'
+      responses:
+        '200':
+          description: Kết quả lookup hiện tại; không hydrate lại thông tin ứng viên/contact hoặc các form khác; giữ guard tài khoản chuẩn
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/MatchLookupResponse' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
   /applications/{id}/cv:
     get:
       summary: Tải bản CV đã nộp (CANDIDATE chủ đơn, HR cùng công ty, STAFF, ADMIN)
@@ -328,6 +344,22 @@ components:
         required: { type: boolean }
         minScore: { type: number }
         candidateScore: { type: number }
+    MatchStatus:
+      type: string
+      enum: [AVAILABLE, UNAVAILABLE, NOT_REQUESTED]
+      description: AVAILABLE gồm cả điểm0 và JD không kỹ năng; UNAVAILABLE không lấy được kết quả hợp lệ; NOT_REQUESTED dành cho ADMIN ở chi tiết đơn
+    MatchLookupResponse:
+      type: object
+      required: [matchStatus, match]
+      properties:
+        matchStatus: { $ref: '#/components/schemas/MatchStatus' }
+        match: { $ref: '#/components/schemas/NullableMatch' }
+    NullableMatch:
+      oneOf:
+        - $ref: '#/components/schemas/Match'
+        - type: object
+          nullable: true
+          enum: [null]
     Match:
       type: object
       required: [score, belowMinimum, met, missing]
@@ -378,7 +410,7 @@ components:
         createdAt: { type: string, format: date-time }
     ApplicationDetail:
       type: object
-      required: [id, jobId, jobTitle, companyId, companyName, status, createdAt, updatedAt, candidate, cvId, cvSnapshotUrl, rounds, roundRevisions, history, allowedTransitions]
+      required: [id, jobId, jobTitle, companyId, companyName, status, createdAt, updatedAt, candidate, cvId, cvSnapshotUrl, rounds, roundRevisions, history, allowedTransitions, matchStatus]
       properties:
         id: { type: string, format: uuid }
         jobId: { type: string, format: uuid }
@@ -392,9 +424,8 @@ components:
         cvId: { type: string, format: uuid }
         cvSnapshotUrl: { type: string }
         coverLetter: { type: string, nullable: true }
-        match:
-          allOf: [{ $ref: '#/components/schemas/Match' }]
-          nullable: true
+        matchStatus: { $ref: '#/components/schemas/MatchStatus' }
+        match: { $ref: '#/components/schemas/NullableMatch' }
         rounds: { type: array, items: { $ref: '#/components/schemas/Round' } }
         roundRevisions: { type: array, items: { $ref: '#/components/schemas/RoundRevision' } }
         history: { type: array, items: { $ref: '#/components/schemas/History' } }

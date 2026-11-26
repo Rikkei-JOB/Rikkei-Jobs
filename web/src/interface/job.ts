@@ -44,6 +44,8 @@ export interface JobSummary {
   status: JobStatus;
   deadline: string | null;
   updatedAt: string;
+  requiredSkillCount: number;
+  rejectReason: string | null;
 }
 
 /** Body POST /jobs và PUT /jobs/{id} (JobRequest): chỉ title bắt buộc khi lưu nháp, trường trống gửi null. */
@@ -63,6 +65,13 @@ export interface JobPayload {
   benefits: string | null;
   deadline: string | null;
   skills: JobSkill[];
+}
+
+/** GET /companies/me/jobs/summary: số JD theo trạng thái cho các thẻ ở đầu danh sách. */
+export interface JobStatusSummary {
+  total: number;
+  byStatus: Record<JobStatus, number>;
+  expiringSoon: number;
 }
 
 export interface JobListParams {

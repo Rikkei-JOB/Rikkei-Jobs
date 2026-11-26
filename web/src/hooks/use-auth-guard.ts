@@ -72,6 +72,7 @@ export function useRoleAccess(requiredRole: Role | null): RoleAccess {
       rememberNextPath(pathname);
       router.replace("/login");
     } else if (needsPasswordChange) {
+      rememberNextPath(pathname);
       router.replace("/change-password");
     }
   }, [hasHydrated, signedIn, needsPasswordChange, pathname, router]);

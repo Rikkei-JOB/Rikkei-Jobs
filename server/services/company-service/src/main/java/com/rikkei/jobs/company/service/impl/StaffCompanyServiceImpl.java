@@ -76,7 +76,8 @@ public class StaffCompanyServiceImpl implements StaffCompanyService {
         }
         List<StaffCompanyItem> items = result.getContent().stream()
                 .map(c -> new StaffCompanyItem(c.getId(), c.getName(), c.getTaxCode(), c.getStatus(),
-                        hrCounts.getOrDefault(c.getId(), 0L), jdCounts.getOrDefault(c.getId(), 0L), c.getCreatedAt()))
+                        hrCounts.getOrDefault(c.getId(), 0L), jdCounts.getOrDefault(c.getId(), 0L), c.getCreatedAt(),
+                        c.getLogoUrl(), c.getCity(), c.getSize()))
                 .toList();
         return PageResponse.of(result, items);
     }

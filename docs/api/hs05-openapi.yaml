@@ -63,6 +63,9 @@ paths:
       summary: List candidate profiles by review status (STAFF)
       parameters:
         - {in: query, name: status, schema: {type: string, enum: [PENDING, PUBLIC, REJECTED], default: PENDING}}
+        - {in: query, name: q, description: Literal substring of the candidate name (case-insensitive), schema: {type: string}}
+        - {in: query, name: classCode, description: Exact class (case-insensitive), schema: {type: string}}
+        - {in: query, name: courseName, description: Exact course (case-insensitive), schema: {type: string}}
         - {in: query, name: page, schema: {type: integer, minimum: 1, default: 1}}
         - {in: query, name: size, schema: {type: integer, minimum: 1, maximum: 100, default: 20}}
       responses:
@@ -73,7 +76,7 @@ paths:
               schema:
                 type: object
                 properties:
-                  items: {type: array, items: {$ref: './hs02-openapi.yaml#/components/schemas/Profile'}}
+                  items: {type: array, items: {$ref: '#/components/schemas/QueueRow'}}
                   total: {type: integer, format: int64}
                   page: {type: integer}
                   size: {type: integer}
@@ -86,7 +89,7 @@ paths:
       parameters:
         - {in: path, name: userId, required: true, schema: {type: string, format: uuid}}
       responses:
-        '200': {$ref: '#/components/responses/Profile'}
+        '200': {$ref: '#/components/responses/Decision'}
         '400': {description: Invalid input}
         '401': {description: Missing or invalid JWT}
         '403': {description: STAFF role required}
@@ -107,14 +110,90 @@ paths:
               properties:
                 reason: {type: string, minLength: 1, description: Nonblank reason shown to the candidate}
       responses:
-        '200': {$ref: '#/components/responses/Profile'}
+        '200': {$ref: '#/components/responses/Decision'}
         '400': {description: Invalid input}
         '401': {description: Missing or invalid JWT}
         '403': {description: STAFF role required}
         '404': {description: Candidate profile missing}
         '409': {description: Profile is no longer pending}
+  /staff/profiles/{userId}/preview:
+    parameters:
+      - {$ref: '#/components/parameters/UserId'}
+    get:
+      summary: Preview a pending profile for STAFF, with the HR skill projection
+      responses:
+        '200':
+          description: Review metadata and skills. Email and phone are omitted.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  userId: {type: string, format: uuid}
+                  fullName: {type: string}
+                  classCode: {type: string}
+                  courseName: {type: string}
+                  headline: {type: string, nullable: true}
+                  summary: {type: string, nullable: true}
+                  skills: {type: array, items: {$ref: './hs01-openapi.yaml#/components/schemas/SkillProfile'}}
+        '401': {description: Missing or invalid JWT}
+        '403': {description: STAFF role required}
+        '404': {description: Candidate profile missing}
+        '409': {description: Profile has left the queue}
+  /staff/profiles/{userId}/self-declared:
+    parameters:
+      - {$ref: '#/components/parameters/UserId'}
+    put:
+      summary: STAFF edits a self-declared field of a pending profile and records the reason
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [field, value, reason]
+              properties:
+                reason: {type: string, minLength: 1, description: Nonblank after trimming}
+              oneOf:
+                - properties:
+                    field: {type: string, enum: [headline]}
+                    value: {type: string, maxLength: 255}
+                - properties:
+                    field: {type: string, enum: [summary]}
+                    value: {type: string, maxLength: 5000}
+                - properties:
+                    field: {type: string, enum: [selfSkills]}
+                    value:
+                      type: array
+                      description: Full replacement of SELF entries. An empty array clears all self-reported skills.
+                      items:
+                        type: object
+                        required: [skillId, selfScore]
+                        additionalProperties: false
+                        properties:
+                          skillId: {type: string, format: uuid}
+                          selfScore: {type: number, minimum: 0, maximum: 100, multipleOf: 0.000001}
+            example: {field: summary, value: Mong muốn phát triển ứng dụng Java., reason: Chuẩn hóa cách trình bày.}
+      responses:
+        '204': {description: Field and audit entry saved atomically}
+        '400': {description: Unsupported field or invalid value or reason}
+        '401': {description: Missing or invalid JWT}
+        '403': {description: STAFF role required}
+        '404': {description: Candidate profile missing}
+        '409': {description: Profile has left the queue}
 components:
+  parameters:
+    UserId: {in: path, name: userId, required: true, schema: {type: string, format: uuid}}
   responses:
+    Decision:
+      description: New visibility after the staff decision
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [visibility]
+            properties:
+              visibility: {type: string, enum: [PUBLIC, REJECTED]}
     Profile:
       description: Updated candidate profile
       content:
@@ -123,6 +202,17 @@ components:
   securitySchemes:
     bearerAuth: {type: http, scheme: bearer, bearerFormat: JWT}
   schemas:
+    QueueRow:
+      type: object
+      required: [userId, fullName, classCode, courseName, consentAt, visibility, rejectCount]
+      properties:
+        userId: {type: string, format: uuid}
+        fullName: {type: string}
+        classCode: {type: string}
+        courseName: {type: string}
+        consentAt: {type: string, format: date-time, nullable: true, description: Most recent submission}
+        visibility: {type: string, enum: [PENDING, PUBLIC, REJECTED]}
+        rejectCount: {type: integer, format: int64, minimum: 0}
     Review:
       type: object
       required: [id, userId, action, actorId, createdAt]

@@ -10,8 +10,13 @@ import { useAuthGuard } from "@/hooks/use-auth-guard";
 import type { HrApplicationPage } from "@/interface/hr-application";
 import { hrApplicationService } from "@/services/hr-application.service";
 import { getErrorMessage } from "@/services/api";
+import { HrApplicationList } from "./hr-application-list";
 
 export function ApplicationTable({ role }: { role: "HR" | "STAFF" | "ADMIN" }) {
+  return role === "HR" ? <HrApplicationList /> : <StaffApplicationTable role={role} />;
+}
+
+function StaffApplicationTable({ role }: { role: "STAFF" | "ADMIN" }) {
   const allowed = useAuthGuard({ roles: [role] });
   const router = useRouter();
   const search = useSearchParams();
@@ -23,13 +28,13 @@ export function ApplicationTable({ role }: { role: "HR" | "STAFF" | "ADMIN" }) {
   const [data, setData] = useState<HrApplicationPage | null>(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
-  const root = role === "HR" ? "/hr/recruitment" : role === "ADMIN" ? "/admin/applications" : "/staff/applications";
+  const root = role === "ADMIN" ? "/admin/applications" : "/staff/applications";
 
   useEffect(() => {
     if (!allowed) return;
     let active = true;
     const params = { companyId: companyId || undefined, jobId: jobId || undefined, status, page, size: 20 };
-    (role === "HR" ? hrApplicationService.listHr(params) : hrApplicationService.listStaff(params))
+    hrApplicationService.listStaff(params)
       .then(value => { if (active) { setData(value); setError(""); } })
       .catch(reason => { if (active) setError(getErrorMessage(reason)); })
       .finally(() => { if (active) setLoading(false); });
@@ -47,10 +52,10 @@ export function ApplicationTable({ role }: { role: "HR" | "STAFF" | "ADMIN" }) {
   }
   if (!allowed) return null;
   return <main className="min-h-screen bg-muted/20 px-4 py-8 sm:px-6"><div className="mx-auto max-w-6xl space-y-6">
-    <header><h1 className="text-3xl font-semibold">{role === "HR" ? "Đơn ứng tuyển" : "Toàn bộ đơn ứng tuyển"}</h1>
+    <header><h1 className="text-3xl font-semibold">Toàn bộ đơn ứng tuyển</h1>
       <p className="mt-2 text-sm text-muted-foreground">Theo dõi tiến trình tuyển dụng và mở từng đơn để xem chi tiết.</p></header>
     <section className="grid gap-3 rounded-xl border bg-background p-4 sm:grid-cols-3">
-      {role !== "HR" && <label className="text-sm">Mã công ty<input aria-label="Mã công ty" defaultValue={companyId} key={`company-${companyId}`}
+      {<label className="text-sm">Mã công ty<input aria-label="Mã công ty" defaultValue={companyId} key={`company-${companyId}`}
         onBlur={event => navigate({ companyId: event.target.value.trim(), page: "" })}
         onKeyDown={event => { if (event.key === "Enter") event.currentTarget.blur(); }}
         className="mt-1 w-full rounded-lg border bg-background px-3 py-2" placeholder="UUID công ty" /></label>}

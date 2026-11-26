@@ -1,0 +1,19 @@
+@baseUrl = http://localhost:8080/api/v1
+@candidateToken = REPLACE_WITH_CANDIDATE_JWT
+@notificationId = REPLACE_WITH_NOTIFICATION_UUID
+
+### Feed: own notifications, 1-based page, size 1–100
+GET {{baseUrl}}/recruitment/me/notifications?page=1&size=10
+Authorization: Bearer {{candidateToken}}
+
+### Unread only; unreadCount always counts all unread items for the caller
+GET {{baseUrl}}/recruitment/me/notifications?unreadOnly=true
+Authorization: Bearer {{candidateToken}}
+
+### Idempotent read; 204 or 404 for missing/another user's notification
+POST {{baseUrl}}/recruitment/me/notifications/{{notificationId}}/read
+Authorization: Bearer {{candidateToken}}
+
+### Idempotent read-all; affects only current JWT owner
+POST {{baseUrl}}/recruitment/me/notifications/read-all
+Authorization: Bearer {{candidateToken}}

@@ -1,3 +1,3 @@
-import { CandidateOfferList } from "@/app/components/offers/candidate-offer-list";
+import { redirect } from "next/navigation";
 
-export default function CandidateOffersPage() { return <CandidateOfferList />; }
+export default function CandidateOffersPage() { redirect("/candidate/applications"); }

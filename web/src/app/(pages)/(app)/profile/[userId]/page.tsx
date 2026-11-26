@@ -6,6 +6,7 @@ import { ArrowLeft } from "lucide-react";
 import { useAuthStore } from "@/hooks/use-auth-store";
 import { ROLE_HOME } from "@/config/roles";
 import { SkillProfile } from "@/app/components/skills/skill-profile";
+import { Portfolio } from "@/app/components/profile/portfolio";
 
 /**
  * Xem hồ sơ kỹ năng của một ứng viên (chỉ đọc, HS-01). Mọi vai trò đã đăng nhập vào được;
@@ -31,6 +32,7 @@ export default function CandidateProfilePage({
         <span>Quay lại trang chủ</span>
       </Link>
       <SkillProfile userId={userId} readOnly={true} />
+      <Portfolio userId={userId} />
     </div>
   );
 }

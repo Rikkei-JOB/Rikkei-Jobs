@@ -74,7 +74,8 @@ Qua gateway `http://localhost:8080/api/v1` (gateway có thêm `/api/v1/jobs/**` 
 
 | Endpoint | Vai trò | Thành công | Lỗi chính |
 | --- | --- | --- | --- |
-| `GET /companies/me/jobs?status=&page=1&size=20` | `HR` | 200 `PageResponse<JobSummary>` (`id, title, level, status, deadline, updatedAt`), mới cập nhật trước | 400 `BAD_REQUEST` (page/size/status sai), 404 (HR chưa có công ty) |
+| `GET /companies/me/jobs?status=&page=1&size=20` | `HR` | 200 `PageResponse<JobSummary>` (`id, title, level, status, deadline, updatedAt, requiredSkillCount, rejectReason`), mới cập nhật trước | 400 `BAD_REQUEST` (page/size/status sai), 404 (HR chưa có công ty) |
+| `GET /companies/me/jobs/summary` | `HR` | 200 `{total, byStatus: {DRAFT, PENDING, APPROVED, REJECTED, CLOSED}, expiringSoon}` | 404 (HR chưa có công ty) |
 | `POST /jobs` | `HR` | 201 `JobResponse`, `DRAFT` | 400 `VALIDATION_ERROR`, 403 `COMPANY_LOCKED`, 503 `EXTERNAL_UNAVAILABLE` |
 | `GET /jobs/{id}` | `HR` | 200 `JobResponse` | 404 `NOT_FOUND` |
 | `PUT /jobs/{id}` | `HR` | 200 `JobResponse` | 400, 403 `COMPANY_LOCKED`, 404, 409 `JOB_NOT_EDITABLE` / `CONFLICT`, 503 |
@@ -89,6 +90,8 @@ Quyền:
 - `@PreAuthorize(Roles.HR)` trên từng method (không đặt ở mức class, để DN-04/DN-07 nới `GET /jobs/{id}` theo vai trò).
 - JD của công ty khác và id không tồn tại cho **cùng một** 404 `NOT_FOUND` "Không tìm thấy JD" (lọc bằng `findByIdAndCompanyId`).
 - Công ty `LOCKED`: `GET` vẫn 200; `POST /jobs`, `PUT`, `submit`, `close` → 403 `COMPANY_LOCKED`.
+
+Hai trường mới của `JobSummary` (làm lại giao diện DN-05): `requiredSkillCount` là số kỹ năng bắt buộc của JD; `rejectReason` chỉ khác `null` khi `REJECTED`. `GET /companies/me/jobs/summary` đếm JD của công ty theo trạng thái (đủ 5 khoá, trạng thái không có JD là 0); `expiringSoon` là số JD `APPROVED` có hạn nộp từ hôm nay đến hôm nay + 7 ngày (tính theo giờ Việt Nam). Công ty `LOCKED` vẫn gọi được.
 
 Body `JobRequest`: `title` (bắt buộc), `position`, `level`, `type`, `quantity`, `city`, `address`, `workMode`, `salaryMin`, `salaryMax`, `description`, `requirements`, `benefits`, `deadline` (`yyyy-MM-dd`), `skills` tuỳ chọn `[{skillId, required, minScore}]`.
 
@@ -160,8 +163,8 @@ Trong lúc chờ duyệt lại sau khi sửa JD `APPROVED`, `application-context
 
 ## 5. Giao diện
 
-- **`/hr/jobs`**: tiêu đề "JD của <tên công ty>", nút "+ Tạo JD"; tab Tất cả / Nháp / Chờ duyệt / Đang tuyển / Bị trả lại / Đã đóng (gọi `GET /companies/me/jobs?status=`); bảng Tiêu đề, Cấp độ, Hạn nộp, Trạng thái (nhãn màu), Cập nhật; phân trang. Bấm dòng `DRAFT`/`REJECTED`/`APPROVED` mở form sửa, `PENDING`/`CLOSED` mở chế độ chỉ xem. Công ty bị khoá: banner, ẩn "+ Tạo JD".
-- **Form 2 bước** (`/hr/jobs/new`, `/hr/jobs/{id}`): "1. Thông tin chung" → "2. Kỹ năng yêu cầu", chuyển bước không gọi API. JD `REJECTED` có banner đỏ "Lý do trả lại: …" ở cả hai bước.
+- **`/hr/jobs`** (bảng tin JD, làm lại ở DN-05): tiêu đề "JD của <tên công ty>", nút "+ Tạo JD"; 6 thẻ trạng thái Tất cả / Nháp / Chờ duyệt / Đang tuyển / Bị trả lại / Đã đóng, số lấy từ `GET /companies/me/jobs/summary`, thẻ Đang tuyển ghi thêm "N sắp hết hạn"; bấm thẻ lọc bằng `?status=` (gọi `GET /companies/me/jobs?status=`). Mỗi dòng có tiêu đề kèm dòng phụ (số kỹ năng bắt buộc, hoặc lý do trả lại với JD `REJECTED`), cấp độ, hạn nộp dạng "còn N ngày" (đỏ khi còn ≤ 7 ngày), nhãn trạng thái, thời điểm cập nhật và menu ⋯ (Sửa / Gửi duyệt / Đóng JD / Xem, tuỳ trạng thái); phân trang. Bấm dòng `DRAFT`/`REJECTED`/`APPROVED` mở form sửa, `PENDING`/`CLOSED` mở chế độ chỉ xem. Công ty bị khoá: banner, ẩn "+ Tạo JD".
+- **Form 2 bước** (`/hr/jobs/new`, `/hr/jobs/{id}`), có thẻ "Xem trước như ứng viên" cập nhật theo dữ liệu đang nhập (cột bên phải từ 1280px, thu gọn được ở màn hẹp hơn) và thanh nút dính đáy màn hình: "1. Thông tin chung" → "2. Kỹ năng yêu cầu", chuyển bước không gọi API. JD `REJECTED` có banner đỏ "Lý do trả lại: …" ở cả hai bước.
   - Bước 1: Tiêu đề; Vị trí · Cấp độ · Loại hình; Lương từ · đến · Hình thức; Thành phố · Địa chỉ · Số lượng · Hạn nộp; Mô tả; Yêu cầu khác · Quyền lợi. Dấu sao nghĩa là bắt buộc **khi gửi duyệt**; lưu nháp chỉ cần Tiêu đề.
   - Bước 2: ô "Thêm kỹ năng…" lọc trong danh mục; hai khối **Bắt buộc** (đỏ, "thiếu là không đạt") và **Ưu tiên** (xanh, "có thì cộng điểm"); mỗi dòng có thanh trượt 1–100 (vạch 40/70/85, nhãn "70 · Tốt"), nút chuyển khối, nút xoá. Kỹ năng mới vào khối Bắt buộc, mặc định 40.
   - **Lưu nháp** ở cả hai bước (lần đầu `POST /jobs`, sau đó `PUT /jobs/{id}`, luôn kèm `skills`); **Gửi duyệt** ở bước 2 (lưu rồi `submit`). Lỗi `VALIDATION_ERROR` hiện theo từng trường và chuyển về bước có lỗi (`skills` → bước 2). Khi đang lưu, form và các nút bị khoá.
@@ -274,14 +277,16 @@ Tên lớp test là các lớp trong `server/services/company-service/src/test` 
 - Người làm task kiểm tra lại trên giao diện với dữ liệu seed (hr1, hr2, candidate1, staff1), đạt: danh sách và lọc theo trạng thái; sửa JD bị trả lại (banner lý do, thanh trượt đổi bậc đúng mốc 40/70/85, chuyển khối, thêm kỹ năng) rồi gửi duyệt; JD chờ duyệt chỉ xem; tạo JD mới loại Thực tập với lỗi hạn nộp quá khứ, lương min > max, số lượng quá lớn; gửi duyệt thiếu kỹ năng bắt buộc bị chặn ở bước 2, bấm gửi hai lần chỉ gửi một lần; candidate1 ứng tuyển JD đang tuyển qua `/candidate/applications/new?jobId=…`, MailHog nhận email cho HR, nộp lại → 409; sửa JD đang tuyển → hộp xác nhận → Chờ duyệt, ứng tuyển lại bị chặn; hr2 mở JD của Công ty A → "Không tìm thấy JD"; cột Số JD ở `/staff/companies` đúng.
 - Chưa thử tay: đóng JD `APPROVED`, công ty `LOCKED` và HR bị khoá; các ca này có test tự động ở mục 8.
 
-**Ảnh minh chứng** (chụp 2026-11-19 khi chạy lại toàn hệ thống; Công ty A đã được đổi tên thành "RikkeiSoft", danh sách có thêm JD tạo trong các lần thử và hai JD mẫu của DN-06):
+**Ảnh minh chứng** (giao diện sau khi làm lại — DN-05 UI refresh, trong khung HR của hr1; chụp ngày 2026-11-25; Công ty A trên DB dev tên "RikkeiSoft"):
 
 | Ca (mục 8) | Ảnh | Nội dung |
 | --- | --- | --- |
-| 9 | ![Danh sách JD](screenshots/DN-02/list-job.png) | `/hr/jobs`: tab theo trạng thái, nhãn màu Nháp / Chờ duyệt / Đang tuyển / Đã đóng, phân trang "11 JD · Trang 1/1" |
-| 2 | ![Lỗi bước 1](screenshots/DN-02/step1-errors.png) | Tạo JD: lương tối đa nhỏ hơn tối thiểu và hạn nộp ở quá khứ báo lỗi ngay dưới từng ô; nút bước 1 có dấu lỗi |
-| 4 | ![Gửi duyệt thiếu kỹ năng bắt buộc](screenshots/DN-02/submit-no-required-skill.png) | Chỉ có kỹ năng ưu tiên, bấm Gửi duyệt: "Cần ít nhất một kỹ năng bắt buộc", ở lại bước 2 |
-| — | ![Bước kỹ năng](screenshots/DN-02/skills-step.png) | Bước 2 của JD đang tuyển: khối Bắt buộc / Ưu tiên, thanh trượt có mốc 40/70/85 và nhãn "60 · Khá", nút chuyển khối và nút xoá (chỉ mở xem, không lưu) |
-| 5 | ![JD chờ duyệt chỉ xem](screenshots/DN-02/pending-readonly.png) | JD "Chờ duyệt": "JD đang chờ duyệt, không sửa được.", mọi ô bị khoá |
+| 9 | ![Danh sách tin tuyển dụng](screenshots/DN-02/list-job.png) | `/hr/jobs` "Tin tuyển dụng": 6 thẻ số liệu (Tất cả 11, Nháp 2, Chờ duyệt 6, Đang tuyển 2, Bị trả lại 0, Đã đóng 1), dòng phụ dưới tiêu đề ("N kỹ năng bắt buộc" / "Chưa có kỹ năng bắt buộc"), hạn nộp kèm "còn N ngày" / "đã quá hạn". Lúc chụp không có JD đang tuyển nào hết hạn trong 7 ngày và không có JD bị trả lại, nên chưa thấy dòng "N sắp hết hạn" và dòng lý do trả lại (hai trường hợp này có test tự động) |
+| 5 | ![Menu thao tác](screenshots/DN-02/job-row-menu.png) | Menu ⋯ mở trên tin nháp "Middle Java Developer": "Sửa", "Gửi duyệt" |
+| 5 | ![Đóng tin từ menu](screenshots/DN-02/job-close-confirm.png) | Menu ⋯ → "Đóng JD" trên tin đang tuyển JD6: hộp "Đóng JD?" với nút "Đóng JD" màu đỏ (bấm Huỷ sau khi chụp, JD6 vẫn đang tuyển) |
+| 2 | ![Lỗi bước 1](screenshots/DN-02/step1-errors.png) | Tạo tin: lương tối đa nhỏ hơn tối thiểu và hạn nộp ở quá khứ báo lỗi dưới từng ô, bước 1 có dấu "!"; thẻ "Xem trước như ứng viên" bên phải; thanh nút dính đáy |
+| 4 | ![Gửi duyệt thiếu kỹ năng bắt buộc](screenshots/DN-02/submit-no-required-skill.png) | Chỉ có kỹ năng ưu tiên (Git, Docker), bấm Gửi duyệt: "Cần ít nhất một kỹ năng bắt buộc", ở lại bước 2, không gửi request nào |
+| — | ![Bước kỹ năng và xem trước](screenshots/DN-02/skills-step.png) | Bước 2: khối Bắt buộc (Java 70 · Tốt, Spring Boot 85 · Xuất sắc) / Ưu tiên (Git, Docker 40 · Khá), thanh trượt có mốc 40/70/85; thẻ xem trước hiện chip kỹ năng (bắt buộc đỏ, ưu tiên xám) |
+| 5 | ![Tin chờ duyệt chỉ xem](screenshots/DN-02/pending-readonly.png) | Tin "Chờ duyệt": "JD đang chờ duyệt, không sửa được.", mọi ô bị khoá, không có thanh nút |
 
 Hộp xác nhận "Lưu và gửi duyệt lại" (ca 6) không chụp lại; đã kiểm ở lần chạy ngày 18/11/2026 phía trên và có test tự động ở mục 8.

@@ -81,12 +81,45 @@
       "jobTitle": "JD của công ty bị khoá", "companyName": "Công ty B",
       "status": "APPROVED", "deadline": "2099-12-31T23:59:59Z",
       "companyLocked": true, "hrEmails": ["hr2@rikkeijobs.test"]
+    },
+    {
+      "jobId": "10000000-0000-0000-0000-000000000005",
+      "companyId": "00000000-0000-0000-0000-0000000000a1",
+      "jobTitle": "Frontend React Developer", "companyName": "Rikkei Software",
+      "status": "APPROVED", "deadline": "2099-12-31T23:59:59Z",
+      "companyLocked": false, "hrEmails": ["hr1@rikkeijobs.test"]
+    },
+    {
+      "jobId": "10000000-0000-0000-0000-000000000006",
+      "companyId": "00000000-0000-0000-0000-0000000000a1",
+      "jobTitle": "Fullstack Spring & Next.js Engineer", "companyName": "Rikkei Software",
+      "status": "APPROVED", "deadline": "2099-12-31T23:59:59Z",
+      "companyLocked": false, "hrEmails": ["hr1@rikkeijobs.test"]
+    },
+    {
+      "jobId": "10000000-0000-0000-0000-000000000007",
+      "companyId": "00000000-0000-0000-0000-0000000000b2",
+      "jobTitle": "DevOps & Cloud Engineer", "companyName": "Công ty B",
+      "status": "APPROVED", "deadline": "2099-12-31T23:59:59Z",
+      "companyLocked": false, "hrEmails": ["hr2@rikkeijobs.test"]
+    },
+    {
+      "jobId": "10000000-0000-0000-0000-000000000008",
+      "companyId": "00000000-0000-0000-0000-0000000000b2",
+      "jobTitle": "QA Automation Engineer", "companyName": "Công ty B",
+      "status": "APPROVED", "deadline": "2099-12-31T23:59:59Z",
+      "companyLocked": false, "hrEmails": ["hr2@rikkeijobs.test"]
     }
   ],
   "cvs": [
     { "id": "40000000-0000-0000-0000-000000000001", "ownerId": "30000000-0000-0000-0000-000000000001", "name": "CV Backend", "targetPosition": "Java Developer" },
     { "id": "40000000-0000-0000-0000-000000000002", "ownerId": "30000000-0000-0000-0000-000000000001", "name": "CV Frontend", "targetPosition": "React Developer" },
-    { "id": "40000000-0000-0000-0000-000000000003", "ownerId": "30000000-0000-0000-0000-000000000002", "name": "CV ứng viên khác", "targetPosition": "QA Engineer" }
+    { "id": "40000000-0000-0000-0000-000000000003", "ownerId": "30000000-0000-0000-0000-000000000002", "name": "CV ứng viên khác", "targetPosition": "QA Engineer" },
+    { "id": "40000000-0000-0000-0000-000000000004", "ownerId": "30000000-0000-0000-0000-000000000001", "name": "CV Fullstack Developer", "targetPosition": "Fullstack Engineer" },
+    { "id": "40000000-0000-0000-0000-000000000005", "ownerId": "30000000-0000-0000-0000-000000000001", "name": "CV DevOps & Cloud", "targetPosition": "DevOps Engineer" },
+    { "id": "40000000-0000-0000-0000-000000000006", "ownerId": "30000000-0000-0000-0000-000000000001", "name": "CV AI & Data Specialist", "targetPosition": "AI Engineer" },
+    { "id": "40000000-0000-0000-0000-000000000007", "ownerId": "30000000-0000-0000-0000-000000000002", "name": "CV Automation Test", "targetPosition": "QA Automation Tester" },
+    { "id": "40000000-0000-0000-0000-000000000008", "ownerId": "30000000-0000-0000-0000-000000000002", "name": "CV Mobile Developer", "targetPosition": "Flutter Developer" }
   ],
   "courses": [
     { "courseId": "LMS-C-JAVA-02", "name": "Java nâng cao", "skills": ["JAVA", "OOP"], "level": "Khá" },

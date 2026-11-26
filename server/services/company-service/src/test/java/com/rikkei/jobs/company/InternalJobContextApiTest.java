@@ -29,6 +29,7 @@ import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.test.context.TestPropertySource;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 @TestPropertySource(properties = "app.internal.service-key=test-internal-key")
 class InternalJobContextApiTest extends CompanyApiTestSupport {
@@ -87,6 +88,25 @@ class InternalJobContextApiTest extends CompanyApiTestSupport {
         ArgumentCaptor<List<UUID>> ids = ArgumentCaptor.forClass(List.class);
         verify(identity).lookupUsers(ids.capture());
         assertThat(ids.getValue()).containsExactlyInAnyOrder(HR1, hr3);
+    }
+
+    /** Gọi identity trong transaction thì giữ connection DB suốt lúc chờ mạng; identity chậm là cạn pool. */
+    @Test
+    void identityLookupRunsOutsideTransaction() throws Exception {
+        Company company = saveCompany("0100000009", CompanyStatus.ACTIVE);
+        Job job = approvedJob(company.getId());
+        linkHr(HR1, company.getId());
+        List<Boolean> txActive = new java.util.ArrayList<>();
+        when(identity.lookupUsers(anyList())).thenAnswer(inv -> {
+            txActive.add(TransactionSynchronizationManager.isActualTransactionActive());
+            return List.of(user(HR1, "hr1@rikkeijobs.test", "ACTIVE"));
+        });
+
+        mvc.perform(get("/internal/jobs/{id}/application-context", job.getId()).header(KEY, KEY_VALUE))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.hrEmails[0]").value("hr1@rikkeijobs.test"));
+
+        assertThat(txActive).containsExactly(false);
     }
 
     @Test

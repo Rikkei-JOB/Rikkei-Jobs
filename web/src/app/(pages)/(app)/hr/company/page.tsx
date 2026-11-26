@@ -2,50 +2,41 @@
 
 import * as React from "react"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 import { Alert } from "@/app/components/ui/alert"
 import { Button } from "@/app/components/ui/button"
-import { CompanyProfileForm } from "@/app/components/company/company-profile-form"
-import { CompanySummaryCard } from "@/app/components/company/company-summary-card"
+import { CompanyHeader } from "@/app/components/company/company-header"
+import { CompanyOpenJobs } from "@/app/components/company/company-open-jobs"
+import { ConfirmDialog } from "@/app/components/job/confirm-dialog"
+import { CompanyProfileForm, type CompanyTab } from "@/app/components/company/company-profile-form"
 import { useAuthGuard } from "@/hooks/use-auth-guard"
-import { useMyCompany, useUploadMyLogo } from "@/hooks/use-my-company"
+import { useMyCompany } from "@/hooks/use-my-company"
+import { useOpenJobs } from "@/hooks/use-my-jobs"
 import { getErrorMessage } from "@/services/api"
 
-/** Hồ sơ công ty của HR: thẻ tóm tắt cố định bên trái, form chỉnh sửa bên phải (một cột trên màn hẹp). */
+/** Hồ sơ công ty của HR: đầu trang + 3 tab; hai tab đầu dùng chung một form với thanh lưu dính đáy. */
 export default function HrCompanyPage() {
   const allowed = useAuthGuard({ roles: ["HR"] })
   const { data: company, error, isPending, refetch } = useMyCompany(allowed)
-  const uploadLogo = useUploadMyLogo()
-  const [logoError, setLogoError] = React.useState<string | null>(null)
+  const { data: openJobs = [], error: jobsError, isPending: jobsPending, refetch: refetchJobs } = useOpenJobs(allowed)
+  const router = useRouter()
   const [dirty, setDirty] = React.useState(false)
+  const [confirmLeave, setConfirmLeave] = React.useState(false)
+  const [tab, setTab] = React.useState<CompanyTab>("intro")
 
   if (!allowed) return null
 
-  // File đã được thẻ tóm tắt kiểm tra (định dạng, dung lượng) trước khi hiện xem trước.
-  function handleLogoUpload(file: File, onSuccess: () => void) {
-    setLogoError(null)
-    uploadLogo.mutate(file, { onSuccess, onError: (e) => setLogoError(getErrorMessage(e)) })
-  }
-
   const locked = company?.status === "LOCKED"
+  const tabs: { id: CompanyTab; label: string }[] = [
+    { id: "intro", label: "Giới thiệu" },
+    { id: "contact", label: "Thông tin liên hệ" },
+    { id: "jobs", label: jobsPending || jobsError ? "Việc làm đang tuyển" : `Việc làm đang tuyển (${openJobs.length})` },
+  ]
 
   return (
-    // Nằm trong <main> của layout (app) (NT-02), nên dùng <div> và không thêm padding.
-    <div className="mx-auto max-w-5xl space-y-4">
-      <div className="flex flex-wrap items-start justify-between gap-2">
-        <h1 className="font-heading text-lg font-semibold">Hồ sơ công ty</h1>
-        <div className="flex flex-col items-end gap-1">
-          <div className="flex gap-2">
-            {company ? (
-              <Button size="sm" render={<Link href="/hr/company/preview" />} nativeButton={false}>
-                Xem như ứng viên
-              </Button>
-            ) : null}
-            <Button variant="outline" size="sm" render={<Link href="/hr" />} nativeButton={false}>
-              Quay lại
-            </Button>
-          </div>
-          {dirty ? <p className="text-xs text-muted-foreground">Xem trước chỉ hiện bản đã lưu</p> : null}
-        </div>
+    <div className="hr-page">
+      <div className="hr-page-heading">
+        <div><p className="hr-eyebrow">THÔNG TIN DOANH NGHIỆP</p><h1>Hồ sơ công ty</h1><p className="hr-description">Giới thiệu doanh nghiệp để ứng viên hiểu hơn về nơi làm việc.</p></div>
       </div>
 
       {isPending ? <p className="text-xs text-muted-foreground">Đang tải...</p> : null}
@@ -61,22 +52,68 @@ export default function HrCompanyPage() {
 
       {company ? (
         <>
+          <CompanyHeader
+            titleAs="h2"
+            company={company}
+            subline={`MST ${company.taxCode} · ${company.status === "ACTIVE" ? "Đang hoạt động" : "Đang bị khoá"} · Liên hệ cán bộ để đổi`}
+            actions={
+              dirty ? (
+                <Button size="sm" onClick={() => setConfirmLeave(true)}>
+                  Xem như ứng viên
+                </Button>
+              ) : (
+                <Button size="sm" render={<Link href="/hr/company/preview" />} nativeButton={false}>
+                  Xem như ứng viên
+                </Button>
+              )
+            }
+            tabs={
+              <div role="tablist" aria-label="Hồ sơ công ty" className="flex gap-1">
+                {tabs.map((t) => (
+                  <button
+                    key={t.id}
+                    type="button"
+                    role="tab"
+                    aria-selected={tab === t.id}
+                    onClick={() => setTab(t.id)}
+                    className={`-mb-px border-b-2 px-3 py-2.5 text-xs font-medium whitespace-nowrap ${
+                      tab === t.id
+                        ? "border-primary text-primary"
+                        : "border-transparent text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    {t.label}
+                  </button>
+                ))}
+              </div>
+            }
+          />
           {locked ? <Alert>Công ty đang bị khoá, bạn chỉ xem được hồ sơ.</Alert> : null}
-          <div className="grid gap-4 md:grid-cols-[280px_1fr] md:items-start">
-            <CompanySummaryCard
-              company={company}
-              onLogoUpload={handleLogoUpload}
-              uploading={uploadLogo.isPending}
-              error={logoError}
-              disabled={locked}
+          <CompanyProfileForm company={company} disabled={locked} tab={tab} onTabChange={setTab} onDirtyChange={setDirty} />
+          {tab === "jobs" ? (
+            jobsError ? (
+              <Alert variant="destructive" className="flex items-center justify-between gap-2">
+                <span>{getErrorMessage(jobsError)}</span>
+                <Button variant="outline" size="sm" onClick={() => refetchJobs()}>
+                  Thử lại
+                </Button>
+              </Alert>
+            ) : jobsPending ? (
+              <p className="text-xs text-muted-foreground">Đang tải...</p>
+            ) : (
+              <CompanyOpenJobs jobs={openJobs} locked={locked} />
+            )
+          ) : null}
+          {confirmLeave ? (
+            <ConfirmDialog
+              title="Rời trang khi chưa lưu?"
+              description="Trang xem trước chỉ hiện bản đã lưu. Thay đổi chưa lưu sẽ mất."
+              confirmLabel="Vẫn xem trước"
+              cancelLabel="Ở lại"
+              onConfirm={() => router.push("/hr/company/preview")}
+              onCancel={() => setConfirmLeave(false)}
             />
-            <CompanyProfileForm
-              company={company}
-              disabled={locked}
-              onSaved={() => undefined}
-              onDirtyChange={setDirty}
-            />
-          </div>
+          ) : null}
         </>
       ) : null}
     </div>

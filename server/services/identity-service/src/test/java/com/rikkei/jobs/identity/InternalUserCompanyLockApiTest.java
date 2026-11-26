@@ -132,6 +132,19 @@ class InternalUserCompanyLockApiTest {
         assertThat(resetTokens.findAll()).isEmpty();
     }
 
+    /** Sai mật khẩu trả lỗi như mọi tài khoản khác, để không ai dò được công ty nào đang bị khoá. */
+    @Test
+    void companyLockedWrongPasswordIsInvalidCredentials() throws Exception {
+        User u = hr("hr6@example.com");
+        companyLock(List.of(u.getId()), true).andExpect(status().isOk());
+
+        mvc.perform(post("/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(json.writeValueAsString(Map.of("email", "hr6@example.com", "password", "wrong-pass-1"))))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.code").value("INVALID_CREDENTIALS"));
+    }
+
     @Test
     void unlockRestoresLogin() throws Exception {
         User u = hr("hr2@example.com");

@@ -1,0 +1,97 @@
+openapi: 3.0.3
+info:
+  title: Candidate in-app notifications
+  version: 1.0.0
+  description: Durable recruitment events for the authenticated CANDIDATE; no historical backfill.
+servers:
+  - url: http://localhost:8080/api/v1
+security:
+  - bearerAuth: []
+paths:
+  /recruitment/me/notifications:
+    get:
+      operationId: listCandidateNotifications
+      summary: List own notifications, newest first
+      parameters:
+        - { name: page, in: query, schema: { type: integer, minimum: 1, default: 1 } }
+        - { name: size, in: query, schema: { type: integer, minimum: 1, maximum: 100, default: 10 } }
+        - { name: unreadOnly, in: query, schema: { type: boolean, default: false } }
+      responses:
+        '200':
+          description: unreadCount is global for the caller regardless of pagination/filter. Items ordered by createdAt DESC then id DESC.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/NotificationFeed' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+  /recruitment/me/notifications/{id}/read:
+    post:
+      operationId: readCandidateNotification
+      summary: Mark own notification read, idempotently
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        '204': { description: Read state persisted; repeat calls preserve the original readAt. }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404':
+          description: Missing notification or notification belonging to another user.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+  /recruitment/me/notifications/read-all:
+    post:
+      operationId: readAllCandidateNotifications
+      summary: Mark all own notifications read in one SQL statement
+      responses:
+        '204': { description: Current statement snapshot marked read; idempotent; affects only JWT owner. }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+components:
+  securitySchemes:
+    bearerAuth: { type: http, scheme: bearer, bearerFormat: JWT }
+  responses:
+    BadRequest:
+      description: Invalid query or UUID.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    Unauthorized:
+      description: Missing or invalid session.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    Forbidden:
+      description: Role is not CANDIDATE or password change is required.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+  schemas:
+    NotificationFeed:
+      type: object
+      required: [items, total, page, size, unreadCount]
+      properties:
+        items: { type: array, items: { $ref: '#/components/schemas/Notification' } }
+        total: { type: integer, format: int64, minimum: 0 }
+        page: { type: integer, minimum: 1 }
+        size: { type: integer, minimum: 1, maximum: 100 }
+        unreadCount: { type: integer, format: int64, minimum: 0 }
+    Notification:
+      type: object
+      required: [id, type, title, body, href, createdAt, readAt]
+      properties:
+        id: { type: string, format: uuid }
+        type: { type: string, enum: [APPLICATION_STATUS, OFFER, INTERVIEW_INVITATION, INTERVIEW_CONFIRMED, INTERVIEW_CANCELLED, INTERVIEW_REMINDER] }
+        title: { type: string }
+        body: { type: string, description: Candidate-facing content; no private HR notes. }
+        href: { type: string, description: Internal path to application/offer detail or candidate interviews. }
+        createdAt: { type: string, format: date-time }
+        readAt: { type: string, format: date-time, nullable: true }
+    Error:
+      type: object
+      required: [code, message]
+      properties:
+        code: { type: string }
+        message: { type: string }

@@ -3,7 +3,6 @@
 import * as React from "react";
 import {
   CheckCircle2,
-  ShieldCheck,
   AlertCircle,
   Calendar,
   ChevronDown,
@@ -11,14 +10,14 @@ import {
   RefreshCw,
   Award,
   Layers,
-  FileBadge,
 } from "lucide-react";
 import { Button } from "@/app/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/app/components/ui/card";
+import { Card, CardContent, CardHeader } from "@/app/components/ui/card";
 import { Alert } from "@/app/components/ui/alert";
 import { skillService } from "@/services/skill.service";
 import type { SkillProfileItem, SkillEvidence, SkillLevel, SkillSource } from "@/interface/skill";
 import { getErrorMessage } from "@/services/api";
+import { BADGE, META, SECONDARY_CTA, SECTION_TITLE, TONE } from "@/app/components/profile/display";
 
 const LEVEL_CONFIG: Record<
   NonNullable<SkillLevel>,
@@ -72,14 +71,16 @@ const SOURCE_LABEL: Record<SkillSource, { label: string; badgeClass: string }> =
 interface SkillProfileProps {
   userId?: string; // If provided, fetches public profile by userId. If omitted, fetches own skills.
   readOnly?: boolean;
+  previewSkills?: SkillProfileItem[];
 }
 
 export function SkillProfile(props: SkillProfileProps) {
   return <SkillProfileContent key={props.userId ?? "me"} {...props} />;
 }
 
-function SkillProfileContent({ userId, readOnly = false }: SkillProfileProps) {
-  const [skills, setSkills] = React.useState<SkillProfileItem[]>([]);
+function SkillProfileContent({ userId, readOnly = false, previewSkills }: SkillProfileProps) {
+  const [loadedSkills, setSkills] = React.useState<SkillProfileItem[]>([]);
+  const skills = previewSkills ?? loadedSkills;
   const [loading, setLoading] = React.useState(true);
   const [recomputing, setRecomputing] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
@@ -88,6 +89,7 @@ function SkillProfileContent({ userId, readOnly = false }: SkillProfileProps) {
   const [reloadKey, setReloadKey] = React.useState(0);
 
   React.useEffect(() => {
+    if (previewSkills) return;
     let ignore = false;
     async function load() {
       try {
@@ -112,7 +114,7 @@ function SkillProfileContent({ userId, readOnly = false }: SkillProfileProps) {
     return () => {
       ignore = true;
     };
-  }, [userId, reloadKey]);
+  }, [userId, reloadKey, previewSkills]);
 
   const handleRecompute = async () => {
     setRecomputing(true);
@@ -168,7 +170,7 @@ function SkillProfileContent({ userId, readOnly = false }: SkillProfileProps) {
     return { total, verifiedCount, selfCount, totalEvidences };
   }, [skills]);
 
-  if (loading) {
+  if (loading && !previewSkills) {
     return (
       <div className="space-y-4 py-8">
         <div className="flex items-center justify-between">
@@ -209,285 +211,141 @@ function SkillProfileContent({ userId, readOnly = false }: SkillProfileProps) {
   }
 
   return (
-    <div className="space-y-6">
-      {/* Top Header & Actions */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <div className="flex items-center gap-2">
-            <h2 className="text-xl font-semibold tracking-tight text-foreground">
+    <Card>
+      <CardHeader>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <h2 className={SECTION_TITLE}>
               Hồ sơ năng lực kỹ năng
+              <span className="font-normal text-muted-foreground"> · {stats.total}</span>
             </h2>
-            <span className="rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-medium text-primary">
-              {stats.total} kỹ năng
-            </span>
+            <p className="text-xs text-muted-foreground">
+              {stats.verifiedCount} đã xác thực · {stats.selfCount} có điểm tự đánh giá · {stats.totalEvidences} bằng chứng
+            </p>
+            <div className="mt-2 flex flex-wrap gap-4 text-xs text-[#64748B]">
+              <span className="inline-flex items-center gap-1.5"><span className="h-2 w-4 rounded-full bg-slate-500" aria-hidden />Điểm xác thực (màu theo bậc)</span>
+              <span className="inline-flex items-center gap-1.5"><span className="h-3 w-0.5 bg-foreground/60" aria-hidden />Tự đánh giá</span>
+            </div>
           </div>
-          <p className="mt-1 text-xs text-muted-foreground">
-            Chỉ số 0–100 và bằng chứng thực tế từ LMS, Khảo thí, Dự án và Tự khai báo.
-          </p>
-        </div>
-
-        {!readOnly && (
-          <Button
-            onClick={handleRecompute}
-            disabled={recomputing}
-            className="self-start sm:self-auto"
-          >
-            <RefreshCw className={`mr-2 h-4 w-4 ${recomputing ? "animate-spin" : ""}`} />
-            {recomputing ? "Đang tính lại..." : "Tính lại chỉ số"}
-          </Button>
-        )}
-      </div>
-
-      {actionMessage && (
-        <Alert variant={actionMessage.type === "success" ? "success" : "destructive"}>
-          <div className="flex items-center gap-2">
-            {actionMessage.type === "success" ? (
-              <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-600 dark:text-emerald-400" />
-            ) : (
-              <AlertCircle className="h-4 w-4 shrink-0" />
-            )}
-            <span className="font-medium">{actionMessage.text}</span>
-          </div>
-        </Alert>
-      )}
-
-      {/* Summary KPI Cards */}
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <div className="rounded-lg border bg-card p-3 shadow-xs">
-          <div className="flex items-center gap-2 text-xs text-muted-foreground">
-            <Layers className="h-3.5 w-3.5" />
-            <span>Tổng kỹ năng</span>
-          </div>
-          <div className="mt-1 text-lg font-bold text-foreground">{stats.total}</div>
-        </div>
-
-        <div className="rounded-lg border bg-card p-3 shadow-xs">
-          <div className="flex items-center gap-2 text-xs text-emerald-600 dark:text-emerald-400">
-            <ShieldCheck className="h-3.5 w-3.5" />
-            <span>Đã xác thực</span>
-          </div>
-          <div className="mt-1 text-lg font-bold text-emerald-600 dark:text-emerald-400">
-            {stats.verifiedCount}
-          </div>
-        </div>
-
-        <div className="rounded-lg border bg-card p-3 shadow-xs">
-          <div className="flex items-center gap-2 text-xs text-amber-600 dark:text-amber-400">
-            <FileBadge className="h-3.5 w-3.5" />
-            <span>Tự khai</span>
-          </div>
-          <div className="mt-1 text-lg font-bold text-amber-600 dark:text-amber-400">
-            {stats.selfCount}
-          </div>
-        </div>
-
-        <div className="rounded-lg border bg-card p-3 shadow-xs">
-          <div className="flex items-center gap-2 text-xs text-muted-foreground">
-            <Award className="h-3.5 w-3.5" />
-            <span>Tổng bằng chứng</span>
-          </div>
-          <div className="mt-1 text-lg font-bold text-foreground">{stats.totalEvidences}</div>
-        </div>
-      </div>
-
-      {/* Grouped Skills */}
-      {groupedSkills.length === 0 ? (
-        <Card className="p-8 text-center">
-          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-muted">
-            <Layers className="h-6 w-6 text-muted-foreground" />
-          </div>
-          <h3 className="mt-3 text-sm font-medium text-foreground">Chưa có dữ liệu kỹ năng</h3>
-          <p className="mt-1 text-xs text-muted-foreground">
-            Hồ sơ chưa có kỹ năng hoặc kết quả học tập nào được đồng bộ.
-          </p>
           {!readOnly && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleRecompute}
-              disabled={recomputing}
-              className="mt-4"
-            >
-              <RefreshCw className="mr-2 h-3.5 w-3.5" />
-              Đồng bộ ngay
+            <Button variant="outline" onClick={handleRecompute} disabled={recomputing} className={`self-start sm:self-auto ${SECONDARY_CTA}`}>
+              <RefreshCw className={recomputing ? "animate-spin" : ""} aria-hidden />
+              {recomputing ? "Đang tính lại..." : "Tính lại chỉ số"}
             </Button>
           )}
-        </Card>
-      ) : (
-        <div className="space-y-8">
-          {groupedSkills.map(([groupName, groupItems]) => (
-            <section key={groupName} className="space-y-3">
-              <div className="flex items-center justify-between border-b pb-2">
-                <div className="flex items-center gap-2">
-                  <h3 className="text-base font-semibold text-foreground">{groupName}</h3>
-                  <span className="rounded-md bg-muted px-2 py-0.5 text-xs text-muted-foreground">
-                    {groupItems.length}
-                  </span>
-                </div>
-              </div>
-
-              <div className="grid gap-4 md:grid-cols-2">
-                {groupItems.map((item) => {
-                  const isVerified = item.verifiedScore !== null;
-                  const isSelfOnly = !isVerified && item.selfScore !== null;
-                  const levelInfo = item.level ? LEVEL_CONFIG[item.level] : null;
-                  const isExpanded = expandedSkillIds.has(item.skill.id);
-                  const displayScore = isVerified
-                    ? item.verifiedScore!
-                    : item.selfScore !== null
-                      ? item.selfScore
-                      : 0;
-
-                  return (
-                    <Card
-                      key={item.skill.id}
-                      className="border shadow-xs transition-shadow hover:shadow-sm"
-                    >
-                      <CardHeader className="pb-3">
-                        <div className="flex items-start justify-between gap-2">
-                          <div>
-                            <div className="flex items-center gap-2">
-                              <CardTitle className="text-sm font-semibold text-foreground">
-                                {item.skill.name}
-                              </CardTitle>
-                              <span className="font-mono text-[10px] text-muted-foreground">
-                                [{item.skill.code}]
-                              </span>
-                            </div>
-                            <CardDescription className="text-[11px]">
-                              Nhóm: {item.skill.group}
-                            </CardDescription>
-                          </div>
-
-                          <div className="flex flex-wrap items-center justify-end gap-1.5">
-                            {/* Verification badge */}
-                            {isVerified ? (
-                              <span className="inline-flex items-center gap-1 rounded-md border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[11px] font-medium text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300">
-                                <ShieldCheck className="h-3 w-3" />
-                                Đã xác thực
-                              </span>
-                            ) : null}
-                            {item.selfScore !== null ? (
-                              <span className="inline-flex items-center gap-1 rounded-md border border-amber-200 bg-amber-50 px-2 py-0.5 text-[11px] font-medium text-amber-700 dark:border-amber-800 dark:bg-amber-950/60 dark:text-amber-300">
-                                <FileBadge className="h-3 w-3" />
-                                Tự khai
-                              </span>
-                            ) : null}
-
-                            {/* Level badge */}
-                            {levelInfo ? (
-                              <span
-                                className={`inline-flex items-center rounded-md border px-2 py-0.5 text-[11px] font-medium ${levelInfo.badgeClass}`}
-                              >
-                                {levelInfo.label}
-                              </span>
-                            ) : isSelfOnly ? (
-                              <span className="inline-flex items-center rounded-md border border-muted bg-muted px-2 py-0.5 text-[11px] text-muted-foreground">
-                                Chưa xếp bậc
-                              </span>
-                            ) : null}
-                          </div>
-                        </div>
-                      </CardHeader>
-
-                      <CardContent className="space-y-3 pt-0">
-                        {isVerified && item.selfScore !== null ? (
-                          <p className="text-xs text-amber-700 dark:text-amber-300">Điểm tự đánh giá: {item.selfScore.toFixed(1)} / 100</p>
-                        ) : null}
-                        {/* Score Indicator & Progress Bar */}
-                        <div className="space-y-1.5">
-                          <div className="flex items-center justify-between text-xs">
-                            <span className="text-muted-foreground">
-                              {isVerified
-                                ? "Chỉ số xác thực"
-                                : isSelfOnly
-                                  ? "Điểm tự đánh giá"
-                                  : "Chưa có chỉ số"}
-                            </span>
-                            <span className="font-semibold text-foreground">
-                              {isVerified ? (
-                                <>
-                                  <span className="text-sm font-bold text-primary">
-                                    {item.verifiedScore!.toFixed(1)}
-                                  </span>
-                                  <span className="text-muted-foreground"> / 100</span>
-                                </>
-                              ) : isSelfOnly ? (
-                                <>
-                                  <span className="text-sm font-bold text-amber-600 dark:text-amber-400">
-                                    {item.selfScore!.toFixed(1)}
-                                  </span>
-                                  <span className="text-muted-foreground"> / 100 (tự khai)</span>
-                                </>
-                              ) : (
-                                <span className="text-muted-foreground">--</span>
-                              )}
-                            </span>
-                          </div>
-
-                          {/* Progress bar */}
-                          <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
-                            <div
-                              className={`h-full transition-all duration-500 ${isVerified
-                                  ? levelInfo?.barClass || "bg-primary"
-                                  : isSelfOnly
-                                    ? "bg-amber-500"
-                                    : "bg-muted-foreground/30"
-                                }`}
-                              style={{ width: `${Math.min(100, Math.max(0, displayScore))}%` }}
-                            />
-                          </div>
-
-                          {!isVerified && isSelfOnly && (
-                            <p className="text-[11px] text-amber-600 dark:text-amber-400">
-                              * Kỹ năng tự khai không có chỉ số xác thực chính thức.
-                            </p>
-                          )}
-                        </div>
-
-                        {/* Evidence Accordion Toggle */}
-                        <div className="border-t pt-2">
-                          <button
-                            type="button"
-                            onClick={() => toggleExpand(item.skill.id)}
-                            className="flex w-full items-center justify-between py-1 text-xs font-medium text-muted-foreground hover:text-foreground"
-                          >
-                            <span className="flex items-center gap-1.5">
-                              <Award className="h-3.5 w-3.5 text-primary" />
-                              <span>Bằng chứng ({item.evidences?.length || 0})</span>
-                            </span>
-                            {isExpanded ? (
-                              <ChevronUp className="h-3.5 w-3.5" />
-                            ) : (
-                              <ChevronDown className="h-3.5 w-3.5" />
-                            )}
-                          </button>
-
-                          {/* Expandable Evidences List */}
-                          {isExpanded && (
-                            <div className="mt-2 space-y-2 pt-1">
-                              {item.evidences && item.evidences.length > 0 ? (
-                                item.evidences.map((ev, idx) => (
-                                  <EvidenceItem key={`${ev.source}-${ev.recordedAt}-${idx}`} evidence={ev} />
-                                ))
-                              ) : (
-                                <p className="py-2 text-center text-xs text-muted-foreground">
-                                  Chưa có bằng chứng nào được ghi nhận.
-                                </p>
-                              )}
-                            </div>
-                          )}
-                        </div>
-                      </CardContent>
-                    </Card>
-                  );
-                })}
-              </div>
-            </section>
-          ))}
         </div>
-      )}
-    </div>
+      </CardHeader>
+
+      <CardContent className="space-y-6">
+        {actionMessage && (
+          <Alert variant={actionMessage.type === "success" ? "success" : "destructive"}>
+            <div className="flex items-center gap-2">
+              {actionMessage.type === "success" ? <CheckCircle2 className="h-4 w-4 shrink-0" /> : <AlertCircle className="h-4 w-4 shrink-0" />}
+              <span className="font-medium">{actionMessage.text}</span>
+            </div>
+          </Alert>
+        )}
+
+        {groupedSkills.length === 0 ? (
+          <div className="rounded-xl border border-dashed p-8 text-center">
+            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-muted">
+              <Layers className="h-6 w-6 text-muted-foreground" />
+            </div>
+            <h3 className="mt-3 text-sm font-medium">Chưa có dữ liệu kỹ năng</h3>
+            <p className="mt-1 text-xs text-muted-foreground">Hồ sơ chưa có kỹ năng hoặc kết quả học tập nào được đồng bộ.</p>
+            {!readOnly && (
+              <Button variant="outline" onClick={handleRecompute} disabled={recomputing} className={`mt-4 ${SECONDARY_CTA}`}>
+                <RefreshCw aria-hidden />
+                Đồng bộ ngay
+              </Button>
+            )}
+          </div>
+        ) : (
+          groupedSkills.map(([groupName, groupItems]) => (
+            <section key={groupName} aria-label={`Nhóm ${groupName}`}>
+              <h3 className="mb-1 text-xs font-medium text-muted-foreground">
+                {groupName} <span className="font-normal">· {groupItems.length}</span>
+              </h3>
+              <ul>
+                {groupItems.map(item => (
+                  <SkillRow key={item.skill.id} item={item} expanded={expandedSkillIds.has(item.skill.id)} onToggle={() => toggleExpand(item.skill.id)} />
+                ))}
+              </ul>
+            </section>
+          ))
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+const SOURCE_SHORT: Record<SkillSource, string> = {
+  LMS: "LMS", EXAM: "Khảo thí", INTERNSHIP: "Thực tập", MENTOR: "Mentor", SELF: "Tự khai",
+};
+
+function SkillRow({ item, expanded, onToggle }: { item: SkillProfileItem; expanded: boolean; onToggle: () => void }) {
+  const verified = item.verifiedScore;
+  const level = item.level ? LEVEL_CONFIG[item.level] : null;
+  // Set: nguồn SELF từ bằng chứng và từ điểm tự khai chỉ hiện một chip.
+  const sources = new Set<SkillSource>(item.evidences?.map(ev => ev.source) ?? []);
+  if (item.selfScore !== null) sources.add("SELF");
+  const clamp = (n: number) => Math.min(100, Math.max(0, n));
+  const evidenceCount = item.evidences?.length ?? 0;
+  return (
+    <li data-testid="skill-row" className="border-t py-3 first:border-t-0">
+      <div className="grid gap-3 sm:grid-cols-[11rem_minmax(0,1fr)_auto] sm:items-center">
+        <div className="min-w-0">
+          <p className="truncate text-sm font-medium" title={item.skill.code}>{item.skill.name}</p>
+          {sources.size ? (
+            <div className="mt-1 flex flex-wrap gap-1">
+              {[...sources].map(source => (
+                <span key={source} className={`rounded-full px-2 py-0.5 text-xs ${source === "SELF" ? "border border-dashed border-[#64748B] text-[#475569]" : "bg-slate-100 text-[#334155]"}`}>
+                  {SOURCE_SHORT[source]}
+                </span>
+              ))}
+            </div>
+          ) : null}
+        </div>
+
+        <div className="space-y-1">
+          <div className="relative h-2 rounded-full bg-muted" role="img"
+            aria-label={`${item.skill.name}: điểm xác thực ${verified?.toFixed(1) ?? "chưa có"}, tự đánh giá ${item.selfScore?.toFixed(1) ?? "chưa có"}`}>
+            {verified !== null ? (
+              <div className={`absolute inset-y-0 left-0 rounded-full transition-all duration-500 ${level?.barClass ?? "bg-primary"}`} style={{ width: `${clamp(verified)}%` }} />
+            ) : null}
+            {item.selfScore !== null ? (
+              <div className="absolute -top-1 h-4 w-0.5 -translate-x-1/2 rounded bg-foreground/60" style={{ left: `${clamp(item.selfScore)}%` }} />
+            ) : null}
+          </div>
+          <p className={`flex flex-wrap gap-x-3 ${META}`}>
+            {verified !== null ? <span>Xác thực <span className="font-semibold text-foreground">{verified.toFixed(1)}</span></span> : null}
+            {item.selfScore !== null ? <span>Tự đánh giá <span className="font-semibold text-foreground">{item.selfScore.toFixed(1)}</span></span> : null}
+            {verified === null && item.selfScore === null ? <span>Chưa có chỉ số</span> : null}
+          </p>
+        </div>
+
+        <div className="flex items-center gap-2 sm:justify-end">
+          {level ? (
+            <span className={`${BADGE} border ${level.badgeClass}`}>{level.label}</span>
+          ) : (
+            <span className={`${BADGE} ${TONE.neutral}`}>Chưa xác thực</span>
+          )}
+          <button type="button" onClick={onToggle} aria-expanded={expanded}
+            className="inline-flex min-h-11 items-center gap-1 rounded-lg px-2 text-xs font-medium text-[#475569] hover:bg-[#FFF1F2] hover:text-[#B4232D]">
+            <Award className="h-3.5 w-3.5" aria-hidden />
+            Bằng chứng ({evidenceCount})
+            {expanded ? <ChevronUp className="h-3.5 w-3.5" aria-hidden /> : <ChevronDown className="h-3.5 w-3.5" aria-hidden />}
+          </button>
+        </div>
+      </div>
+
+      {expanded ? (
+        <div className="mt-3 grid gap-2 sm:grid-cols-2">
+          {evidenceCount ? item.evidences.map((ev, idx) => <EvidenceItem key={`${ev.source}-${ev.recordedAt}-${idx}`} evidence={ev} />)
+            : <p className="py-2 text-xs text-muted-foreground">Chưa có bằng chứng nào được ghi nhận.</p>}
+        </div>
+      ) : null}
+    </li>
   );
 }
 

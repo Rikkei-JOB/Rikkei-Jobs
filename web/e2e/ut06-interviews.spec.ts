@@ -18,11 +18,13 @@ test("Ứng viên chọn giờ và vào phòng, gửi một yêu cầu", async (
   });
   await page.goto("/candidate/interviews");
   await page.getByRole("radio").check(); await page.getByRole("button", { name: "Xác nhận khung giờ" }).click();
-  await expect(page.getByRole("link", { name: "Vào phòng họp" })).toHaveAttribute("href", "https://meet.test/room");
+  await expect(page.getByRole("status").filter({ hasText: "Đã xác nhận khung giờ" })).toBeVisible();
+  await page.getByRole("tab", { name: /Sắp diễn ra/ }).click();
+  await expect(page.getByRole("link", { name: "Vào phòng phỏng vấn" })).toHaveAttribute("href", "https://meet.test/room");
   await expect(page.getByText(/09:00/)).toBeVisible(); expect(posts).toBe(1);
   await page.screenshot({ path: "../docs/api/screenshots/ut06-candidate.png", fullPage: true });
   await page.setViewportSize({ width: 390, height: 844 });
-  await expect(page.getByRole("link", { name: "Vào phòng họp" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Vào phòng phỏng vấn" })).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
   await page.screenshot({ path: "../docs/api/screenshots/ut06-candidate-mobile.png", fullPage: true });
 });
@@ -47,7 +49,7 @@ test("HR đề xuất 1–5 khung, validation và gửi giờ +07", async ({ pag
     if (path.endsWith("/applications/app")) return route.fulfill({ headers: cors, json: { id: "app", jobId: "job", companyId: "company", companyName: "Rikkei", jobTitle: "Java", status: "INTERVIEW", candidate: { userId: "candidate", fullName: "Ứng viên", email: "a@test.local" }, cvId: "cv", cvSnapshotUrl: "cv", createdAt: "2026-11-19T00:00:00Z", updatedAt: "2026-11-19T00:00:00Z", rounds: [{ id: "round", roundNo: 1, name: "Kỹ thuật", interviewerEmail: "hr@test.local", result: "PENDING", slots: [], schedule: null }], roundRevisions: [], history: [], allowedTransitions: [], offer: null } });
     return path.endsWith("/auth/me") ? route.fallback() : route.fulfill({ headers: cors, json: {} });
   });
-  await page.goto("/hr/recruitment/app");
+  await page.goto("/hr/recruitment/app?tab=interviews");
   await page.getByLabel("Bắt đầu khung 1").fill("2030-01-01T09:00"); await page.getByLabel("Kết thúc khung 1").fill("2030-01-01T09:15");
   await page.getByRole("button", { name: "Gửi đề xuất" }).click(); await expect(page.getByRole("alert").filter({ hasText: "30 phút" })).toBeVisible(); expect(sent).toHaveLength(0);
   await page.getByLabel("Kết thúc khung 1").fill("2030-01-01T09:30"); await page.getByRole("button", { name: "Gửi đề xuất" }).click();
