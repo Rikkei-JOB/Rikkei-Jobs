@@ -2,7 +2,7 @@
 
 import { useEffect } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import { ROLE_HOME } from "@/config/roles";
+import { ROLE_LANDING } from "@/config/roles";
 import { pathAfterLogin, rememberNextPath } from "@/helper/next-path";
 import { useAuthStore } from "@/hooks/use-auth-store";
 import type { Role } from "@/interface/auth";
@@ -39,7 +39,7 @@ export function useAuthGuard({ roles, allowMustChangePassword = false }: GuardOp
     } else if (needsPasswordChange) {
       router.replace("/change-password");
     } else if (wrongRole) {
-      router.replace(ROLE_HOME[user.role]);
+      router.replace(ROLE_LANDING[user.role]);
     }
   }, [hasHydrated, token, user, needsPasswordChange, wrongRole, router]);
 
