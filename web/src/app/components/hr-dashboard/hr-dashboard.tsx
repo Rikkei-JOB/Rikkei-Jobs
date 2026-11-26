@@ -68,13 +68,15 @@ export function HrDashboard() {
 
   const hrName = user?.fullName?.trim() || "nhà tuyển dụng";
   const newApplications = pipeline.data?.SUBMITTED;
-  const description = summary.data && pipeline.data
-    ? `${company.data?.name ?? "Công ty"} có ${summary.data.byStatus.APPROVED} tin đang tuyển, ${newApplications ?? 0} hồ sơ mới cần sàng lọc và ${upcoming.length} buổi phỏng vấn trong 14 ngày tới.`
+  // API có thể trả thiếu trường (lỗi tạm, phiên bản cũ): mọi số liệu đọc qua ?. và hiện "–" khi chưa có.
+  const byStatus = summary.data?.byStatus;
+  const description = byStatus && pipeline.data
+    ? `${company.data?.name ?? "Công ty"} có ${byStatus.APPROVED ?? 0} tin đang tuyển, ${newApplications ?? 0} hồ sơ mới cần sàng lọc và ${upcoming.length} buổi phỏng vấn trong 14 ngày tới.`
     : "Đang tổng hợp hoạt động tuyển dụng của công ty…";
 
   const stats = [
-    { label: "Tin đang tuyển", value: summary.data?.byStatus.APPROVED, sub: summary.data ? `${summary.data.expiringSoon} tin sắp hết hạn` : "", icon: FileText, href: "/hr/jobs?status=APPROVED", tone: "green" },
-    { label: "Chờ cán bộ duyệt", value: summary.data?.byStatus.PENDING, sub: summary.data ? `${summary.data.byStatus.REJECTED} tin bị trả lại` : "", icon: Clock, href: "/hr/jobs?status=PENDING", tone: "amber" },
+    { label: "Tin đang tuyển", value: byStatus?.APPROVED, sub: summary.data?.expiringSoon != null ? `${summary.data.expiringSoon} tin sắp hết hạn` : "", icon: FileText, href: "/hr/jobs?status=APPROVED", tone: "green" },
+    { label: "Chờ cán bộ duyệt", value: byStatus?.PENDING, sub: byStatus?.REJECTED != null ? `${byStatus.REJECTED} tin bị trả lại` : "", icon: Clock, href: "/hr/jobs?status=PENDING", tone: "amber" },
     { label: "Hồ sơ mới", value: newApplications, sub: "Cần sàng lọc", icon: UserSearch, href: "/hr/recruitment?status=SUBMITTED", tone: "brand" },
     { label: "Phỏng vấn sắp tới", value: interviews.data ? upcoming.length : undefined, sub: "Trong 14 ngày tới", icon: CalendarDays, href: "/hr/interviews", tone: "blue" },
   ];
@@ -144,7 +146,7 @@ export function HrDashboard() {
       </section>
     </div>
 
-    {company.data && <section className="hrd-panel hrd-company" aria-label="Hồ sơ công ty">
+    {company.data?.name && <section className="hrd-panel hrd-company" aria-label="Hồ sơ công ty">
       <CompanyMark name={company.data.name} logoUrl={company.data.logoUrl} size={56} brand />
       <div className="min-w-0 flex-1"><h2>{company.data.name}</h2>
         <p>{[company.data.industry, company.data.size ? `${company.data.size} nhân sự` : null, company.data.city].filter(Boolean).join(" · ") || "Chưa cập nhật thông tin công ty"}</p></div>

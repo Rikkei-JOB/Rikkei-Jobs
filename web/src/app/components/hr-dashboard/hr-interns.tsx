@@ -29,10 +29,11 @@ export function HrInterns() {
     queryFn: ({ signal }) => hrApplicationService.listHr({ status: "HIRED", page: 1, size: 50 }, signal),
   });
   if (!allowed) return null;
+  const items = hired.data?.items ?? [];
 
   return <div className="hr-page hrd">
     <TaskBanner eyebrow="Thực tập & nhận việc" title="Thực tập sinh" illustration="interns"
-      description={hired.data ? `${hired.data.total} ứng viên đã nhận việc tại công ty. Theo dõi người mới và chuẩn bị cho kỳ nghiệm thu.` : "Danh sách ứng viên đã nhận việc tại công ty."}>
+      description={hired.data?.total != null ? `${hired.data.total} ứng viên đã nhận việc tại công ty. Theo dõi người mới và chuẩn bị cho kỳ nghiệm thu.` : "Danh sách ứng viên đã nhận việc tại công ty."}>
       <Link href="/hr/recruitment?status=OFFER"><UserSearch className="size-4" aria-hidden="true" />Hồ sơ đang chờ offer</Link>
     </TaskBanner>
 
@@ -42,8 +43,8 @@ export function HrInterns() {
       <div className="hrd-panel-body">
         {hired.isPending ? <div className="my-3 h-32 rounded-xl bg-muted motion-safe:animate-pulse" />
           : hired.error ? <p className="hrd-empty" role="alert">{getErrorMessage(hired.error)}</p>
-          : !hired.data.items.length ? <p className="hrd-empty"><Inbox aria-hidden="true" />Chưa có ứng viên nào nhận việc. Khi ứng viên chấp nhận offer, họ sẽ xuất hiện ở đây.</p>
-          : <ul className="hrd-list">{hired.data.items.map(item => <li key={item.id}><Link href={`/hr/recruitment/${item.id}`} className="hrd-attention">
+          : !items.length ? <p className="hrd-empty"><Inbox aria-hidden="true" />Chưa có ứng viên nào nhận việc. Khi ứng viên chấp nhận offer, họ sẽ xuất hiện ở đây.</p>
+          : <ul className="hrd-list">{items.map(item => <li key={item.id}><Link href={`/hr/recruitment/${item.id}`} className="hrd-attention">
               <span className="hrd-avatar" aria-hidden="true">{initials(item.candidateName)}</span>
               <span className="min-w-0 flex-1"><strong>{item.candidateName}</strong><small>{item.jobTitle} · nhận việc {dateFmt.format(new Date(item.updatedAt))}</small></span>
               <span className="hrd-hired">Đã nhận việc</span>
