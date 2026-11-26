@@ -1,6 +1,6 @@
 # UT-03 — Bảo vệ liên hệ và nhật ký truy cập
 
-Ngày: 2026-11-26. Trạng thái: bản thiết kế chờ người dùng duyệt.
+Ngày: 2026-11-26. Trạng thái: người dùng đã duyệt ngày 2026-11-26.
 
 ## Mục tiêu và phạm vi
 
