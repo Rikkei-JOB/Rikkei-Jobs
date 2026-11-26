@@ -19,7 +19,8 @@ public final class ReasonRules {
      */
     public static String clean(String reason) {
         String cleaned = reason == null ? "" : reason.strip();
-        if (cleaned.isEmpty()) {
+        // strip() không bỏ khoảng trắng không ngắt (U+00A0, U+2007, U+202F): lý do chỉ gồm các ký tự đó cũng là rỗng.
+        if (cleaned.codePoints().allMatch(c -> Character.isWhitespace(c) || Character.isSpaceChar(c))) {
             throw new JobValidationException(Map.of("reason", REQUIRED_MESSAGE));
         }
         if (cleaned.length() > MAX_LENGTH) {

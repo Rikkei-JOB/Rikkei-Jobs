@@ -373,6 +373,8 @@ class StaffJobReviewApiTest extends CompanyApiTestSupport {
         close(approved.getId(), reason("   ")).andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("VALIDATION_ERROR"))
                 .andExpect(jsonPath("$.errors.reason").exists());
+        reject(pending.getId(), reason("   ")).andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errors.reason").exists());
 
         assertThat(reload(pending).getStatus()).isEqualTo(JobStatus.PENDING);
         assertThat(reload(pending).getRejectReason()).isNull();

@@ -29,7 +29,7 @@ import org.springframework.transaction.support.TransactionTemplate;
  * Ngoại lệ có chủ đích so với thói quen "không gọi HTTP trong transaction" của nhóm (DN-05, commit 34f14fc): trạng
  * thái công ty và cờ khoá theo công ty của HR phải đổi cùng nhau, nên identity được gọi TRONG transaction đang giữ
  * khoá dòng công ty, trước khi commit. identity lỗi → ném lỗi, transaction rollback, không có gì đổi; lô k lỗi thì
- * gọi bù ngay (vẫn giữ khoá dòng) cho các lô trước đã thành công; commit lỗi sau khi identity đã nhận thì gọi bù
+ * gọi bù ngay (vẫn giữ khoá dòng) cho mọi lô đã gửi, gồm cả lô k; commit lỗi sau khi identity đã nhận thì gọi bù
  * trong afterCompletion. Gọi bù lỗi chỉ ghi log ERROR (cần sửa tay).
  *
  * <p>Phần ghi chạy trong TransactionTemplate (tương đương @Transactional) để chi tiết trả về được dựng sau khi
@@ -100,23 +100,30 @@ public class CompanyLockServiceImpl implements CompanyLockService {
         return detailAssembler.build(outcome.company(), outcome.hrIds(), outcome.statuses());
     }
 
-    /** Gửi từng lô; lô k lỗi thì gọi bù chiều ngược cho các lô trước đó rồi ném lại lỗi (transaction rollback). */
+    /**
+     * Gửi từng lô; lô k lỗi thì gọi bù chiều ngược cho các lô đã gửi, gồm cả lô k (timeout có thể xảy ra sau khi
+     * identity đã áp dụng; company-lock idempotent nên bù id chưa áp dụng là vô hại), rồi ném lại lỗi (rollback).
+     */
     private List<IdentityUserStatus> applyToIdentity(UUID companyId, List<UUID> hrIds, boolean lock) {
         List<IdentityUserStatus> statuses = new ArrayList<>();
-        List<List<UUID>> done = new ArrayList<>();
+        List<List<UUID>> sent = new ArrayList<>();
         for (List<UUID> batch : batches(hrIds)) {
+            sent.add(batch);
             try {
                 statuses.addAll(identity.setCompanyLock(batch, lock));
             } catch (RuntimeException e) {
-                compensate(companyId, done, !lock);
+                compensate(companyId, sent, !lock);
                 throw e;
             }
-            done.add(batch);
         }
         return statuses;
     }
 
-    /** Commit DB lỗi sau khi identity đã nhận đủ: transaction rollback thì đặt lại cờ của mọi HR. */
+    /**
+     * Commit DB lỗi sau khi identity đã nhận đủ: transaction rollback thì đặt lại cờ của mọi HR. afterCompletion
+     * chạy khi khoá dòng công ty đã nhả, nên một lần khoá / mở khoá khác có thể chen vào trước lời gọi bù (spec
+     * §4.5.6 chấp nhận: ca hiếm, chỉ xảy ra khi commit lỗi).
+     */
     private void compensateOnRollback(UUID companyId, List<UUID> hrIds, boolean lock) {
         TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
             @Override

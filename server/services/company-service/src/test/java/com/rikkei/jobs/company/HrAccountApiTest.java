@@ -146,6 +146,47 @@ class HrAccountApiTest extends CompanyApiTestSupport {
     }
 
     @Test
+    void companyLockedWhileCreatingIs403AndDeletesUser() throws Exception {
+        // DN-07 §4.5.6: công ty bị khoá giữa lần kiểm tra đầu và lúc ghi liên kết → không được lọt HR mới.
+        Company company = saveCompany("0101234567", CompanyStatus.ACTIVE);
+        UUID uid = UUID.randomUUID();
+        when(identity.createHrUser(any(), any(), any())).thenAnswer(inv -> {
+            Company c = companies.findById(company.getId()).orElseThrow();
+            c.setStatus(CompanyStatus.LOCKED);
+            companies.save(c);
+            return new CreatedUser(uid, "hr3@rikkeijobs.test", "HR Ba", company.getId());
+        });
+
+        createHr(token(Role.STAFF), company.getId(), "hr3@rikkeijobs.test")
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.code").value("COMPANY_LOCKED"));
+
+        verify(identity).deleteUser(uid);
+        assertThat(companyHrs.existsById(uid)).isFalse();
+        assertThat(companyHrs.count()).isZero();
+    }
+
+    @Test
+    void companyLockedWhileRelinkingIs403AndNeverDeletes() throws Exception {
+        // Nhánh nối lại: user không do request này tạo nên không xoá, chỉ báo 403.
+        Company company = saveCompany("0101234567", CompanyStatus.ACTIVE);
+        UUID uid = UUID.randomUUID();
+        when(identity.createHrUser(any(), any(), any())).thenAnswer(inv -> {
+            Company c = companies.findById(company.getId()).orElseThrow();
+            c.setStatus(CompanyStatus.LOCKED);
+            companies.save(c);
+            throw new EmailExistsException(uid, Role.HR, company.getId());
+        });
+
+        createHr(token(Role.STAFF), company.getId(), "hr3@rikkeijobs.test")
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.code").value("COMPANY_LOCKED"));
+
+        verify(identity, never()).deleteUser(any());
+        assertThat(companyHrs.count()).isZero();
+    }
+
+    @Test
     void identityDownIs503() throws Exception {
         Company company = saveCompany("0101234567", CompanyStatus.ACTIVE);
         when(identity.createHrUser(any(), any(), any()))

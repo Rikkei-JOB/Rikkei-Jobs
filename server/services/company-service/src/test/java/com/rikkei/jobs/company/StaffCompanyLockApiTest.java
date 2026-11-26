@@ -24,6 +24,7 @@ import com.rikkei.jobs.company.config.exception.CompanyException;
 import com.rikkei.jobs.company.entity.Company;
 import com.rikkei.jobs.company.entity.CompanyAction;
 import com.rikkei.jobs.company.entity.CompanyActionType;
+import com.rikkei.jobs.company.entity.CompanyHr;
 import com.rikkei.jobs.company.entity.CompanyStatus;
 import com.rikkei.jobs.company.entity.Job;
 import com.rikkei.jobs.company.entity.JobLevel;
@@ -31,6 +32,7 @@ import com.rikkei.jobs.company.entity.JobStatus;
 import com.rikkei.jobs.company.entity.JobType;
 import com.rikkei.jobs.company.entity.WorkMode;
 import com.rikkei.jobs.company.support.CompanyApiTestSupport;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.ArrayList;
@@ -250,7 +252,8 @@ class StaffCompanyLockApiTest extends CompanyApiTestSupport {
 
     @Test
     void blankLockReasonRejected() throws Exception {
-        for (Object body : List.of(Map.of(), reason("   "), reason(" \t"), reason("x".repeat(1001)))) {
+        for (Object body : List.of(Map.of(), reason("   "), reason(" \t"), reason(" "),
+                reason("     "), reason("x".repeat(1001)))) {
             lock(a.getId(), body).andExpect(status().isBadRequest())
                     .andExpect(jsonPath("$.code").value("VALIDATION_ERROR"))
                     .andExpect(jsonPath("$.errors.reason").exists());
@@ -293,14 +296,75 @@ class StaffCompanyLockApiTest extends CompanyApiTestSupport {
 
         assertThat(statusOf(a)).isEqualTo(CompanyStatus.ACTIVE);
         assertThat(companyActions.count()).isZero();
-        // Lô đầu tiên đã lỗi: không có lô nào thành công nên không gọi bù.
-        verify(identity, never()).setCompanyLock(anyList(), eq(false));
+        // Lô lỗi vẫn được gọi bù (có thể identity đã áp dụng trước khi timeout); gọi bù lỗi chỉ ghi log.
+        List<UUID> sent = setCompanyLockCalls(true, 1).get(0);
+        assertThat(sent).containsExactlyInAnyOrder(HR1, HR_NEW);
+        assertThat(setCompanyLockCalls(false, 1).get(0)).containsExactlyElementsOf(sent);
 
         Company locked = saveCompany("3333333333", CompanyStatus.LOCKED);
         linkHr(UUID.randomUUID(), locked.getId());
         unlock(locked.getId()).andExpect(status().isServiceUnavailable());
         assertThat(statusOf(locked)).isEqualTo(CompanyStatus.LOCKED);
         assertThat(companyActions.count()).isZero();
+    }
+
+    @Test
+    void timedOutBatchIsCompensated() throws Exception {
+        // identity áp dụng lô rồi mới timeout: cờ phải được đặt lại dù lời gọi báo lỗi.
+        when(identity.setCompanyLock(anyList(), eq(true))).thenThrow(new CompanyException(
+                CompanyErrorCode.EXTERNAL_UNAVAILABLE, "Không cập nhật được tài khoản HR, vui lòng thử lại."));
+
+        lock(a.getId(), reason(LOCK_REASON)).andExpect(status().isServiceUnavailable());
+
+        List<UUID> sent = setCompanyLockCalls(true, 1).get(0);
+        assertThat(setCompanyLockCalls(false, 1).get(0)).containsExactlyElementsOf(sent);
+        assertThat(statusOf(a)).isEqualTo(CompanyStatus.ACTIVE);
+    }
+
+    @Test
+    void partialBatchFailureOnUnlockCompensatesWithTrue() throws Exception {
+        Company big = saveCompany("4444444444", CompanyStatus.LOCKED);
+        for (int i = 0; i < 150; i++) {
+            linkHr(UUID.randomUUID(), big.getId());
+        }
+        when(identity.setCompanyLock(anyList(), anyBoolean())).thenAnswer(inv -> {
+            List<UUID> ids = inv.getArgument(0);
+            boolean locked = inv.getArgument(1);
+            if (!locked && ids.size() == 50) {
+                throw new CompanyException(CompanyErrorCode.EXTERNAL_UNAVAILABLE,
+                        "Không cập nhật được tài khoản HR, vui lòng thử lại.");
+            }
+            return ids.stream().map(id -> hrStatus(id, locked)).toList();
+        });
+
+        unlock(big.getId()).andExpect(status().isServiceUnavailable())
+                .andExpect(jsonPath("$.code").value("EXTERNAL_UNAVAILABLE"));
+
+        List<List<UUID>> sent = setCompanyLockCalls(false, 2);
+        assertThat(sent).extracting(List::size).containsExactly(100, 50);
+        List<List<UUID>> compensated = setCompanyLockCalls(true, 2);
+        assertThat(compensated.get(0)).containsExactlyElementsOf(sent.get(0));
+        assertThat(compensated.get(1)).containsExactlyElementsOf(sent.get(1));
+        assertThat(statusOf(big)).isEqualTo(CompanyStatus.LOCKED);
+        assertThat(companyActions.count()).isZero();
+    }
+
+    @Test
+    void individuallyLockedHrStaysLockedAfterCompanyUnlock() throws Exception {
+        Instant lockedAt = Instant.parse("2026-11-17T03:00:00Z");
+        CompanyHr hr = companyHrs.findById(HR_NEW).orElseThrow();
+        hr.setLockedAt(lockedAt);
+        companyHrs.save(hr);
+
+        lock(a.getId(), reason(LOCK_REASON)).andExpect(status().isOk());
+        unlock(a.getId()).andExpect(status().isOk());
+
+        assertThat(companyHrs.findById(HR_NEW).orElseThrow().getLockedAt()).isEqualTo(lockedAt);
+        mvc.perform(get("/companies/me").header("Authorization", "Bearer " + token(HR_NEW, Role.HR)))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.message").value("Tài khoản đã bị khoá"));
+        mvc.perform(get("/companies/me").header("Authorization", "Bearer " + token(HR1, Role.HR)))
+                .andExpect(status().isOk());
     }
 
     @Test
@@ -325,8 +389,10 @@ class StaffCompanyLockApiTest extends CompanyApiTestSupport {
 
         List<List<UUID>> sent = setCompanyLockCalls(true, 2);
         assertThat(sent).extracting(List::size).containsExactly(100, 50);
-        List<List<UUID>> compensated = setCompanyLockCalls(false, 1);
+        // Gọi bù cả lô đã thành công lẫn lô lỗi.
+        List<List<UUID>> compensated = setCompanyLockCalls(false, 2);
         assertThat(compensated.get(0)).containsExactlyElementsOf(sent.get(0));
+        assertThat(compensated.get(1)).containsExactlyElementsOf(sent.get(1));
         assertThat(statusOf(big)).isEqualTo(CompanyStatus.ACTIVE);
         assertThat(companyActions.count()).isZero();
     }
