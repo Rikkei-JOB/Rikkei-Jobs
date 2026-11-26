@@ -5,14 +5,17 @@ import {
   Building2,
   ClipboardCheck,
   CalendarDays,
+  Contact,
   FileCheck2,
   FileText,
   GraduationCap,
+  History,
+  LayoutDashboard,
   Handshake,
   Map,
   RefreshCw,
   Send,
-  Settings,
+  Sparkles,
   UserRound,
   UserSearch,
   Users,
@@ -43,18 +46,25 @@ export const ROLE_MENU: Record<Role, MenuItem[]> = {
     { label: "Trợ lý AI", href: "/candidate/assistant", icon: Bot },
   ],
   HR: [
+    { label: "Tổng quan", href: "/hr", icon: LayoutDashboard },
     { label: "Công ty", href: "/hr/company", icon: Building2 },
     { label: "Tin tuyển dụng", href: "/hr/jobs", icon: FileText },
     { label: "Hồ sơ ứng tuyển", href: "/hr/recruitment", icon: UserSearch },
     { label: "Lịch phỏng vấn", href: "/hr/interviews", icon: CalendarDays },
     { label: "Thực tập sinh", href: "/hr/interns", icon: GraduationCap },
   ],
-  MENTOR: [{ label: "Cần đánh giá", href: "/mentor/reviews", icon: ClipboardCheck }],
+  MENTOR: [
+    { label: "Tổng quan", href: "/mentor", icon: LayoutDashboard },
+    { label: "Lịch phỏng vấn", href: "/mentor/schedule", icon: CalendarDays },
+    { label: "Đánh giá", href: "/mentor/reviews", icon: ClipboardCheck },
+  ],
   STAFF: [
-    { label: "Mở liên hệ", href: "/staff/contact-requests", icon: Users },
-    { label: "Nhật ký liên hệ", href: "/staff/contact-access-logs", icon: FileText },
+    { label: "Tổng quan", href: "/staff", icon: LayoutDashboard },
     { label: "Duyệt hồ sơ", href: "/staff/profile-reviews", icon: Users },
     { label: "Duyệt JD", href: "/staff/jobs", icon: FileCheck2 },
+    // UT-03: icon riêng để không trùng "Duyệt hồ sơ" trên rail của cán bộ.
+    { label: "Mở liên hệ", href: "/staff/contact-requests", icon: Contact },
+    { label: "Nhật ký liên hệ", href: "/staff/contact-access-logs", icon: History },
     { label: "Đơn ứng tuyển", href: "/staff/applications", icon: UserSearch },
     { label: "Doanh nghiệp", href: "/staff/companies", icon: Building2 },
     { label: "Ghép thực tập", href: "/staff/internships", icon: Handshake },
@@ -62,8 +72,11 @@ export const ROLE_MENU: Record<Role, MenuItem[]> = {
     { label: "Báo cáo", href: "/staff/reports", icon: BarChart3 },
   ],
   ADMIN: [
-    { label: "Quản trị", href: "/admin/settings", icon: Settings },
+    { label: "Tổng quan", href: "/admin", icon: LayoutDashboard },
+    { label: "Tài khoản", href: "/admin/users", icon: Users },
+    { label: "Duyệt JD", href: "/admin/jobs", icon: FileCheck2 },
     { label: "Đơn ứng tuyển", href: "/admin/applications", icon: UserSearch },
+    { label: "Kỹ năng", href: "/admin/skills", icon: Sparkles },
   ],
 };
 
@@ -80,14 +93,22 @@ export interface NavGroup {
 const pick = (role: Role, ...hrefs: string[]): MenuItem[] =>
   hrefs.map((href) => ROLE_MENU[role].find((item) => item.href === href)!);
 
-/** Nhóm menu trên thanh ngang (HR, cán bộ): nhóm 1 mục là link phẳng, nhóm từ 2 mục là menu thả xuống. */
+/** Nhóm menu: cán bộ (rail icon, ngăn cách theo nhóm) và quản trị (sidebar có tiêu đề nhóm). */
 export const ROLE_NAV_GROUPS: Partial<Record<Role, NavGroup[]>> = {
   STAFF: [
+    { label: "Tổng quan", items: pick("STAFF", "/staff") },
     { label: "Duyệt", items: pick("STAFF", "/staff/profile-reviews", "/staff/jobs", "/staff/contact-requests") },
     ...pick("STAFF", "/staff/applications", "/staff/companies", "/staff/internships").map((item) => ({
       label: item.label,
       items: [item],
     })),
     { label: "Hệ thống", items: pick("STAFF", "/staff/sync", "/staff/reports", "/staff/contact-access-logs") },
+  ],
+  // Nhóm mục ở sidebar quản trị (AdminShell).
+  ADMIN: [
+    { label: "Tổng quan", items: pick("ADMIN", "/admin") },
+    { label: "Người dùng", items: pick("ADMIN", "/admin/users") },
+    { label: "Kiểm duyệt", items: pick("ADMIN", "/admin/jobs", "/admin/applications") },
+    { label: "Danh mục", items: pick("ADMIN", "/admin/skills") },
   ],
 };
