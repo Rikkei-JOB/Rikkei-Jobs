@@ -9,6 +9,14 @@ import static org.springframework.test.web.client.match.MockRestRequestMatchers.
 import static org.springframework.test.web.client.response.MockRestResponseCreators.*;
 import static org.assertj.core.api.Assertions.*;
 class ContactDependencyClientsTest {
+    @Test void nonPublicReviewStatesRemainValidMetadataForExistingAccess() {
+        for(String visibility:java.util.List.of("PENDING","REJECTED")) {
+            var builder=RestClient.builder().baseUrl("http://profile");
+            var server=MockRestServiceServer.bindTo(builder).build();UUID id=UUID.randomUUID();
+            server.expect(anything()).andRespond(withSuccess("{\"userId\":\""+id+"\",\"fullName\":\"A\",\"visibility\":\""+visibility+"\"}",MediaType.APPLICATION_JSON));
+            assertThat(new HttpContactProfileClient(builder.build(),"key").get(id,"Bearer token").visibility()).isEqualTo(visibility);
+        }
+    }
     @Test void profileValidatesIdentityAndInternalKey() {
         var builder=RestClient.builder().baseUrl("http://profile");
         var server=MockRestServiceServer.bindTo(builder).build();

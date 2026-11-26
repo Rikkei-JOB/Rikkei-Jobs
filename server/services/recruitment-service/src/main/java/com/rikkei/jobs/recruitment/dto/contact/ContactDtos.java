@@ -7,8 +7,8 @@ public final class ContactDtos {
     private ContactDtos() {}
     public record ContactProfile(UUID userId,String fullName,String visibility) {}
     public record ContactDirectory(Map<UUID,String> companies,Map<UUID,String> hrs) {}
-    public record CreateRequest(@NotNull UUID jobId,@NotBlank @Size(max=2000) String reason) {}
-    public record RejectRequest(@NotBlank @Size(max=2000) String reason) {}
+    public record CreateRequest(@NotNull UUID jobId,String reason) {}
+    public record RejectRequest(String reason) {}
     public record ContactView(String email,String phone) {}
     public record ContactRequestView(UUID id,UUID companyId,String companyName,UUID userId,String candidateName,
         UUID jobId,String reason,ContactRequestStatus status,String rejectionReason,UUID createdBy,

@@ -9,6 +9,11 @@ import static org.mockito.ArgumentMatchers.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 class ContactRequestApiTest extends ContactIntegrationSupport {
+    @Test void reasonIsTrimmedBeforeLengthValidation() throws Exception {
+        mvc.perform(post(root()+"/contact-requests").header("Authorization",hr()).contentType("application/json")
+            .content(requestBody("  "+"x".repeat(2000)+"  "))).andExpect(status().isCreated())
+            .andExpect(jsonPath("$.reason").value("x".repeat(2000)));
+    }
     String root(){return "/candidates/"+user;}
     UUID create() throws Exception {
         var response=mvc.perform(post(root()+"/contact-requests").header("Authorization",hr()).contentType("application/json")

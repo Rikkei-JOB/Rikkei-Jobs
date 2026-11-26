@@ -33,6 +33,7 @@ export interface MenuItem {
  */
 export const ROLE_MENU: Record<Role, MenuItem[]> = {
   CANDIDATE: [
+    { label: "Lịch sử xem liên hệ", href: "/candidate/contact-access-logs", icon: Users },
     { label: "Hồ sơ", href: "/candidate/profile", icon: UserRound },
     { label: "CV của tôi", href: "/candidate/cvs", icon: FileText },
     { label: "Việc làm", href: "/candidate/jobs", icon: Briefcase },
@@ -50,6 +51,8 @@ export const ROLE_MENU: Record<Role, MenuItem[]> = {
   ],
   MENTOR: [{ label: "Cần đánh giá", href: "/mentor/reviews", icon: ClipboardCheck }],
   STAFF: [
+    { label: "Mở liên hệ", href: "/staff/contact-requests", icon: Users },
+    { label: "Nhật ký liên hệ", href: "/staff/contact-access-logs", icon: FileText },
     { label: "Duyệt hồ sơ", href: "/staff/profile-reviews", icon: Users },
     { label: "Duyệt JD", href: "/staff/jobs", icon: FileCheck2 },
     { label: "Đơn ứng tuyển", href: "/staff/applications", icon: UserSearch },
@@ -80,11 +83,11 @@ const pick = (role: Role, ...hrefs: string[]): MenuItem[] =>
 /** Nhóm menu trên thanh ngang (HR, cán bộ): nhóm 1 mục là link phẳng, nhóm từ 2 mục là menu thả xuống. */
 export const ROLE_NAV_GROUPS: Partial<Record<Role, NavGroup[]>> = {
   STAFF: [
-    { label: "Duyệt", items: pick("STAFF", "/staff/profile-reviews", "/staff/jobs") },
+    { label: "Duyệt", items: pick("STAFF", "/staff/profile-reviews", "/staff/jobs", "/staff/contact-requests") },
     ...pick("STAFF", "/staff/applications", "/staff/companies", "/staff/internships").map((item) => ({
       label: item.label,
       items: [item],
     })),
-    { label: "Hệ thống", items: pick("STAFF", "/staff/sync", "/staff/reports") },
+    { label: "Hệ thống", items: pick("STAFF", "/staff/sync", "/staff/reports", "/staff/contact-access-logs") },
   ],
 };

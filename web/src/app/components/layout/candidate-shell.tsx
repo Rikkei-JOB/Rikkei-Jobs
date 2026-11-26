@@ -16,7 +16,7 @@ const candidateItems = ROLE_MENU.CANDIDATE;
 const groups = [
   { label: "Việc làm", items: candidateItems.filter(i => i.href === "/candidate/jobs") },
   { label: "Ứng tuyển", items: candidateItems.filter(i => ["/candidate/applications", "/candidate/interviews", "/candidate/offers"].includes(i.href)) },
-  { label: "Hồ sơ", items: candidateItems.filter(i => ["/candidate/profile", "/candidate/cvs"].includes(i.href)) },
+  { label: "Hồ sơ", items: candidateItems.filter(i => ["/candidate/profile", "/candidate/cvs", "/candidate/contact-access-logs"].includes(i.href)) },
   { label: "Phát triển", items: candidateItems.filter(i => ["/candidate/roadmap", "/candidate/assistant"].includes(i.href)) },
 ];
 function active(pathname: string, item: MenuItem) { return pathname === item.href || pathname.startsWith(`${item.href}/`); }

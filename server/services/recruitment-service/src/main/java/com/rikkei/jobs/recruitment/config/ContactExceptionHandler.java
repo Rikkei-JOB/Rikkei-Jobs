@@ -5,7 +5,11 @@ import org.springframework.core.annotation.Order;
 import org.springframework.http.*;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.dao.DataIntegrityViolationException;
-@Order(Ordered.HIGHEST_PRECEDENCE) @RestControllerAdvice(basePackages="com.rikkei.jobs.recruitment")
+@Order(Ordered.HIGHEST_PRECEDENCE)
+@RestControllerAdvice(assignableTypes={
+    com.rikkei.jobs.recruitment.controller.CandidateContactController.class,
+    com.rikkei.jobs.recruitment.controller.StaffContactRequestController.class,
+    com.rikkei.jobs.recruitment.controller.ContactAccessLogController.class})
 public class ContactExceptionHandler {
     @ExceptionHandler(ContactException.class)
     public ResponseEntity<ErrorResponse> contact(ContactException e){return ResponseEntity.status(e.getStatus()).body(ErrorResponse.of(e.getCode(),e.getMessage()));}

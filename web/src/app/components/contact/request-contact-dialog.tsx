@@ -4,13 +4,13 @@ import { useEffect, useRef, useState, type FormEvent } from "react";
 import { Button } from "@/app/components/ui/button";
 import { jobService } from "@/services/job.service";
 import { contactService } from "@/services/contact.service";
-import { getErrorMessage } from "@/services/api";
+import { ApiError, getErrorMessage } from "@/services/api";
 import type { JobSummary } from "@/interface/job";
 
 export function RequestContactDialog({ userId, jobId, onChanged }: { userId: string; jobId?: string; onChanged(): void }) {
   const [open, setOpen] = useState(false);
   return <Dialog.Root open={open} onOpenChange={setOpen}>
-    <Dialog.Trigger render={<Button variant="outline" />}>Xin mở liên hệ</Dialog.Trigger>
+    <Dialog.Trigger render={<Button className="min-h-11" variant="outline" />}>Xin mở liên hệ</Dialog.Trigger>
     <Dialog.Portal><Dialog.Backdrop className="fixed inset-0 z-50 bg-black/45" />
       <Dialog.Popup className="fixed left-1/2 top-1/2 z-50 max-h-[90dvh] w-[calc(100%-2rem)] max-w-lg -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-2xl border bg-background p-6 shadow-xl">
         <Dialog.Title className="text-xl font-semibold">Xin mở liên hệ</Dialog.Title>
@@ -46,20 +46,20 @@ function RequestForm({ userId, jobId, onDone }: { userId: string; jobId?: string
     if (!selected || !reason.trim() || reason.trim().length > 2000) { setError("Chọn JD và nhập lý do từ 1 đến 2000 ký tự."); return; }
     submitting.current = true; setBusy(true); setError("");
     try { await contactService.request(userId, { jobId: selected, reason: reason.trim() }); if (alive.current) onDone(); }
-    catch (err) { if (alive.current) setError(getErrorMessage(err)); }
+    catch (err) { if (alive.current) { if (err instanceof ApiError && err.status === 409) onDone(); else setError(getErrorMessage(err)); } }
     finally { submitting.current = false; if (alive.current) setBusy(false); }
   }
   return <form onSubmit={submit} className="mt-5 space-y-4">
     {!jobId && <div><label className="block text-sm font-medium" htmlFor="contact-job">JD liên quan</label>
       <select id="contact-job" required value={selected} disabled={loading || busy} onChange={e => setSelected(e.target.value)} className="mt-2 min-h-11 w-full rounded-lg border bg-background px-3 text-base">
         <option value="">{loading ? "Đang tải JD…" : "Chọn JD của công ty"}</option>{jobs.map(job => <option key={job.id} value={job.id}>{job.title}</option>)}
-      </select>{total > 100 && <div className="mt-2 flex items-center gap-3"><Button type="button" variant="outline" disabled={jobPage === 1 || busy} onClick={() => { setLoading(true); setSelected(""); setJobPage(p => p - 1); }}>JD trước</Button><span>Trang {jobPage}</span><Button type="button" variant="outline" disabled={jobPage * 100 >= total || busy} onClick={() => { setLoading(true); setSelected(""); setJobPage(p => p + 1); }}>JD tiếp</Button></div>}
+      </select>{total > 100 && <div className="mt-2 flex items-center gap-3"><Button className="min-h-11" type="button" variant="outline" disabled={jobPage === 1 || busy} onClick={() => { setLoading(true); setSelected(""); setJobPage(p => p - 1); }}>JD trước</Button><span>Trang {jobPage}</span><Button className="min-h-11" type="button" variant="outline" disabled={jobPage * 100 >= total || busy} onClick={() => { setLoading(true); setSelected(""); setJobPage(p => p + 1); }}>JD tiếp</Button></div>}
       {!loading && jobs.length === 0 && <p className="mt-2 text-sm">Công ty chưa có JD để gửi yêu cầu.</p>}
     </div>}
     <div><label htmlFor="contact-reason" className="block text-sm font-medium">Lý do xin mở liên hệ</label>
       <textarea id="contact-reason" required maxLength={2000} rows={4} value={reason} onChange={e => setReason(e.target.value)} disabled={busy} className="mt-2 w-full rounded-lg border p-3 text-base" />
       <p className="text-xs text-muted-foreground">{reason.length}/2000 ký tự</p></div>
     {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
-    <div className="flex flex-wrap justify-end gap-3"><Dialog.Close disabled={busy} className="min-h-11 rounded-lg border px-4">Hủy</Dialog.Close><Button type="submit" disabled={busy || loading || !selected || !reason.trim()}>{busy ? "Đang gửi…" : "Gửi yêu cầu"}</Button></div>
+    <div className="flex flex-wrap justify-end gap-3"><Dialog.Close disabled={busy} className="min-h-11 rounded-lg border px-4">Hủy</Dialog.Close><Button className="min-h-11" type="submit" disabled={busy || loading || !selected || !reason.trim()}>{busy ? "Đang gửi…" : "Gửi yêu cầu"}</Button></div>
   </form>;
 }

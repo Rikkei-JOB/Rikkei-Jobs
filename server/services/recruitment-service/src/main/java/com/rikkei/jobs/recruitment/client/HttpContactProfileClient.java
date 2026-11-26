@@ -22,7 +22,7 @@ public class HttpContactProfileClient implements ContactProfileClient {
             var p=client.get().uri("/internal/profiles/{id}/contact-metadata",userId)
                 .header("X-Internal-Key",key).header("Authorization",bearer).retrieve().body(ContactProfile.class);
             if(p==null || !userId.equals(p.userId()) || p.fullName()==null ||
-                !Set.of("PUBLIC","PRIVATE").contains(p.visibility()==null?"":p.visibility())) throw failure();
+                !Set.of("PUBLIC","PRIVATE","PENDING","REJECTED").contains(p.visibility()==null?"":p.visibility())) throw failure();
             return p;
         } catch(RestClientResponseException e) {
             if(e.getStatusCode().value()==404)throw new ResourceNotFoundException("Không tìm thấy ứng viên.");
