@@ -51,11 +51,13 @@ Qua gateway `http://localhost:8080/api/v1` (gateway bỏ `/api/v1`, service map 
 | `POST /staff/companies` | `STAFF` | 201 `CompanyResponse` | 400 `VALIDATION_ERROR` (`errors.taxCode`...), 409 `CONFLICT` (trùng mã số thuế) |
 | `POST /staff/companies/{id}/hr-accounts` | `STAFF` | 201 `HrAccountResponse` | 404 `NOT_FOUND`, 403 `COMPANY_LOCKED`, 409 `CONFLICT` (email đã dùng), 503 `EXTERNAL_UNAVAILABLE` |
 | `GET /companies/me` | `HR` | 200 `CompanyResponse` | 404 `NOT_FOUND` (HR chưa gán công ty) |
-| `PUT /companies/me` | `HR` | 200 `CompanyResponse` | 400 `VALIDATION_ERROR`, 403 `COMPANY_LOCKED` |
-| `POST /companies/me/logo` (multipart, phần `file`) | `HR` | 200 `CompanyResponse` | 400 `FILE_TOO_LARGE` / `INVALID_FILE_TYPE`, 403 `COMPANY_LOCKED` |
+| `PUT /companies/me` | `HR` | 200 `CompanyResponse` | 400 `VALIDATION_ERROR`, 401 `ACCOUNT_DISABLED` (công ty bị khoá, DN-07) |
+| `POST /companies/me/logo` (multipart, phần `file`) | `HR` | 200 `CompanyResponse` | 400 `FILE_TOO_LARGE` / `INVALID_FILE_TYPE`, 401 `ACCOUNT_DISABLED` (công ty bị khoá, DN-07) |
 | `GET /companies/logos/{fileName}` | công khai | 200 ảnh | 404 `NOT_FOUND` |
 
 Mọi endpoint có token còn thêm: 401 `UNAUTHORIZED`, 403 `FORBIDDEN` (sai vai trò), 403 `MUST_CHANGE_PASSWORD`. Đường dẫn không tồn tại → 404 `NOT_FOUND`, sai phương thức → 405 `METHOD_NOT_ALLOWED`, sai `Content-Type` → 415 `UNSUPPORTED_MEDIA_TYPE`.
+
+Công ty bị khoá (DN-07, [DN-07-job-review.md](DN-07-job-review.md)): HR của công ty `LOCKED` không đăng nhập được (identity trả 403 `ACCOUNT_DISABLED` "Công ty của bạn đang bị khoá, liên hệ cán bộ tuyển dụng") và token đang còn hạn bị `HrLockedFilter` chặn 401 `ACCOUNT_DISABLED` ở **mọi** endpoint của company-service, kể cả `GET /companies/me`. Trước DN-07, HR của công ty `LOCKED` vẫn đọc được và chỉ nhận 403 `COMPANY_LOCKED` khi ghi; nhánh 403 này còn giữ trong code làm lớp phòng thủ thứ hai nhưng HR không còn chạm tới. `POST /staff/companies/{id}/hr-accounts` cho công ty bị khoá vẫn trả 403 `COMPANY_LOCKED`.
 
 Quy tắc dữ liệu:
 
@@ -76,7 +78,8 @@ STAFF ──POST /staff/companies/{id}/hr-accounts──▶ company-service
    company-service ──POST /internal/users (X-Internal-Key)──▶ identity-service
        identity: tạo user HR (mật khẩu tạm ngẫu nhiên, mustChangePassword=true), gửi email tới MailHog
        (gửi email lỗi → rollback, trả 503 MAIL_UNAVAILABLE, không để lại user)
-   company-service: ghi company_hr(user_id, company_id)
+   company-service: ghi company_hr(user_id, company_id) trong transaction ngắn giữ khoá dòng công ty,
+       kiểm lại LOCKED trước khi ghi (DN-07; công ty vừa bị khoá → 403 COMPANY_LOCKED, xoá user vừa tạo)
        ghi lỗi → gọi DELETE /internal/users/{id} để hoàn tác
 HR nhận email → đăng nhập → bị chuyển /change-password → đổi mật khẩu → vào /hr/company
 ```

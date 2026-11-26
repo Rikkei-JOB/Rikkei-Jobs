@@ -120,7 +120,7 @@ Qua gateway mọi API nằm dưới **`/api/v1`** (quy ước nhóm, [convention
 | `INVALID_CREDENTIALS` | 401 | Sai email/mật khẩu |
 | `INVALID_TICKET` / `TICKET_EXPIRED` / `TICKET_ALREADY_USED` | 401 | Vé SSO không hợp lệ / quá 60 giây / đã dùng |
 | `MUST_CHANGE_PASSWORD` | 403 | Chưa đổi mật khẩu bắt buộc |
-| `ACCOUNT_DISABLED` | 403 (đăng nhập/SSO), 401 (token đã cấp) | HR bị cán bộ khoá (DN-05) |
+| `ACCOUNT_DISABLED` | 403 (đăng nhập/SSO, chỉ khi mật khẩu đúng), 401 (token đã cấp) | HR bị cán bộ khoá riêng (DN-05, "Tài khoản đã bị khoá") hoặc công ty của HR bị khoá (DN-07, `users.company_locked_at`, "Công ty của bạn đang bị khoá, liên hệ cán bộ tuyển dụng") |
 | `ACCOUNT_LOCKED` | 429 | Đang bị khoá 15 phút do sai mật khẩu 5 lần (`errors.minutesRemaining`) |
 | `LMS_UNAVAILABLE` | 502 | Không gọi được LMS/mock, hoặc sai `X-Service-Key` |
 

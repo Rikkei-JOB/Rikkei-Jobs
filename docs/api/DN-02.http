@@ -1,8 +1,12 @@
 # DN-02 - request mau (IntelliJ HTTP Client hoac VS Code REST Client).
 # Chay truoc: Postgres, mock (9000), identity, profile, company-service (profile dev), gateway (8080).
 # Xem docs/api/DN-02-jobs.md muc 6 "Cach chay". Moi request doi chieu voi muc 8 "Ca kiem thu" cua DN-02-jobs.md.
-# JD mau (DevDataSeeder, Cong ty A): ...0003-000000000001 REJECTED, ...002 PENDING, ...003 APPROVED, ...004 DRAFT, ...005 CLOSED.
-# Muon dat lai 5 JD mau: xoa cac dong cua company.job_skills va company.jobs roi khoi dong lai company-service voi profile dev.
+# JD mau (DevDataSeeder, Cong ty A): ...0003-000000000001 REJECTED, ...002 PENDING, ...003 APPROVED, ...004 DRAFT, ...005 CLOSED,
+# ...006/...007 APPROVED (DN-06); Cong ty B: ...008 APPROVED, ...009 PENDING (DN-07).
+# Muon dat lai JD mau: xoa cac dong cua company.match_scores, company.company_actions, company.job_skills, company.jobs
+# roi khoi dong lai company-service voi profile dev.
+# DN-07: chi tiet JD cua HR la GET /companies/me/jobs/{id} (GET /jobs/{id} nay la trang viec lam cong khai);
+# duyet / tra lai JD bang API cua can bo, xem DN-07.http. HR cua cong ty bi khoa nhan 401 ACCOUNT_DISABLED o moi request.
 
 @gw = http://localhost:8080/api/v1
 @company = http://localhost:8085
@@ -41,7 +45,7 @@ Authorization: Bearer {{hr1Login.response.body.accessToken}}
 
 ############################## 2. Danh sach JD ##############################
 
-### 2a. Tat ca JD cua Cong ty A -> 200 {items, total = 5, page = 1, size = 20}, moi cap nhat truoc
+### 2a. Tat ca JD cua Cong ty A -> 200 {items, total = 7, page = 1, size = 20}, moi cap nhat truoc
 GET {{gw}}/companies/me/jobs
 Authorization: Bearer {{hr1Login.response.body.accessToken}}
 
@@ -182,7 +186,7 @@ Content-Type: application/json
 ############################## 5. JD bi tra lai ##############################
 
 ### 5a. Xem JD bi tra lai -> 200 REJECTED, rejectReason = "Mức lương chưa rõ đơn vị, phần quyền lợi còn sơ sài.", 9 ky nang
-GET {{gw}}/jobs/{{jdRejected}}
+GET {{gw}}/companies/me/jobs/{{jdRejected}}
 Authorization: Bearer {{hr1Login.response.body.accessToken}}
 
 ### 5b. Sua luong va ky nang trong mot loi goi -> 200, van REJECTED (rejectReason con)
@@ -220,7 +224,7 @@ Authorization: Bearer {{hr1Login.response.body.accessToken}}
 ############################## 6. Cong ty khac va vai tro ##############################
 
 ### 6a. hr2 xem JD cua Cong ty A -> 404 NOT_FOUND (giong id khong ton tai)
-GET {{gw}}/jobs/{{jdApproved}}
+GET {{gw}}/companies/me/jobs/{{jdApproved}}
 Authorization: Bearer {{hr2Login.response.body.accessToken}}
 
 ### 6b. hr2 sua JD cua Cong ty A -> 404 NOT_FOUND
@@ -231,10 +235,13 @@ Content-Type: application/json
 { "title": "Dap pha JD cua A" }
 
 ### 6c. id khong ton tai -> 404 NOT_FOUND
-GET {{gw}}/jobs/00000000-0000-0000-0003-000000000999
+GET {{gw}}/companies/me/jobs/00000000-0000-0000-0003-000000000999
 Authorization: Bearer {{hr1Login.response.body.accessToken}}
 
 ### 6d. Khong co token -> 401 UNAUTHORIZED
+GET {{gw}}/companies/me/jobs/{{jdApproved}}
+
+### 6e. (DN-07) GET /jobs/{id} khong token la trang viec lam cong khai -> 200 voi JD dang tuyen, 404 voi JD chua duyet
 GET {{gw}}/jobs/{{jdApproved}}
 
 ############################## 7. API noi bo cho UT-01 (KHONG qua gateway) ##############################
