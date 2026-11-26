@@ -63,7 +63,7 @@ class StaffJobReviewApiTest extends CompanyApiTestSupport {
         linkHr(HR1, a.getId());
         linkHr(HR2, b.getId());
         when(identity.lookupUsers(any())).thenReturn(List.of(
-                new IdentityUserStatus(STAFF, "ha.ht@rikkei.vn", "Hoàng Thu Hà", "ACTIVE", null, null, null)));
+                new IdentityUserStatus(STAFF, "ha.ht@rikkei.vn", "Hoàng Thu Hà", "ACTIVE", null, null, null, false)));
     }
 
     // ---- tiện ích ----
@@ -378,6 +378,16 @@ class StaffJobReviewApiTest extends CompanyApiTestSupport {
         assertThat(reload(pending).getRejectReason()).isNull();
         assertThat(reload(approved).getStatus()).isEqualTo(JobStatus.APPROVED);
         assertThat(companyActions.count()).isZero();
+    }
+
+    @Test
+    void reasonLengthCountsTrimmedText() throws Exception {
+        Job pending = job(a, JobStatus.PENDING, "Chờ duyệt");
+        String reason = "x".repeat(1000);
+
+        reject(pending.getId(), reason("   " + reason + "   ")).andExpect(status().isOk())
+                .andExpect(jsonPath("$.rejectReason").value(reason));
+        assertThat(companyActions.findAll().get(0).getReason()).isEqualTo(reason);
     }
 
     @Test

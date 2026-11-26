@@ -119,12 +119,13 @@ class MyCompanyApiTest extends CompanyApiTestSupport {
     }
 
     @Test
-    void putOwnLockedCompanyByIdIs403() throws Exception {
+    void putOwnLockedCompanyByIdIs401() throws Exception {
         a.setStatus(CompanyStatus.LOCKED);
         companies.save(a);
         putById(hr1Token(), a.getId(), Map.of("name", "Tên mới"))
-                .andExpect(status().isForbidden())
-                .andExpect(jsonPath("$.code").value("COMPANY_LOCKED"));
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.code").value("ACCOUNT_DISABLED"));
+        assertThat(companies.findById(a.getId()).orElseThrow().getName()).isNotEqualTo("Tên mới");
     }
 
     @Test
@@ -143,13 +144,15 @@ class MyCompanyApiTest extends CompanyApiTestSupport {
     }
 
     @Test
-    void lockedCompanyCanBeReadButNotUpdated() throws Exception {
+    void hrOfLockedCompanyCannotReadOrUpdate() throws Exception {
+        // DN-07: HR của công ty bị khoá mất mọi quyền truy cập company-service, kể cả đọc.
         a.setStatus(CompanyStatus.LOCKED);
         companies.save(a);
-        getMe(hr1Token()).andExpect(status().isOk())
-                .andExpect(jsonPath("$.status").value("LOCKED"));
-        putMe(hr1Token(), Map.of("name", "Tên mới")).andExpect(status().isForbidden())
-                .andExpect(jsonPath("$.code").value("COMPANY_LOCKED"));
+        getMe(hr1Token()).andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.code").value("ACCOUNT_DISABLED"))
+                .andExpect(jsonPath("$.message").value("Công ty của bạn đang bị khoá, liên hệ cán bộ tuyển dụng"));
+        putMe(hr1Token(), Map.of("name", "Tên mới")).andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.code").value("ACCOUNT_DISABLED"));
     }
 
     @Test

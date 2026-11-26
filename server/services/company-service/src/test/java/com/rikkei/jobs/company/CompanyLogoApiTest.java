@@ -147,8 +147,9 @@ class CompanyLogoApiTest extends CompanyApiTestSupport {
     void lockedCompanyCannotUpload() throws Exception {
         company.setStatus(CompanyStatus.LOCKED);
         companies.save(company);
-        upload(hrToken(), "logo.png", "image/png", png(100)).andExpect(status().isForbidden())
-                .andExpect(jsonPath("$.code").value("COMPANY_LOCKED"));
+        // DN-07: HR của công ty bị khoá bị chặn 401 ACCOUNT_DISABLED trước controller.
+        upload(hrToken(), "logo.png", "image/png", png(100)).andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.code").value("ACCOUNT_DISABLED"));
     }
 
     @Test

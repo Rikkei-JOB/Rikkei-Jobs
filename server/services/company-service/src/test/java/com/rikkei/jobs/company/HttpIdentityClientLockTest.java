@@ -91,7 +91,7 @@ class HttpIdentityClientLockTest {
         IdentityUserStatus status = client.lockUser(id, "Vi phạm");
 
         assertThat(status).isEqualTo(new IdentityUserStatus(id, "hr@b.test", "HR", "LOCKED", "Vi phạm",
-                Instant.parse("2026-11-17T03:00:00Z"), Instant.parse("2026-11-18T03:00:00Z")));
+                Instant.parse("2026-11-17T03:00:00Z"), Instant.parse("2026-11-18T03:00:00Z"), null));
     }
 
     @Test

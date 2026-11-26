@@ -7,7 +7,6 @@ import com.rikkei.jobs.company.client.IdentityClient;
 import com.rikkei.jobs.company.client.IdentityUserStatus;
 import com.rikkei.jobs.company.config.exception.CompanyErrorCode;
 import com.rikkei.jobs.company.config.exception.CompanyException;
-import com.rikkei.jobs.company.config.exception.JobValidationException;
 import com.rikkei.jobs.company.dto.response.CompanyRef;
 import com.rikkei.jobs.company.dto.response.PublicJobDetail;
 import com.rikkei.jobs.company.dto.response.StaffJobDetail;
@@ -26,6 +25,7 @@ import com.rikkei.jobs.company.repository.JobRepository;
 import com.rikkei.jobs.company.repository.JobSkillRepository;
 import com.rikkei.jobs.company.service.StaffJobReviewService;
 import com.rikkei.jobs.company.util.JobRules;
+import com.rikkei.jobs.company.util.ReasonRules;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.List;
@@ -52,7 +52,6 @@ import org.springframework.transaction.support.TransactionTemplate;
 public class StaffJobReviewServiceImpl implements StaffJobReviewService {
 
     private static final String JOB_NOT_FOUND = "Không tìm thấy JD";
-    private static final String REASON_REQUIRED = "Vui lòng nhập lý do";
 
     private final JobRepository jobRepository;
     private final JobSkillRepository jobSkillRepository;
@@ -136,7 +135,7 @@ public class StaffJobReviewServiceImpl implements StaffJobReviewService {
 
     @Override
     public StaffJobDetail reject(UUID staffId, UUID jobId, String reason) {
-        String cleaned = cleanReason(reason);
+        String cleaned = ReasonRules.clean(reason);
         return act(staffId, jobId, JobStatus.PENDING, CompanyActionType.REJECT_JD, cleaned, job -> {
             job.setStatus(JobStatus.REJECTED);
             job.setRejectReason(cleaned);
@@ -145,7 +144,7 @@ public class StaffJobReviewServiceImpl implements StaffJobReviewService {
 
     @Override
     public StaffJobDetail close(UUID staffId, UUID jobId, String reason) {
-        String cleaned = cleanReason(reason);
+        String cleaned = ReasonRules.clean(reason);
         // rejectReason giữ nguyên: lý do đóng chỉ nằm trong lịch sử.
         return act(staffId, jobId, JobStatus.APPROVED, CompanyActionType.CLOSE_JD, cleaned,
                 job -> job.setStatus(JobStatus.CLOSED));
@@ -203,18 +202,6 @@ public class StaffJobReviewServiceImpl implements StaffJobReviewService {
             log.warn("Không tra được tên cán bộ {} từ identity-service: {}", staffId, e.getMessage());
             return null;
         }
-    }
-
-    /**
-     * {@code @NotBlank} chỉ bỏ khoảng trắng ASCII; strip() bỏ cả khoảng trắng Unicode, nên kiểm tra lại sau khi
-     * strip để không lưu lý do rỗng.
-     */
-    private static String cleanReason(String reason) {
-        String cleaned = reason == null ? "" : reason.strip();
-        if (cleaned.isEmpty()) {
-            throw new JobValidationException(Map.of("reason", REASON_REQUIRED));
-        }
-        return cleaned;
     }
 
     private record Snapshot(PublicJobDetail view, JobStatus status, String rejectReason, Instant reviewedAt,

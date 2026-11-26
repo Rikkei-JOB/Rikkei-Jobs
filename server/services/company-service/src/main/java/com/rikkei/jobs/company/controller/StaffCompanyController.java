@@ -4,12 +4,14 @@ import com.rikkei.jobs.common.config.security.principle.AuthPrincipal;
 import com.rikkei.jobs.common.config.security.principle.Roles;
 import com.rikkei.jobs.company.dto.request.CreateCompanyRequest;
 import com.rikkei.jobs.company.dto.request.CreateHrAccountRequest;
+import com.rikkei.jobs.company.dto.request.ReasonRequest;
 import com.rikkei.jobs.company.dto.response.CompanyResponse;
 import com.rikkei.jobs.company.dto.response.HrAccountResponse;
 import com.rikkei.jobs.common.dto.response.PageResponse;
 import com.rikkei.jobs.company.dto.response.StaffCompanyDetail;
 import com.rikkei.jobs.company.dto.response.StaffCompanyItem;
 import com.rikkei.jobs.company.entity.CompanyStatus;
+import com.rikkei.jobs.company.service.CompanyLockService;
 import com.rikkei.jobs.company.service.CompanyService;
 import com.rikkei.jobs.company.service.HrAccountService;
 import com.rikkei.jobs.company.service.StaffCompanyService;
@@ -39,6 +41,7 @@ public class StaffCompanyController {
     private final CompanyService companyService;
     private final HrAccountService hrAccountService;
     private final StaffCompanyService staffCompanyService;
+    private final CompanyLockService companyLockService;
 
     @Operation(
             summary = "Danh sách công ty (cán bộ)",
@@ -58,7 +61,9 @@ public class StaffCompanyController {
 
     @Operation(
             summary = "Chi tiết công ty (cán bộ)",
-            description = "Vai trò: STAFF. Kèm danh sách tài khoản HR lấy từ identity-service.")
+            description = "Vai trò: STAFF. Kèm danh sách tài khoản HR lấy từ identity-service (status = khoá riêng, "
+                    + "companyLocked = khoá theo công ty) và lock (null khi ACTIVE; lockedBy.fullName null khi không tra "
+                    + "được identity-service).")
     @ApiResponse(responseCode = "200", description = "Chi tiết công ty và hrAccounts")
     @ApiResponse(responseCode = "401", description = "UNAUTHORIZED: thiếu hoặc sai token")
     @ApiResponse(responseCode = "403", description = "FORBIDDEN: không phải STAFF")
@@ -68,6 +73,43 @@ public class StaffCompanyController {
     @PreAuthorize(Roles.STAFF)
     public StaffCompanyDetail detail(@PathVariable UUID id) {
         return staffCompanyService.detail(id);
+    }
+
+    @Operation(
+            summary = "Khoá công ty",
+            description = "Vai trò: STAFF. Lý do bắt buộc (trim, 1–1000 ký tự). Đặt công ty LOCKED, ghi lịch sử LOCK "
+                    + "và khoá theo công ty mọi tài khoản HR ở identity-service (cùng thành công hoặc không đổi gì): "
+                    + "HR không đăng nhập được, token còn hạn bị chặn 401 ACCOUNT_DISABLED; JD bị ẩn khỏi trang việc làm.")
+    @ApiResponse(responseCode = "200", description = "Chi tiết công ty sau khi khoá, kèm lock {lockedAt, reason, lockedBy}")
+    @ApiResponse(responseCode = "400", description = "VALIDATION_ERROR: thiếu lý do hoặc quá 1000 ký tự (errors.reason)")
+    @ApiResponse(responseCode = "401", description = "UNAUTHORIZED: thiếu hoặc sai token")
+    @ApiResponse(responseCode = "403", description = "FORBIDDEN: không phải STAFF")
+    @ApiResponse(responseCode = "404", description = "NOT_FOUND: không có công ty")
+    @ApiResponse(responseCode = "409", description = "CONFLICT: công ty đã bị khoá")
+    @ApiResponse(responseCode = "503",
+            description = "EXTERNAL_UNAVAILABLE: không cập nhật được tài khoản HR ở identity-service, công ty không đổi")
+    @PostMapping("/{id}/lock")
+    @PreAuthorize(Roles.STAFF)
+    public StaffCompanyDetail lock(@PathVariable UUID id, @Valid @RequestBody ReasonRequest request,
+                                   @AuthenticationPrincipal AuthPrincipal principal) {
+        return companyLockService.lock(principal.getUserId(), id, request.reason());
+    }
+
+    @Operation(
+            summary = "Mở khoá công ty",
+            description = "Vai trò: STAFF. Không có body. Đặt công ty ACTIVE, ghi lịch sử UNLOCK và bỏ khoá theo công ty "
+                    + "của mọi HR; HR đang bị khoá riêng vẫn bị khoá.")
+    @ApiResponse(responseCode = "200", description = "Chi tiết công ty sau khi mở khoá (lock null)")
+    @ApiResponse(responseCode = "401", description = "UNAUTHORIZED: thiếu hoặc sai token")
+    @ApiResponse(responseCode = "403", description = "FORBIDDEN: không phải STAFF")
+    @ApiResponse(responseCode = "404", description = "NOT_FOUND: không có công ty")
+    @ApiResponse(responseCode = "409", description = "CONFLICT: công ty không bị khoá")
+    @ApiResponse(responseCode = "503",
+            description = "EXTERNAL_UNAVAILABLE: không cập nhật được tài khoản HR ở identity-service, công ty không đổi")
+    @PostMapping("/{id}/unlock")
+    @PreAuthorize(Roles.STAFF)
+    public StaffCompanyDetail unlock(@PathVariable UUID id, @AuthenticationPrincipal AuthPrincipal principal) {
+        return companyLockService.unlock(principal.getUserId(), id);
     }
 
     @PostMapping

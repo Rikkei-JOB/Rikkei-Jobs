@@ -67,7 +67,7 @@ class StaffCompanyListApiTest extends CompanyApiTestSupport {
 
 
     private IdentityUserStatus idUser(UUID id, String email, String status) {
-        return new IdentityUserStatus(id, email, "Tên " + email, status, null, null, null);
+        return new IdentityUserStatus(id, email, "Tên " + email, status, null, null, null, false);
     }
 
     @Test
@@ -165,9 +165,9 @@ class StaffCompanyListApiTest extends CompanyApiTestSupport {
     void detailListsHrFromIdentity() throws Exception {
         when(identity.lookupUsers(anyList())).thenReturn(List.of(
                 new IdentityUserStatus(HR1, "zeta@x.vn", "Zeta", "LOCKED", "Nghỉ việc",
-                        Instant.parse("2026-11-01T00:00:00Z"), null),
+                        Instant.parse("2026-11-01T00:00:00Z"), null, false),
                 new IdentityUserStatus(HR2, "alpha@x.vn", "Alpha", "ACTIVE", null, null,
-                        Instant.parse("2099-01-01T00:00:00Z"))));
+                        Instant.parse("2099-01-01T00:00:00Z"), false)));
 
         detail(a.getId()).andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(a.getId().toString()))
@@ -178,6 +178,8 @@ class StaffCompanyListApiTest extends CompanyApiTestSupport {
                 .andExpect(jsonPath("$.hrAccounts[0].fullName").value("Alpha"))
                 .andExpect(jsonPath("$.hrAccounts[0].status").value("ACTIVE"))
                 .andExpect(jsonPath("$.hrAccounts[0].tempLockedUntil").isNotEmpty())
+                .andExpect(jsonPath("$.hrAccounts[0].companyLocked").value(false))
+                .andExpect(jsonPath("$.lock").value((Object) null))
                 .andExpect(jsonPath("$.hrAccounts[1].email").value("zeta@x.vn"))
                 .andExpect(jsonPath("$.hrAccounts[1].status").value("LOCKED"))
                 .andExpect(jsonPath("$.hrAccounts[1].lockedReason").value("Nghỉ việc"))

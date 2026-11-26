@@ -84,6 +84,32 @@ class HrLockedFilterTest extends CompanyApiTestSupport {
     }
 
     @Test
+    void hrOfLockedCompanyRejected() throws Exception {
+        company.setStatus(CompanyStatus.LOCKED);
+        companies.save(company);
+        String auth = bearer(HR1, Role.HR);
+
+        mvc.perform(get("/companies/me").header("Authorization", auth))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.code").value("ACCOUNT_DISABLED"))
+                .andExpect(jsonPath("$.message").value("Công ty của bạn đang bị khoá, liên hệ cán bộ tuyển dụng"));
+        mvc.perform(get("/companies/me/jobs").header("Authorization", auth))
+                .andExpect(status().isUnauthorized());
+        // Bộ lọc chạy trước cả endpoint công khai: token HR này nhận 401 ở GET /jobs (chấp nhận theo spec 4.7).
+        mvc.perform(get("/jobs").header("Authorization", auth))
+                .andExpect(status().isUnauthorized());
+        mvc.perform(get("/jobs")).andExpect(status().isOk());
+        // HR vừa khoá riêng vừa thuộc công ty bị khoá: message khoá riêng.
+        mvc.perform(get("/companies/me").header("Authorization", bearer(HR2, Role.HR)))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.message").value("Tài khoản đã bị khoá"));
+
+        company.setStatus(CompanyStatus.ACTIVE);
+        companies.save(company);
+        mvc.perform(get("/companies/me").header("Authorization", auth)).andExpect(status().isOk());
+    }
+
+    @Test
     void staffNotAffected() throws Exception {
         mvc.perform(get("/companies/" + company.getId())
                         .header("Authorization", bearer(UUID.randomUUID(), Role.STAFF)))
