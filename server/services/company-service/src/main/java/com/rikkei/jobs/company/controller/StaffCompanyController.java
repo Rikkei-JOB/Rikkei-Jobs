@@ -11,6 +11,8 @@ import com.rikkei.jobs.common.dto.response.PageResponse;
 import com.rikkei.jobs.company.dto.response.StaffCompanyDetail;
 import com.rikkei.jobs.company.dto.response.StaffCompanyItem;
 import com.rikkei.jobs.company.entity.CompanyStatus;
+import com.rikkei.jobs.company.dto.response.CompanyActionItem;
+import com.rikkei.jobs.company.service.CompanyHistoryService;
 import com.rikkei.jobs.company.service.CompanyLockService;
 import com.rikkei.jobs.company.service.CompanyService;
 import com.rikkei.jobs.company.service.HrAccountService;
@@ -42,6 +44,7 @@ public class StaffCompanyController {
     private final HrAccountService hrAccountService;
     private final StaffCompanyService staffCompanyService;
     private final CompanyLockService companyLockService;
+    private final CompanyHistoryService companyHistoryService;
 
     @Operation(
             summary = "Danh sách công ty (cán bộ)",
@@ -110,6 +113,23 @@ public class StaffCompanyController {
     @PreAuthorize(Roles.STAFF)
     public StaffCompanyDetail unlock(@PathVariable UUID id, @AuthenticationPrincipal AuthPrincipal principal) {
         return companyLockService.unlock(principal.getUserId(), id);
+    }
+
+    @Operation(
+            summary = "Lịch sử thao tác trên công ty",
+            description = "Vai trò: STAFF. Khoá/mở khoá công ty và duyệt/trả lại/đóng JD, mới nhất trước; page từ 1, "
+                    + "size tối đa 100. staff.fullName null khi không tra được identity-service; job null với LOCK/UNLOCK.")
+    @ApiResponse(responseCode = "200", description = "Trang lịch sử {items, total, page, size}")
+    @ApiResponse(responseCode = "400", description = "BAD_REQUEST: page/size không hợp lệ")
+    @ApiResponse(responseCode = "401", description = "UNAUTHORIZED: thiếu hoặc sai token")
+    @ApiResponse(responseCode = "403", description = "FORBIDDEN: không phải STAFF")
+    @ApiResponse(responseCode = "404", description = "NOT_FOUND: không có công ty")
+    @GetMapping("/{id}/history")
+    @PreAuthorize(Roles.STAFF)
+    public PageResponse<CompanyActionItem> history(@PathVariable UUID id,
+                                                   @RequestParam(defaultValue = "1") int page,
+                                                   @RequestParam(defaultValue = "20") int size) {
+        return companyHistoryService.history(id, page, size);
     }
 
     @PostMapping

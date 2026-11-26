@@ -36,7 +36,8 @@ import org.springframework.test.web.servlet.MockMvc;
     "spring.datasource.username=sa",
     "spring.datasource.password=",
     "app.jwt.secret=test_secret_test_secret_test_secret_test_secret",
-    "app.dev-data.enabled=false"
+    "app.dev-data.enabled=false",
+    "app.jobs.auto-close.enabled=false"
 })
 @AutoConfigureMockMvc
 public abstract class CompanyApiTestSupport {
