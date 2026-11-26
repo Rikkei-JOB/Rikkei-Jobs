@@ -102,6 +102,30 @@ class CvApiTest {
         assertThat(text).doesNotContain("Tiếng Anh", "Thích");
     }
 
+    @Test void previewRendersUnsavedDraftWithoutSavingIt() throws Exception {
+        String id = create("CV Backend", "Java Developer").get("id").asText();
+        var sections = new ArrayList<Map<String, Object>>();
+        sections.add(Map.of("section", "SKILLS", "included", true, "itemIds", List.of(java)));
+        for (String t : List.of("SUMMARY", "LANGUAGES", "INTERNSHIP", "PROJECTS", "EDUCATION", "CERTIFICATES")) {
+            sections.add(Map.of("section", t, "included", true));
+        }
+        byte[] pdf = mvc.perform(post("/profile/cvs/" + id + "/preview").header("Authorization", bearer)
+                .contentType(MediaType.APPLICATION_JSON).content(json.writeValueAsString(Map.of("sections", sections))))
+            .andExpect(status().isOk()).andExpect(content().contentType(MediaType.APPLICATION_PDF))
+            .andReturn().getResponse().getContentAsByteArray();
+        String text;
+        try (var doc = PDDocument.load(pdf)) { text = new PDFTextStripper().getText(doc); }
+        assertThat(text).contains("Java 82");
+
+        JsonNode saved = json.readTree(mvc.perform(get("/profile/cvs/" + id).header("Authorization", bearer))
+            .andExpect(status().isOk()).andReturn().getResponse().getContentAsString(UTF_8));
+        assertThat(section(saved, "SKILLS").get("allItems").asBoolean()).isTrue();
+
+        mvc.perform(post("/profile/cvs/" + id + "/preview").header("Authorization", bearer)
+                .contentType(MediaType.APPLICATION_JSON).content(json.writeValueAsString(Map.of("sections", sections.subList(0, 2)))))
+            .andExpect(status().isBadRequest());
+    }
+
     @Test void otherCandidateCannotReadEditOrExportTheCv() throws Exception {
         String id = create("CV Backend", null).get("id").asText();
         String other = "Bearer " + jwt.generateJwtToken(UUID.randomUUID(), Role.CANDIDATE, null);

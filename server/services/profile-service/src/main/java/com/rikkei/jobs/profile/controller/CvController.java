@@ -54,7 +54,16 @@ public class CvController {
     @GetMapping(value = "/cvs/{id}/pdf", produces = MediaType.APPLICATION_PDF_VALUE) @PreAuthorize(Roles.CANDIDATE)
     public ResponseEntity<byte[]> pdf(@AuthenticationPrincipal AuthPrincipal p, @PathVariable UUID id,
         @RequestParam(defaultValue = "false") boolean inline) {
-        byte[] bytes = renderer.render(service.render(p.getUserId(), id));
+        return pdfResponse(id, inline, renderer.render(service.render(p.getUserId(), id)));
+    }
+
+    /** Xem trước theo bản nháp chưa lưu; không ghi DB. */
+    @PostMapping(value = "/cvs/{id}/preview", produces = MediaType.APPLICATION_PDF_VALUE) @PreAuthorize(Roles.CANDIDATE)
+    public ResponseEntity<byte[]> preview(@AuthenticationPrincipal AuthPrincipal p, @PathVariable UUID id, @Valid @RequestBody SectionsRequest r) {
+        return pdfResponse(id, true, renderer.render(service.render(p.getUserId(), id, r)));
+    }
+
+    private static ResponseEntity<byte[]> pdfResponse(UUID id, boolean inline, byte[] bytes) {
         var disposition = (inline ? ContentDisposition.inline() : ContentDisposition.attachment()).filename("cv-" + id + ".pdf").build();
         return ResponseEntity.ok().contentType(MediaType.APPLICATION_PDF)
             .header(HttpHeaders.CONTENT_DISPOSITION, disposition.toString())
