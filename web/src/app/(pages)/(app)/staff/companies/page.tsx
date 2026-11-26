@@ -11,6 +11,8 @@ import { useAuthGuard } from "@/hooks/use-auth-guard"
 import { useStaffCompanies } from "@/hooks/use-staff-companies"
 import type { CompanyStatus } from "@/interface/company"
 import { getErrorMessage } from "@/services/api"
+import { SelectMenu } from "@/app/components/ui/select-menu"
+import { TaskBanner } from "@/app/components/ui/task-banner"
 
 const PAGE_SIZE = 20
 const BASE_PATH = "/staff/companies"
@@ -56,10 +58,15 @@ function StaffCompaniesView() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between gap-2">
-        <h1 className="text-xl font-semibold text-[#18233a]">Doanh nghiệp</h1>
-        <Button onClick={() => setCreating(true)}>+ Tạo công ty</Button>
-      </div>
+      <TaskBanner
+        eyebrow="Quản lý đối tác"
+        title="Doanh nghiệp"
+        description="Tạo hồ sơ doanh nghiệp, cấp và quản lý tài khoản HR, khoá hoặc mở khoá khi cần."
+        illustration="applications"
+        compact
+      >
+        <Button data-primary onClick={() => setCreating(true)}>+ Tạo công ty</Button>
+      </TaskBanner>
 
       {creating ? (
         <CreateCompanyDialog
@@ -80,16 +87,13 @@ function StaffCompaniesView() {
           aria-label="Tìm công ty"
           className="max-w-xs"
         />
-        <select
+        <SelectMenu
           value={status ?? ""}
-          onChange={(e) => navigate({ q, status: (e.target.value || undefined) as CompanyStatus | undefined, page: 1 })}
+          onValueChange={(value) => navigate({ q, status: (value || undefined) as CompanyStatus | undefined, page: 1 })}
           aria-label="Lọc theo trạng thái"
-          className="h-7 rounded-md border border-input bg-background px-2 text-xs"
-        >
-          <option value="">Tất cả</option>
-          <option value="ACTIVE">Hoạt động</option>
-          <option value="LOCKED">Đã khoá</option>
-        </select>
+          className="ui-select-trigger h-7 min-h-7 w-auto min-w-32 rounded-md px-2 text-xs"
+          options={[{ value: "", label: "Tất cả" }, { value: "ACTIVE", label: "Hoạt động" }, { value: "LOCKED", label: "Đã khoá" }]}
+        />
         {data ? <span className="text-xs text-muted-foreground">{data.total} công ty</span> : null}
       </div>
 

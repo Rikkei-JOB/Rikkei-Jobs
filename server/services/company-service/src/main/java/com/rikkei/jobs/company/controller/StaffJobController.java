@@ -1,0 +1,79 @@
+package com.rikkei.jobs.company.controller;
+
+import com.rikkei.jobs.common.config.security.principle.AuthPrincipal;
+import com.rikkei.jobs.common.config.security.principle.Roles;
+import com.rikkei.jobs.common.dto.response.PageResponse;
+import com.rikkei.jobs.company.dto.request.RejectJobRequest;
+import com.rikkei.jobs.company.dto.response.StaffJobDtos.StaffJobDetail;
+import com.rikkei.jobs.company.dto.response.StaffJobDtos.StaffJobItem;
+import com.rikkei.jobs.company.dto.response.StaffJobDtos.StaffJobSummary;
+import com.rikkei.jobs.company.entity.JobStatus;
+import com.rikkei.jobs.company.service.StaffJobService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
+import java.util.UUID;
+import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
+/** DN-07, qua gateway: /api/v1/staff/jobs/**. Cán bộ (và quản trị, theo ma trận quyền NT-01) duyệt hoặc trả lại JD HR đã gửi. */
+@Tag(name = "Cán bộ - Duyệt JD")
+@RestController
+@RequestMapping("/staff/jobs")
+@RequiredArgsConstructor
+@PreAuthorize(Roles.STAFF_OR_ADMIN)
+public class StaffJobController {
+
+    private final StaffJobService service;
+
+    @Operation(summary = "Danh sách JD (cán bộ)", description = "Vai trò: STAFF. Không có JD nháp. status lọc trạng thái; q tìm theo tiêu đề, "
+            + "vị trí, tên công ty. PENDING xếp gửi sớm trước (hàng chờ), trạng thái khác mới cập nhật trước. page từ 1, size tối đa 100.")
+    @ApiResponse(responseCode = "200", description = "Trang JD {items, total, page, size}")
+    @ApiResponse(responseCode = "400", description = "BAD_REQUEST: phân trang sai, status sai hoặc DRAFT")
+    @GetMapping
+    public PageResponse<StaffJobItem> list(@RequestParam(required = false) JobStatus status,
+                                           @RequestParam(required = false) String q,
+                                           @RequestParam(required = false) UUID companyId,
+                                           @RequestParam(defaultValue = "1") int page,
+                                           @RequestParam(defaultValue = "20") int size) {
+        return service.list(status, q, companyId, page, size);
+    }
+
+    @Operation(summary = "Số JD theo trạng thái", description = "Vai trò: STAFF. Đủ khoá PENDING, APPROVED, REJECTED, CLOSED.")
+    @GetMapping("/summary")
+    public StaffJobSummary summary() {
+        return service.summary();
+    }
+
+    @Operation(summary = "Chi tiết JD (cán bộ)", description = "Vai trò: STAFF. JD nháp trả 404.")
+    @ApiResponse(responseCode = "404", description = "NOT_FOUND: không có JD hoặc JD đang là nháp")
+    @GetMapping("/{id}")
+    public StaffJobDetail get(@PathVariable UUID id) {
+        return service.get(id);
+    }
+
+    @Operation(summary = "Duyệt JD", description = "Vai trò: STAFF. PENDING -> APPROVED. JD quá hạn nộp không duyệt được.")
+    @ApiResponse(responseCode = "409", description = "INVALID_JOB_STATUS: JD không chờ duyệt, đã quá hạn, hoặc cán bộ khác vừa xử lý")
+    @PostMapping("/{id}/approve")
+    public StaffJobDetail approve(@PathVariable UUID id, @AuthenticationPrincipal AuthPrincipal principal) {
+        return service.approve(principal.getUserId(), id);
+    }
+
+    @Operation(summary = "Trả lại JD", description = "Vai trò: STAFF. PENDING -> REJECTED kèm lý do (bắt buộc, tối đa 1.000 ký tự).")
+    @ApiResponse(responseCode = "400", description = "VALIDATION_ERROR: thiếu hoặc quá dài lý do")
+    @ApiResponse(responseCode = "409", description = "INVALID_JOB_STATUS: JD không chờ duyệt")
+    @PostMapping("/{id}/reject")
+    public StaffJobDetail reject(@PathVariable UUID id, @AuthenticationPrincipal AuthPrincipal principal,
+                                 @Valid @RequestBody RejectJobRequest request) {
+        return service.reject(principal.getUserId(), id, request.reason());
+    }
+}
