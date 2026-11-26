@@ -3,7 +3,8 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { ArrowLeft, Download, Mail, Phone, BriefcaseBusiness } from "lucide-react";
+import { ArrowLeft, Download, BriefcaseBusiness } from "lucide-react";
+import { CandidateContactPanel } from "@/app/components/contact/candidate-contact-panel";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/app/components/ui/tabs";
 import { Button } from "@/app/components/ui/button";
 import { ApplicationStatusBadge } from "@/app/components/applications/application-status-badge";
@@ -30,7 +31,7 @@ export function HrApplicationDetailView({ application, errors, matchCard, transi
     {errors}
     <header className="hr-surface hr-page-heading"><div className="min-w-0 break-words"><p className="hr-eyebrow">HỒ SƠ ỨNG TUYỂN</p><h1>{application.candidate.fullName}</h1>
       <p className="mt-2 flex items-start gap-2 font-medium"><BriefcaseBusiness size={18} className="mt-0.5 shrink-0" aria-hidden="true" />{application.jobTitle}</p>
-      <div className="mt-3 flex flex-wrap gap-x-6 gap-y-2 text-sm text-muted-foreground"><span className="flex min-w-0 items-center gap-2 break-all"><Mail size={16} className="shrink-0" aria-hidden="true" />{application.candidate.email}</span>{application.candidate.phone && <span className="flex items-center gap-2"><Phone size={16} aria-hidden="true" />{application.candidate.phone}</span>}</div>
+      <CandidateContactPanel userId={application.candidate.userId} jobId={application.jobId} />
       <p className="mt-3 text-xs text-muted-foreground">{application.companyName} · Nộp ngày {formatApplicationDate(application.createdAt)}</p>
     </div><ApplicationStatusBadge status={application.status} /></header>
     <div className="hr-detail-grid">
