@@ -12,6 +12,12 @@ import org.springframework.http.*;
 @RestController @RequestMapping("/candidates/{userId}") @RequiredArgsConstructor @PreAuthorize(Roles.HR)
 public class CandidateContactController {
     private final ContactRequestService requests;
+    private final com.rikkei.jobs.recruitment.service.CandidateContactService contacts;
+    @GetMapping("/contact")
+    public ResponseEntity<ContactView> contact(@AuthenticationPrincipal AuthPrincipal actor,@PathVariable UUID userId,
+        @RequestHeader("Authorization") String bearer) {
+        return ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(contacts.reveal(actor,userId,bearer));
+    }
     @PostMapping("/contact-requests") @ResponseStatus(HttpStatus.CREATED)
     public ContactRequestView request(@AuthenticationPrincipal AuthPrincipal actor,@PathVariable UUID userId,
         @Valid @RequestBody CreateRequest body,@RequestHeader("Authorization") String bearer) {
