@@ -172,7 +172,7 @@ class SkillProfileServiceTest {
         long mappingCount = mappings.count();
         flyway.migrate();
 
-        assertThat(skills.count()).isEqualTo(20);
+        assertThat(skills.count()).isEqualTo(19);
         assertThat(mappings.count()).isEqualTo(mappingCount).isGreaterThan(5);
     }
 

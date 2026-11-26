@@ -40,4 +40,16 @@ public class ProfileRecordsController {
     }
     @DeleteMapping("/certificates/{id}") @ResponseStatus(HttpStatus.NO_CONTENT)
     public void deleteCertificate(@AuthenticationPrincipal AuthPrincipal p, @PathVariable UUID id) { service.deleteCertificate(p.getUserId(), id); }
+    @GetMapping("/languages")
+    public List<LanguageResponse> languages(@AuthenticationPrincipal AuthPrincipal p) { return service.languages(p.getUserId()); }
+    @PostMapping("/languages") @ResponseStatus(HttpStatus.CREATED)
+    public LanguageResponse createLanguage(@AuthenticationPrincipal AuthPrincipal p, @Valid @RequestBody LanguageRequest r) {
+        return service.createLanguage(p.getUserId(), r);
+    }
+    @PutMapping("/languages/{id}")
+    public LanguageResponse updateLanguage(@AuthenticationPrincipal AuthPrincipal p, @PathVariable UUID id, @Valid @RequestBody LanguageRequest r) {
+        return service.updateLanguage(p.getUserId(), id, r);
+    }
+    @DeleteMapping("/languages/{id}") @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void deleteLanguage(@AuthenticationPrincipal AuthPrincipal p, @PathVariable UUID id) { service.deleteLanguage(p.getUserId(), id); }
 }

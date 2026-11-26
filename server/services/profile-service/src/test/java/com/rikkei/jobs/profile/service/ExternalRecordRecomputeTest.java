@@ -78,13 +78,13 @@ class ExternalRecordRecomputeTest {
     @Test
     void sourceRefreshPreservesSelfEvidenceAndSeparateSelfScore() {
         UUID user = UUID.randomUUID();
-        UUID skillId = skills.findByCode("ENGLISH").orElseThrow().getId();
+        UUID skillId = skills.findByCode("COMMUNICATION").orElseThrow().getId();
         SkillEvidence self = new SkillEvidence();
         self.setUserId(user);
         self.setSkillId(skillId);
         self.setSource(EvidenceSource.SELF);
-        self.setSourceRef("self-english");
-        self.setTitle("Tự đánh giá tiếng Anh");
+        self.setSourceRef("self-communication");
+        self.setTitle("Tự đánh giá kỹ năng giao tiếp");
         self.setScore(new BigDecimal("65"));
         self.setWeight(BigDecimal.ONE);
         self.setRecordedAt(Instant.parse("2026-10-01T00:00:00Z"));

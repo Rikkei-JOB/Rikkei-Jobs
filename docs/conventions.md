@@ -265,7 +265,7 @@ Demo không gửi email thật. **Nhóm chọn MailHog**: service `mailhog` tron
 
 ## 6. Danh mục kỹ năng và bậc năng lực
 
-Seed đúng **20 mã kỹ năng** theo tài liệu hướng dẫn mock của mentor. Bộ mã này dùng chung cho cả 3 nhóm và khớp trường `skills` của khoá học trong `mock/data.json`, nên **không đổi tên mã**. Muốn thêm kỹ năng ngoài danh sách thì thêm mã mới, không thay mã có sẵn.
+Seed **19 mã kỹ năng** theo tài liệu hướng dẫn mock của mentor (bản gốc 20 mã; `ENGLISH` bỏ ở profile-service V15 vì ngoại ngữ là mục riêng của hồ sơ, trình độ CEFR, không tính độ khớp). Bộ mã này dùng chung cho cả 3 nhóm và khớp trường `skills` của khoá học trong `mock/data.json`, nên **không đổi tên mã**. Muốn thêm kỹ năng ngoài danh sách thì thêm mã mới, không thay mã có sẵn.
 
 | Mã | Tên kỹ năng |
 | --- | --- |
@@ -278,7 +278,6 @@ Seed đúng **20 mã kỹ năng** theo tài liệu hướng dẫn mock của men
 | `JAVASCRIPT` | JavaScript |
 | `REACTJS` | ReactJS |
 | `DOCKER` | Docker |
-| `ENGLISH` | Tiếng Anh |
 | `TESTING` | Kiểm thử phần mềm |
 | `LINUX` | Linux |
 | `OOP` | Lập trình hướng đối tượng |
@@ -305,7 +304,7 @@ Nhóm quy ước điểm thập phân: `0 <= score < 40`, `40 <= score < 70`, `7
 
 - Chạy từ clone sạch theo README, không phụ thuộc file riêng trên máy thành viên.
 - API giữ đúng `/api/v1`, JSON, JWT, role, phân trang và lỗi đã quy định.
-- Đủ 8 tài khoản, HR thuộc đúng Công ty A/B, 3 ID LMS khớp fixture và 20 kỹ năng.
+- Đủ 8 tài khoản, HR thuộc đúng Công ty A/B, 3 ID LMS khớp fixture và 19 kỹ năng.
 - Mock thiếu/sai key với JSON hợp lệ trả `401`; đúng key cần đọc được dữ liệu cho `lms-sv-001`, `lms-sv-002`, `lms-sv-003` trên LMS, khảo thí, lms-pm.
 - SSO tạo ticket → verify trả đúng ứng viên; enrollment POST → GET đọc lại; thêm thành viên batch và tạo Meet room kiểm tra được.
 - Timestamp có timezone; điểm biên `39/40`, `69/70`, `84/85`, `100` cho đúng bậc.

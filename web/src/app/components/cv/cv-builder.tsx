@@ -197,8 +197,7 @@ function SectionEditor({ draft, source, first, last, onChange, onMove }: {
       {draft.section === "SUMMARY" ? (source?.text
         ? <p className="line-clamp-3 text-sm text-[#334155]">{source.text}</p>
         : <p className={META}>Chưa có giới thiệu. Thêm ở <Link href="/candidate/profile" className="underline">hồ sơ</Link>.</p>) : null}
-      {draft.section === "LANGUAGES" ? <p className={META}>Hồ sơ chưa có dữ liệu ngoại ngữ; phần này sẽ hiện khi hồ sơ có ngoại ngữ.</p> : null}
-      {draft.section !== "SUMMARY" && draft.section !== "LANGUAGES" && items.length === 0
+      {draft.section !== "SUMMARY" && items.length === 0
         ? <p className={META}>Hồ sơ chưa có mục nào. Thêm ở <Link href="/candidate/profile" className="underline">hồ sơ</Link>.</p> : null}
       {items.length ? <>
         <label className="flex min-h-9 items-center gap-2 text-xs text-[#475569]">

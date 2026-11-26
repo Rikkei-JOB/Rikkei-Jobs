@@ -19,7 +19,7 @@ class MatchCalculatorTest {
     private static final UUID SQL = UUID.fromString("00000000-0000-0000-0001-000000000003");
     private static final UUID GIT = UUID.fromString("00000000-0000-0000-0001-000000000004");
     private static final UUID DOCKER = UUID.fromString("00000000-0000-0000-0001-000000000011");
-    private static final UUID ENGLISH = UUID.fromString("00000000-0000-0000-0001-000000000017");
+    private static final UUID COMMUNICATION = UUID.fromString("00000000-0000-0000-0001-000000000018");
 
     private static JobSkillInput req(UUID id, String name, int min) {
         return new JobSkillInput(id, name, true, min);
@@ -35,7 +35,7 @@ class MatchCalculatorTest {
                 req(SPRING_BOOT, "Spring Boot", 70),
                 req(SQL, "SQL", 90),
                 pref(DOCKER, "Docker", 50),
-                pref(ENGLISH, "Tiếng Anh", 60),
+                pref(COMMUNICATION, "Giao tiếp", 60),
                 pref(GIT, "Git", 60));
     }
 
@@ -60,7 +60,7 @@ class MatchCalculatorTest {
         assertThat(r.score()).isEqualTo(78);
         assertThat(r.belowMinimum()).isFalse();
         assertThat(names(r.met())).containsExactly("Java", "Spring Boot", "Git");
-        assertThat(names(r.missing())).containsExactly("SQL", "Docker", "Tiếng Anh");
+        assertThat(names(r.missing())).containsExactly("SQL", "Docker", "Giao tiếp");
         SkillMatch sql = r.missing().get(0);
         assertThat(sql.candidateScore()).isEqualByComparingTo("81.153846");
         assertThat(sql.minScore()).isEqualTo(90);
@@ -90,7 +90,7 @@ class MatchCalculatorTest {
         assertThat(r.belowMinimum()).isTrue();
         assertThat(r.met()).isEmpty();
         assertThat(names(r.missing()))
-                .containsExactly("Java", "Spring Boot", "SQL", "Docker", "Git", "Tiếng Anh");
+                .containsExactly("Java", "Spring Boot", "SQL", "Docker", "Giao tiếp", "Git");
         assertThat(r.missing()).allSatisfy(
                 m -> assertThat(m.candidateScore().compareTo(BigDecimal.ZERO)).isZero());
     }

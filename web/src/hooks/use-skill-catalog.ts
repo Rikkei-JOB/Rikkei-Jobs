@@ -4,7 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useAuthStore } from "@/hooks/use-auth-store";
 import { skillService } from "@/services/skill.service";
 
-/** Danh mục 20 kỹ năng (profile-service). Ít thay đổi nên giữ cache 5 phút. */
+/** Danh mục kỹ năng (profile-service). Ít thay đổi nên giữ cache 5 phút. */
 export function useSkillCatalog(enabled = true) {
   const userId = useAuthStore((state) => state.user?.id);
   return useQuery({

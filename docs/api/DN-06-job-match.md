@@ -52,7 +52,7 @@ Phản hồi 200 theo đúng hợp đồng UT-02 (`ut02-openapi.yaml` `Match`/`M
   "score": 78,
   "belowMinimum": false,
   "met":     [{ "skill": "Java", "required": true, "minScore": 80, "candidateScore": 82.058824 }],
-  "missing": [{ "skill": "Tiếng Anh", "required": false, "minScore": 60, "candidateScore": 0 }]
+  "missing": [{ "skill": "Giao tiếp", "required": false, "minScore": 60, "candidateScore": 0 }]
 }
 ```
 
@@ -149,10 +149,10 @@ JD mẫu (Công ty A, `APPROVED`, seed bởi `DevDataSeeder` của company-servi
 
 | JD | Kỹ năng |
 | --- | --- |
-| **JD6** `00000000-0000-0000-0003-000000000006` | bắt buộc Java 80, Spring Boot 70, SQL 90; ưu tiên Docker 50, Tiếng Anh 60, Git 60 |
+| **JD6** `00000000-0000-0000-0003-000000000006` | bắt buộc Java 80, Spring Boot 70, SQL 90; ưu tiên Docker 50, Giao tiếp 60, Git 60 |
 | **JD7** `00000000-0000-0000-0003-000000000007` | bắt buộc Java 60, SQL 60, Git 60 |
 
-| Ứng viên | Java | Spring Boot | SQL | Git | Docker | Tiếng Anh |
+| Ứng viên | Java | Spring Boot | SQL | Git | Docker | Giao tiếp |
 | --- | --- | --- | --- | --- | --- | --- |
 | C1 `lms-sv-001` | 82,058824 | 80,454545 | 81,153846 | 90 | — | chỉ tự khai 65 |
 | C2 `lms-sv-002` | 65 | — | 65 | 80 | — | — |
@@ -162,7 +162,7 @@ Ba ví dụ (request tương ứng trong `DN-06.http`):
 
 | # | Cặp | Điểm mong đợi | `belowMinimum` | `met` | `missing` |
 | --- | --- | --- | --- | --- | --- |
-| 1 | JD6 × C1 | **78** (không tính tự khai 65; nếu tính sẽ là 88) | false | Java, Spring Boot, Git | SQL, Docker, Tiếng Anh |
+| 1 | JD6 × C1 | **78** (không tính tự khai 65; nếu tính sẽ là 88) | false | Java, Spring Boot, Git | SQL, Docker, Giao tiếp |
 | 2 | JD7 × C3 | **60** | true (Git 0 < 30) | rỗng | Git, Java, SQL |
 | 3 | JD6 × ứng viên chưa có kỹ năng | **0** | true | rỗng | đủ 6 kỹ năng |
 
@@ -174,7 +174,7 @@ Ba ví dụ (request tương ứng trong `DN-06.http`):
 | --- | --- | --- | --- |
 | 1 | Công thức: 3 ví dụ tính tay | 1 | `MatchCalculatorTest.example1BackendJdPartialMatch`, `example2RequiredOnlyBelowMinimum`, `example3NoSkills` |
 | 2 | Ứng viên không có kỹ năng nào → 0, `missing` đủ | 2 | `MatchCalculatorTest.example3NoSkills`; `JobMatchApiTest.jobSkillsClearedGivesZero` (JD không kỹ năng → 0) |
-| 3 | Kỹ năng chỉ tự khai không được cộng điểm | 3 | `MatchCalculatorTest.example1BackendJdPartialMatch` (Tiếng Anh tự khai 65 → 0, tổng 78 chứ không phải 88; công thức không có đường vào cho `self_score`); `InternalVerifiedSkillsApiTest.returnsOnlyVerifiedScores` (profile bỏ dòng chỉ có `self_score`) |
+| 3 | Kỹ năng chỉ tự khai không được cộng điểm | 3 | `MatchCalculatorTest.example1BackendJdPartialMatch` (Giao tiếp tự khai 65 → 0, tổng 78 chứ không phải 88; công thức không có đường vào cho `self_score`); `InternalVerifiedSkillsApiTest.returnsOnlyVerifiedScores` (profile bỏ dòng chỉ có `self_score`) |
 | 4 | Unit test công thức (JD chỉ bắt buộc / chỉ ưu tiên / rỗng, chặn ở 1, biên `belowMinimum`, làm tròn 0,5) | 5 | `MatchCalculatorTest`: `requiredOnlyUses100R`, `preferredOnlyUses100P`, `emptyJobIsZero`, `scoreAboveMinIsCappedAtOne`, `scoreEqualToMinIsMet`, `belowMinimumBoundary`, `roundsHalfUp`, `ignoresScoresOfSkillsNotInJob` |
 | 5 | Candidate `match/me`: JD `APPROVED` → 200 đúng điểm; `DRAFT`/`PENDING` → 404 | — | `JobMatchApiTest.candidateMeOnApprovedJob`, `candidateMeOnUnpublishedJobIs404` |
 | 6 | HR công ty sở hữu + đã ứng tuyển → 200; chưa ứng tuyển → 404; JD công ty khác → 404; STAFF → 200 không gọi recruitment (bằng chứng duy nhất của đường HR vì chưa có seed đơn ứng tuyển) | — | `hrOwnJobAppliedCandidate`, `hrNotAppliedIs404`, `hrOtherCompanyJobIs404`, `staffSeesAnyJobWithoutRecruitment`; thêm `wrongRolesAre403`, `unknownJobIs404` |
@@ -194,7 +194,7 @@ Ba ví dụ (request tương ứng trong `DN-06.http`):
 
   | Ví dụ | Kết quả trên giao diện |
   | --- | --- |
-  | 1. JD6 × C1 | **78%**. Đạt: Java 82.1/80, Spring Boot 80.5/70, Git 90/60. Thiếu: SQL 81.2/90 "thiếu 9 điểm", Docker 0/50, Tiếng Anh 0/60 (điểm tự khai 65 không được tính) |
+  | 1. JD6 × C1 | **78%**. Đạt: Java 82.1/80, Spring Boot 80.5/70, Git 90/60. Thiếu: SQL 81.2/90 "thiếu 9 điểm", Docker 0/50, Giao tiếp 0/60 (điểm tự khai 65 không được tính) |
   | 2. JD7 × C3 | **60%**, banner "Thiếu kỹ năng bắt buộc tối thiểu". Thiếu: Git 0/60, Java 49.1/60 "thiếu 11 điểm", SQL 58.8/60 "thiếu 2 điểm" |
   | 3. JD6 × ứng viên chưa có kỹ năng (`11111111-1111-1111-1111-111111111111`) | **0%**, banner, thiếu đủ 6 kỹ năng |
 
