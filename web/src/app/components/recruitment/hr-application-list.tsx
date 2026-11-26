@@ -13,6 +13,7 @@ import { hrApplicationService } from "@/services/hr-application.service";
 import { getErrorMessage } from "@/services/api";
 import { HrJobFilter } from "./hr-job-filter";
 import { TaskBanner } from "@/app/components/ui/task-banner";
+import { SelectMenu } from "@/app/components/ui/select-menu";
 
 export function HrApplicationList() {
   const allowed = useAuthGuard({ roles: ["HR"] });
@@ -40,9 +41,8 @@ export function HrApplicationList() {
     <TaskBanner title="Hồ sơ ứng tuyển" eyebrow="Quản lý tuyển dụng" description="Kết nối đúng người, đúng cơ hội. Sàng lọc hồ sơ và theo dõi tiến trình tuyển dụng của công ty." illustration="applications" compact />
     <section className="hr-surface hr-filter-bar" aria-label="Bộ lọc hồ sơ">
       <HrJobFilter value={jobId} onChange={value => navigate({ jobId: value, page: "" })} />
-      <div className="min-w-0 flex-1"><label htmlFor="hr-status-filter">Trạng thái</label><select id="hr-status-filter" value={status ?? ""} onChange={event => navigate({ status: event.target.value, page: "" })}>
-        <option value="">Tất cả trạng thái</option>{Object.entries(APPLICATION_STATUS).map(([value, info]) => <option key={value} value={value}>{info.label}</option>)}
-      </select></div>
+      <div className="min-w-0 flex-1"><label htmlFor="hr-status-filter">Trạng thái</label><SelectMenu id="hr-status-filter" value={status ?? ""} onValueChange={value => navigate({ status: value, page: "" })}
+        options={[{ value: "", label: "Tất cả trạng thái" }, ...Object.entries(APPLICATION_STATUS).map(([value, info]) => ({ value, label: info.label }))]} /></div>
       {filtered && <Button variant="outline" onClick={() => router.push("/hr/recruitment", { scroll: false })}>Xoá bộ lọc</Button>}
     </section>
     {(query.isPending || query.isFetching) && <div role="status" aria-label="Đang tải hồ sơ" className="hr-surface space-y-4"><p>Đang tải hồ sơ…</p>{[1, 2, 3].map(row => <div key={row} className="h-12 rounded-lg bg-muted motion-safe:animate-pulse" />)}</div>}

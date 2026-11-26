@@ -11,6 +11,7 @@ import { applicationService } from "@/services/application.service";
 import { listApplicationCvs } from "@/services/application-cv.service";
 import { ApiError, getErrorMessage } from "@/services/api";
 import "./career.css";
+import { SelectMenu } from "@/app/components/ui/select-menu";
 
 interface Props {
   jobId: string; open: boolean; onOpenChange(open: boolean): void; onApplied(application: ApplicationDetail): void;
@@ -91,9 +92,8 @@ export function ApplyDialog({ jobId, open, onOpenChange, onApplied, jobTitle, co
           {loading ? <p role="status">Đang tải CV…</p> : loadFailed ? <Button className="career-secondary" type="button" variant="outline" onClick={() => { setLoading(true); setLoadVersion(v => v + 1); }}>Tải lại CV</Button>
             : choices.length === 0 ? <div className="career-dialog-empty"><p>Bạn chưa có CV để ứng tuyển.</p><Link href={applicationLinks.cvs} className="career-text-link">Tạo CV</Link></div>
             : <div><label htmlFor="application-cv">Chọn CV</label>
-              <select id="application-cv" required value={cvId} onChange={e => setCvId(e.target.value)} disabled={busy}>
-                <option value="">Chọn một CV</option>{choices.map(cv => <option key={cv.id} value={cv.id}>{cv.name}{cv.targetPosition ? ` — ${cv.targetPosition}` : ""}</option>)}
-              </select><Link href={applicationLinks.cvs} className="career-text-link">Quản lý CV của tôi</Link>
+              <SelectMenu id="application-cv" required value={cvId} onValueChange={setCvId} disabled={busy} placeholder="Chọn một CV"
+                options={choices.map(cv => ({ value: cv.id, label: `${cv.name}${cv.targetPosition ? ` — ${cv.targetPosition}` : ""}` }))} /><Link href={applicationLinks.cvs} className="career-text-link">Quản lý CV của tôi</Link>
             </div>}
           <div><label htmlFor="application-letter">Thư giới thiệu</label>
             <textarea id="application-letter" rows={5} maxLength={5000} value={coverLetter} onChange={e => setCoverLetter(e.target.value)} disabled={busy} aria-describedby="application-letter-help" placeholder="Giới thiệu ngắn về bạn và lý do phù hợp với vị trí…" />

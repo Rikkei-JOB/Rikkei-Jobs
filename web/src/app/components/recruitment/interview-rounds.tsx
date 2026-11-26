@@ -7,6 +7,7 @@ import type { HrApplicationDetail, InterviewRound, RoundResult } from "@/interfa
 import { getErrorMessage } from "@/services/api";
 import { hrApplicationService } from "@/services/hr-application.service";
 import { SlotProposalForm } from "@/app/components/interviews/slot-proposal-form";
+import { SelectMenu } from "@/app/components/ui/select-menu";
 
 function RoundEditor({ applicationId, round, onSaved }: { applicationId: string; round: InterviewRound; onSaved: () => void }) {
   const [result, setResult] = useState<RoundResult>(round.result);
@@ -25,8 +26,8 @@ function RoundEditor({ applicationId, round, onSaved }: { applicationId: string;
     finally { setBusy(false); }
   }
   return <div className="mt-4 grid gap-3 border-t pt-4 sm:grid-cols-3">
-    <label className="text-sm">Kết quả<select aria-label={`Kết quả vòng ${round.roundNo}`} value={result} onChange={e => setResult(e.target.value as RoundResult)} className="mt-1 w-full rounded-lg border bg-background px-3 py-2">
-      <option value="PENDING">Chờ kết quả</option><option value="PASS">Đạt</option><option value="FAIL">Không đạt</option></select></label>
+    <label className="text-sm">Kết quả<SelectMenu aria-label={`Kết quả vòng ${round.roundNo}`} value={result} onValueChange={value => setResult(value as RoundResult)} className="ui-select-trigger mt-1"
+      options={[{ value: "PENDING", label: "Chờ kết quả" }, { value: "PASS", label: "Đạt" }, { value: "FAIL", label: "Không đạt" }]} /></label>
     <label className="text-sm">Điểm<input aria-label={`Điểm vòng ${round.roundNo}`} type="number" min="0" max="100" step="0.01" disabled={result === "PENDING"} value={score} onChange={e => setScore(e.target.value)} className="mt-1 w-full rounded-lg border bg-background px-3 py-2" /></label>
     <label className="text-sm sm:col-span-3">Ghi chú<textarea aria-label={`Ghi chú vòng ${round.roundNo}`} value={note} onChange={e => setNote(e.target.value)} maxLength={2000} className="mt-1 w-full rounded-lg border bg-background px-3 py-2" /></label>
     {error && <p role="alert" className="text-sm text-red-700 sm:col-span-3">{error}</p>}

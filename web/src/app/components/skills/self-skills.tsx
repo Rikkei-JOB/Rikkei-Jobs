@@ -10,9 +10,11 @@ import { skillService } from "@/services/skill.service";
 import { getErrorMessage } from "@/services/api";
 import type { Skill, SkillProfileItem } from "@/interface/skill";
 
+import { SECTION_TITLE } from "@/app/components/profile/display";
+import { SelectMenu } from "@/app/components/ui/select-menu";
+
 type Row = { skillId: string; score: string };
 type RowError = { skillId?: string; score?: string };
-const SELECT_CLASS = "h-7 w-full min-w-0 rounded-md border border-input bg-input/20 px-2 py-1 text-sm outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/30 disabled:opacity-50 md:text-xs/relaxed";
 const toRows = (skills: SkillProfileItem[]): Row[] => skills.filter(item => item.selfScore !== null)
   .map(item => ({ skillId: item.skill.id, score: String(item.selfScore) }));
 
@@ -62,7 +64,7 @@ export function SelfSkills({ onSaved }: { onSaved: () => void }) {
 
   return <Card>
     <CardHeader>
-      <h2 className="text-lg font-semibold">Kỹ năng tự đánh giá</h2>
+      <h2 className={SECTION_TITLE}>Kỹ năng tự đánh giá</h2>
       <p className="text-xs text-muted-foreground">Điểm tự khai từ 0–100, không làm thay đổi điểm xác minh từ LMS hoặc các nguồn khác.</p>
     </CardHeader>
     <CardContent className="space-y-4">
@@ -75,12 +77,10 @@ export function SelfSkills({ onSaved }: { onSaved: () => void }) {
               : rows.length === 0 ? <p className="text-sm text-muted-foreground">Chưa chọn kỹ năng tự khai. Lưu danh sách trống để bỏ toàn bộ kỹ năng tự khai.</p> : null}
             {rows.map((row, index) => <div key={index} className="grid gap-3 rounded-lg border p-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] sm:items-start">
               <FormField label={`Kỹ năng ${index + 1}`} htmlFor={`self-skill-${index}`} error={errors[index]?.skillId}>
-                <select id={`self-skill-${index}`} className={SELECT_CLASS} value={row.skillId} aria-invalid={Boolean(errors[index]?.skillId)}
+                <SelectMenu id={`self-skill-${index}`} value={row.skillId} aria-invalid={Boolean(errors[index]?.skillId)} placeholder="Chọn kỹ năng"
                   aria-describedby={errors[index]?.skillId ? `self-skill-${index}-error` : undefined}
-                  onChange={event => change(rows.map((item, at) => at === index ? { ...item, skillId: event.target.value } : item))}>
-                  <option value="">Chọn kỹ năng</option>
-                  {catalog.map(skill => <option key={skill.id} value={skill.id} disabled={rows.some((item, at) => at !== index && item.skillId === skill.id)}>{skill.name} · {skill.group}</option>)}
-                </select>
+                  onValueChange={value => change(rows.map((item, at) => at === index ? { ...item, skillId: value } : item))}
+                  options={catalog.map(skill => ({ value: skill.id, label: `${skill.name} · ${skill.group}`, disabled: rows.some((item, at) => at !== index && item.skillId === skill.id) }))} />
               </FormField>
               <FormField label={`Điểm tự đánh giá ${index + 1}`} htmlFor={`self-score-${index}`} error={errors[index]?.score}>
                 <Input id={`self-score-${index}`} type="number" min={0} max={100} step={1} value={row.score} aria-invalid={Boolean(errors[index]?.score)}
