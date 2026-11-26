@@ -57,7 +57,7 @@ public class DevDataSeeder implements ApplicationRunner {
     private static final UUID DOCKER = skill(11);
     private static final UUID OOP = skill(13);
     private static final UUID TESTING = skill(15);
-    private static final UUID ENGLISH = skill(17);
+    private static final UUID COMMUNICATION = skill(18);
 
     private final CompanyRepository companyRepository;
     private final CompanyHrRepository companyHrRepository;
@@ -118,7 +118,7 @@ public class DevDataSeeder implements ApplicationRunner {
                 new JobSkill(null, JAVA, true, 70), new JobSkill(null, OOP, true, 70),
                 new JobSkill(null, SPRING_BOOT, true, 40), new JobSkill(null, SQL, true, 40),
                 new JobSkill(null, REST_API, true, 40), new JobSkill(null, GIT, true, 70),
-                new JobSkill(null, DOCKER, false, 40), new JobSkill(null, ENGLISH, false, 40),
+                new JobSkill(null, DOCKER, false, 40), new JobSkill(null, COMMUNICATION, false, 40),
                 new JobSkill(null, AGILE, false, 20)));
 
         saveJob(job(2, "Fresher ReactJS", JobLevel.FRESHER, JobType.FULLTIME, JobStatus.PENDING,
@@ -140,7 +140,7 @@ public class DevDataSeeder implements ApplicationRunner {
                 today.plusDays(45)), List.of(
                 new JobSkill(null, JAVA, true, 80), new JobSkill(null, SPRING_BOOT, true, 70),
                 new JobSkill(null, SQL, true, 90), new JobSkill(null, DOCKER, false, 50),
-                new JobSkill(null, ENGLISH, false, 60), new JobSkill(null, GIT, false, 60)));
+                new JobSkill(null, COMMUNICATION, false, 60), new JobSkill(null, GIT, false, 60)));
 
         saveJob(job(7, "Fresher Java (mẫu DN-06)", JobLevel.FRESHER, JobType.FULLTIME, JobStatus.APPROVED,
                 today.plusDays(45)), List.of(

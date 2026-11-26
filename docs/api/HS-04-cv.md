@@ -28,7 +28,7 @@ CV của người khác trả 404, không lộ sự tồn tại. recruitment-ser
 | --- | --- | --- |
 | SUMMARY | `candidate_profiles.summary`, thiếu thì `headline` | luôn `null` |
 | SKILLS | điểm kỹ năng HS-01 có điểm xác thực hoặc tự khai | id kỹ năng |
-| LANGUAGES | chưa có dữ liệu ngoại ngữ trong hồ sơ, luôn rỗng | — |
+| LANGUAGES | ngoại ngữ HS-02 (`/profiles/me/languages`), trình độ cao trước; PDF in tên, `CEFR <bậc>` và ghi chú | id ngoại ngữ |
 | INTERNSHIP | dự án portfolio nguồn `IOC` | id dự án |
 | PROJECTS | dự án portfolio nguồn `PERSONAL` | id dự án |
 | EDUCATION | học vấn HS-02 | id học vấn |

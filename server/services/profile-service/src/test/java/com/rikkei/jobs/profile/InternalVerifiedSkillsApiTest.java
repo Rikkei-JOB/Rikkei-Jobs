@@ -23,7 +23,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @AutoConfigureMockMvc
 class InternalVerifiedSkillsApiTest {
     static final String JAVA = "00000000-0000-0000-0001-000000000001";
-    static final String ENGLISH = "00000000-0000-0000-0001-000000000017";
+    static final String COMMUNICATION = "00000000-0000-0000-0001-000000000018";
 
     @Autowired MockMvc mvc;
     @Autowired JwtUtils jwt;
@@ -38,7 +38,7 @@ class InternalVerifiedSkillsApiTest {
         jdbc.update("insert into profile.skill_scores(user_id, skill_id, verified_score, self_score, level, updated_at) "
             + "values (?, ?, 82.058824, null, 'EXCELLENT', current_timestamp)", user, UUID.fromString(JAVA));
         jdbc.update("insert into profile.skill_scores(user_id, skill_id, verified_score, self_score, level, updated_at) "
-            + "values (?, ?, null, 65, null, current_timestamp)", user, UUID.fromString(ENGLISH));
+            + "values (?, ?, null, 65, null, current_timestamp)", user, UUID.fromString(COMMUNICATION));
 
         mvc.perform(get("/internal/profiles/" + user + "/verified-skills")
                 .header("Authorization", bearer()).header("X-Internal-Key", "skills-test"))

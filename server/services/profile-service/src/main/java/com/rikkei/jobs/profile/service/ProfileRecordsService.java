@@ -1,11 +1,14 @@
 package com.rikkei.jobs.profile.service;
 
+import com.rikkei.jobs.common.config.exception.ConflictException;
 import com.rikkei.jobs.common.config.exception.ResourceNotFoundException;
 import com.rikkei.jobs.profile.dto.*;
 import com.rikkei.jobs.profile.entity.Certificate;
 import com.rikkei.jobs.profile.entity.Education;
+import com.rikkei.jobs.profile.entity.Language;
 import com.rikkei.jobs.profile.repository.CertificateRepository;
 import com.rikkei.jobs.profile.repository.EducationRepository;
+import com.rikkei.jobs.profile.repository.LanguageRepository;
 import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
@@ -16,6 +19,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class ProfileRecordsService {
     private final EducationRepository educations;
     private final CertificateRepository certificates;
+    private final LanguageRepository languages;
     private final ProfileFileService files;
 
     public List<EducationResponse> educations(UUID owner) {
@@ -63,5 +67,30 @@ public class ProfileRecordsService {
         String type = r.fileUrl() == null ? null : files.requireOwned(owner, r.fileUrl()).getContentType();
         c.setName(r.name()); c.setIssuer(r.issuer()); c.setIssuedAt(r.issuedAt()); c.setExpiresAt(r.expiresAt());
         c.setFileUrl(r.fileUrl()); c.setFileType(type);
+    }
+    public List<LanguageResponse> languages(UUID owner) {
+        return languages.findAllByUserIdOrderByLevelDescNameAsc(owner).stream().map(LanguageResponse::from).toList();
+    }
+    @Transactional
+    public LanguageResponse createLanguage(UUID owner, LanguageRequest request) {
+        var l = new Language(); l.setUserId(owner); apply(l, request);
+        return LanguageResponse.from(languages.save(l));
+    }
+    @Transactional
+    public LanguageResponse updateLanguage(UUID owner, UUID id, LanguageRequest request) {
+        var l = language(owner, id); apply(l, request);
+        return LanguageResponse.from(languages.save(l));
+    }
+    @Transactional
+    public void deleteLanguage(UUID owner, UUID id) { languages.delete(language(owner, id)); }
+    private Language language(UUID owner, UUID id) {
+        return languages.findByIdAndUserId(id, owner).orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy ngoại ngữ"));
+    }
+    private void apply(Language l, LanguageRequest r) {
+        // Mỗi ngôn ngữ một dòng: trùng tên (không phân biệt hoa thường) với dòng khác của cùng người thì 409.
+        if (languages.findAllByUserIdAndNameIgnoreCase(l.getUserId(), r.name()).stream().anyMatch(o -> !o.getId().equals(l.getId()))) {
+            throw new ConflictException("Ngoại ngữ " + r.name() + " đã có trong hồ sơ");
+        }
+        l.setName(r.name()); l.setLevel(r.level()); l.setNote(r.note());
     }
 }

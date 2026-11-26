@@ -32,6 +32,6 @@ class SkillCatalogUpgradeTest {
                 .isEqualTo("DSA");
         assertThat(jdbc.queryForObject("select skill_id from profile.skill_evidences where id = ?", UUID.class, evidenceId))
                 .isEqualTo(skillId);
-        assertThat(jdbc.queryForObject("select count(*) from profile.skills", Integer.class)).isEqualTo(20);
+        assertThat(jdbc.queryForObject("select count(*) from profile.skills", Integer.class)).isEqualTo(19);
     }
 }

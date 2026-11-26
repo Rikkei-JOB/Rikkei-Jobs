@@ -37,6 +37,7 @@ public class CvService {
     private final SkillProfileService skills;
     private final EducationRepository educations;
     private final CertificateRepository certificates;
+    private final LanguageRepository languages;
     private final PortfolioProjectRepository projects;
     private final SkillProfileStateRepository states;
     private final ObjectMapper json;
@@ -44,11 +45,11 @@ public class CvService {
     private final String webBaseUrl;
 
     public CvService(CvRepository cvs, CvSectionRepository sections, CandidateProfileRepository profiles,
-        SkillProfileService skills, EducationRepository educations, CertificateRepository certificates,
+        SkillProfileService skills, EducationRepository educations, CertificateRepository certificates, LanguageRepository languages,
         PortfolioProjectRepository projects, SkillProfileStateRepository states, ObjectMapper json,
         @Qualifier("skillProfileClock") Clock clock, @Value("${app.profile.web-base-url}") String webBaseUrl) {
         this.cvs = cvs; this.sections = sections; this.profiles = profiles; this.skills = skills;
-        this.educations = educations; this.certificates = certificates; this.projects = projects;
+        this.educations = educations; this.certificates = certificates; this.languages = languages; this.projects = projects;
         this.states = states; this.json = json; this.clock = clock;
         this.webBaseUrl = webBaseUrl.endsWith("/") ? webBaseUrl.substring(0, webBaseUrl.length() - 1) : webBaseUrl;
     }
@@ -187,8 +188,7 @@ public class CvService {
         items.put(CvSection.Type.PROJECTS, allProjects.stream().filter(p -> !p.isIoc()).map(p -> projectItem(p, false)).toList());
         items.put(CvSection.Type.EDUCATION, educations.findAllByUserIdOrderByFromDateDescIdAsc(owner).stream().map(CvService::educationItem).toList());
         items.put(CvSection.Type.CERTIFICATES, certificates.findAllByUserIdOrderByIssuedAtDescIdAsc(owner).stream().map(CvService::certificateItem).toList());
-        // shortcut: chưa có dữ liệu ngoại ngữ trong hồ sơ, phần LANGUAGES luôn rỗng cho tới khi có task ngoại ngữ.
-        items.put(CvSection.Type.LANGUAGES, List.of());
+        items.put(CvSection.Type.LANGUAGES, languages.findAllByUserIdOrderByLevelDescNameAsc(owner).stream().map(CvService::languageItem).toList());
         items.put(CvSection.Type.SUMMARY, List.of());
         String summary = profile == null ? null : firstNonBlank(profile.getSummary(), profile.getHeadline());
 
@@ -224,6 +224,10 @@ public class CvService {
         if (e.getNote() != null && !e.getNote().isBlank()) parts.add(e.getNote().strip());
         return new ItemView(e.getId(), e.getSchool(), e.getMajor(), period(e.getFromDate(), e.getToDate()),
             parts.isEmpty() ? null : String.join("\n", parts), null, true);
+    }
+
+    private static ItemView languageItem(Language l) {
+        return new ItemView(l.getId(), l.getName(), "CEFR " + l.getLevel(), null, l.getNote(), null, true);
     }
 
     private static ItemView certificateItem(Certificate c) {

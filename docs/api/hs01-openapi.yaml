@@ -125,9 +125,9 @@ components:
                   recordedAt: '2026-10-01T08:00:00Z'
                   verified: true
             - skill:
-                id: 00000000-0000-0000-0001-000000000017
-                code: ENGLISH
-                name: Tiếng Anh
+                id: 00000000-0000-0000-0001-000000000018
+                code: COMMUNICATION
+                name: Giao tiếp
                 group: Soft skills
               verifiedScore: null
               selfScore: 65

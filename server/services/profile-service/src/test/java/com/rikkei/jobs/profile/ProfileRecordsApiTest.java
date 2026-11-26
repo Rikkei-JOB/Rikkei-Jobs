@@ -62,9 +62,28 @@ class ProfileRecordsApiTest {
         mvc.perform(delete("/profiles/me/certificates/" + id).header("Authorization", "Bearer " + token)).andExpect(status().isNoContent());
         mvc.perform(get("/profiles/me/certificates").header("Authorization", "Bearer " + token)).andExpect(content().json("[]"));
     }
+    @Test void languageIsCrudSortedByCefrLevelAndUniquePerOwner() throws Exception {
+        String english = create("languages", "{\"name\":\"  Tiếng Anh \",\"level\":\"B2\",\"note\":\"IELTS 7.0\"}").path("id").asText();
+        create("languages", "{\"name\":\"Tiếng Nhật\",\"level\":\"C1\"}");
+        mvc.perform(get("/profiles/me/languages").header("Authorization", "Bearer " + token)).andExpect(status().isOk())
+            .andExpect(jsonPath("$[0].name").value("Tiếng Nhật")).andExpect(jsonPath("$[1].name").value("Tiếng Anh"))
+            .andExpect(jsonPath("$[1].note").value("IELTS 7.0"));
+        for (String bad : new String[]{"{\"name\":\"Tiếng Pháp\",\"level\":\"D1\"}", "{\"name\":\" \",\"level\":\"A1\"}", "{\"name\":\"Tiếng Pháp\"}"}) {
+            mvc.perform(post("/profiles/me/languages").header("Authorization", "Bearer " + token).contentType(MediaType.APPLICATION_JSON).content(bad))
+                .andExpect(status().isBadRequest());
+        }
+        mvc.perform(post("/profiles/me/languages").header("Authorization", "Bearer " + token).contentType(MediaType.APPLICATION_JSON)
+            .content("{\"name\":\"tiếng anh\",\"level\":\"A2\"}")).andExpect(status().isConflict());
+        // Sửa chính dòng đó với cùng tên vẫn được.
+        mvc.perform(put("/profiles/me/languages/" + english).header("Authorization", "Bearer " + token).contentType(MediaType.APPLICATION_JSON)
+            .content("{\"name\":\"Tiếng Anh\",\"level\":\"C2\",\"note\":\" \"}"))
+            .andExpect(status().isOk()).andExpect(jsonPath("$.level").value("C2")).andExpect(jsonPath("$.note").isEmpty());
+        mvc.perform(delete("/profiles/me/languages/" + english).header("Authorization", "Bearer " + token)).andExpect(status().isNoContent());
+        mvc.perform(get("/profiles/me/languages").header("Authorization", "Bearer " + token)).andExpect(jsonPath("$.length()").value(1));
+    }
     @Test void otherCandidatesCannotReadChangeOrDeleteOwnedRecords() throws Exception {
-        for (String resource : new String[]{"educations", "certificates"}) {
-            String body = resource.equals("educations") ? education() : certificate();
+        for (String resource : new String[]{"educations", "certificates", "languages"}) {
+            String body = resource.equals("educations") ? education() : resource.equals("certificates") ? certificate() : "{\"name\":\"Tiếng Anh\",\"level\":\"B1\"}";
             String id = create(resource, body).path("id").asText();
             String other = jwt.generateJwtToken(UUID.randomUUID(), Role.CANDIDATE, null);
             String path = "/profiles/me/" + resource + "/" + id;

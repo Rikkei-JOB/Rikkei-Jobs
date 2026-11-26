@@ -2,6 +2,7 @@ import { CandidateSkills } from "@/app/components/skills/candidate-skills"
 import { PersonalProfile } from "@/app/components/profile/personal-profile"
 import { Educations } from "@/app/components/profile/educations"
 import { Certificates } from "@/app/components/profile/certificates"
+import { Languages } from "@/app/components/profile/languages"
 import { EmploymentRecords } from "@/app/components/profile/employment-records"
 import { Portfolio } from "@/app/components/profile/portfolio"
 
@@ -16,6 +17,7 @@ export default function CandidateProfilePage() {
       <PersonalProfile />
       <Educations />
       <Certificates />
+      <Languages />
       <EmploymentRecords />
       <Portfolio />
       <CandidateSkills />

@@ -31,12 +31,12 @@ class SelfSkillsApiTest {
     @Autowired JdbcTemplate jdbc;
     @Autowired JwtUtils jwt;
     @Autowired ObjectMapper json;
-    UUID owner, java, english;
+    UUID owner, java, communication;
     String bearer;
     @BeforeEach void setup() {
         owner = UUID.randomUUID(); bearer = "Bearer " + jwt.generateJwtToken(owner, Role.CANDIDATE, null);
         java = jdbc.queryForObject("select id from profile.skills where code='JAVA'", UUID.class);
-        english = jdbc.queryForObject("select id from profile.skills where code='ENGLISH'", UUID.class);
+        communication = jdbc.queryForObject("select id from profile.skills where code='COMMUNICATION'", UUID.class);
     }
     @Test void catalogueRequiresAuthAndReturnsDatabaseSkillsInStableOrder() throws Exception {
         mvc.perform(get("/skills")).andExpect(status().isUnauthorized());
@@ -56,7 +56,7 @@ class SelfSkillsApiTest {
     @Test void replacesSelfScoresAndEvidenceWithoutChangingVerifiedDataOrAnotherUser() throws Exception {
         UUID other = UUID.randomUUID();
         seedVerified(owner); seedVerified(other);
-        save("[" + entry(java, "70") + "," + entry(english, "55.123456") + "]", "?userId=" + other);
+        save("[" + entry(java, "70") + "," + entry(communication, "55.123456") + "]", "?userId=" + other);
         assertThat(number("select verified_score from profile.skill_scores where user_id=? and skill_id=?", owner, java)).isEqualByComparingTo("82");
         assertThat(number("select self_score from profile.skill_scores where user_id=? and skill_id=?", owner, java)).isEqualByComparingTo("70");
         assertThat(count("select count(*) from profile.skill_evidences where user_id=? and source='SELF'", owner)).isEqualTo(2);
@@ -70,11 +70,11 @@ class SelfSkillsApiTest {
         assertThat(updated.get(0).path("selfScore").decimalValue()).isEqualByComparingTo("99");
         save("[" + entry(java, "99") + "]", "");
         assertThat(count("select count(*) from profile.skill_evidences where user_id=? and source='SELF'", owner)).isEqualTo(1);
-        assertThat(count("select count(*) from profile.skill_scores where user_id=? and skill_id=?", owner, english)).isZero();
+        assertThat(count("select count(*) from profile.skill_scores where user_id=? and skill_id=?", owner, communication)).isZero();
     }
     @Test void clearingSelfKeepsVerifiedScoresAndRecomputePreservesSavedSelfScore() throws Exception {
         seedVerified(owner);
-        save("[" + entry(java, "40") + "," + entry(english, "0") + "]", "");
+        save("[" + entry(java, "40") + "," + entry(communication, "0") + "]", "");
         mvc.perform(post("/profiles/me/skills/recompute").header("Authorization", bearer)).andExpect(status().isOk());
         assertThat(number("select self_score from profile.skill_scores where user_id=? and skill_id=?", owner, java)).isEqualByComparingTo("40");
         JsonNode cleared = save("[]", "");
@@ -82,7 +82,7 @@ class SelfSkillsApiTest {
         assertThat(cleared.get(0).path("selfScore").isNull()).isTrue();
         assertThat(cleared.get(0).path("verifiedScore").decimalValue()).isEqualByComparingTo("82");
         assertThat(count("select count(*) from profile.skill_evidences where user_id=? and source='SELF'", owner)).isZero();
-        assertThat(count("select count(*) from profile.skill_scores where user_id=? and skill_id=?", owner, english)).isZero();
+        assertThat(count("select count(*) from profile.skill_scores where user_id=? and skill_id=?", owner, communication)).isZero();
         mvc.perform(get("/profiles/me/skills").header("Authorization", bearer)).andExpect(status().isOk())
             .andExpect(jsonPath("$[0].selfScore").isEmpty());
     }
@@ -116,8 +116,8 @@ class SelfSkillsApiTest {
     }
     @Test void clearsLegacySelfEvidenceAndSelfScoreEvenWhenTheyWereNotCanonical() throws Exception {
         jdbc.update("insert into profile.skill_evidences(id,user_id,skill_id,source,source_ref,title,score,weight,recorded_at,verified) "
-            + "values (?,?,?,'SELF','hs01-demo-self-english','Demo',65,1,CURRENT_TIMESTAMP,false)", UUID.randomUUID(), owner, english);
-        jdbc.update("insert into profile.skill_scores(user_id,skill_id,self_score,updated_at) values (?,?,65,CURRENT_TIMESTAMP)", owner, english);
+            + "values (?,?,?,'SELF','hs01-demo-self-communication','Demo',65,1,CURRENT_TIMESTAMP,false)", UUID.randomUUID(), owner, communication);
+        jdbc.update("insert into profile.skill_scores(user_id,skill_id,self_score,updated_at) values (?,?,65,CURRENT_TIMESTAMP)", owner, communication);
         assertThat(save("[]", "").size()).isZero();
         assertThat(count("select count(*) from profile.skill_scores where user_id=?", owner)).isZero();
     }
@@ -125,7 +125,7 @@ class SelfSkillsApiTest {
         try (var executor = Executors.newFixedThreadPool(2)) {
             var start = new CountDownLatch(1);
             var a = executor.submit(() -> { start.await(); return save("[" + entry(java, "10") + "]", ""); });
-            var b = executor.submit(() -> { start.await(); return save("[" + entry(english, "90") + "]", ""); });
+            var b = executor.submit(() -> { start.await(); return save("[" + entry(communication, "90") + "]", ""); });
             start.countDown(); a.get(); b.get();
         }
         assertThat(count("select count(*) from profile.skill_evidences where user_id=? and source='SELF'", owner)).isEqualTo(1);

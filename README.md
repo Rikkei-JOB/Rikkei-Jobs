@@ -440,7 +440,7 @@ npm run evaluation-links -- IOC-JB-2026-09
 
 ### 7. Email và tài khoản demo
 
-Email dev đi qua MailHog: `docker compose --env-file .env -f infra/compose.yaml up -d mailhog`, xem thư ở `http://localhost:8025`. Tài khoản demo và Công ty A/B được seed khi chạy `identity-service` và `company-service` với profile `dev` (bảng ở [NT-01-authentication.md](docs/api/NT-01-authentication.md#9-dữ-liệu-mẫu)). Sáu định danh trong `mock/data.json` phục vụ SSO. 20 kỹ năng trong [conventions](docs/conventions.md) chưa được seed. Backend gửi SMTP tới `localhost:1025` theo `MAIL_HOST`, `MAIL_PORT`, `MAIL_FROM` trong `.env.example`; không có thư nào được gửi ra ngoài thật.
+Email dev đi qua MailHog: `docker compose --env-file .env -f infra/compose.yaml up -d mailhog`, xem thư ở `http://localhost:8025`. Tài khoản demo và Công ty A/B được seed khi chạy `identity-service` và `company-service` với profile `dev` (bảng ở [NT-01-authentication.md](docs/api/NT-01-authentication.md#9-dữ-liệu-mẫu)). Sáu định danh trong `mock/data.json` phục vụ SSO. 19 kỹ năng trong [conventions](docs/conventions.md) chưa được seed. Backend gửi SMTP tới `localhost:1025` theo `MAIL_HOST`, `MAIL_PORT`, `MAIL_FROM` trong `.env.example`; không có thư nào được gửi ra ngoài thật.
 
 ### 8. Dừng và xử lý lỗi
 

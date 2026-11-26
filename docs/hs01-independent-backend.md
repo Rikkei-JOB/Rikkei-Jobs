@@ -135,7 +135,7 @@ Fixture chính: `server/services/profile-service/src/main/resources/hs01/candida
 
 | Tài khoản LMS | Kết quả sau seed mới |
 | --- | --- |
-| `lms-sv-001` | 9 kỹ năng: 8 có điểm xác thực, ENGLISH chỉ tự khai 65 (`verifiedScore=null`, `level=null`) |
+| `lms-sv-001` | 9 kỹ năng: 8 có điểm xác thực, COMMUNICATION (Giao tiếp) chỉ tự khai 65 (ENGLISH bỏ khỏi danh mục ở V15) (`verifiedScore=null`, `level=null`) |
 | `lms-sv-002` | 7 kỹ năng; không tự tạo thực tập |
 | `lms-sv-003` | 4 kỹ năng; không tự tạo thực tập |
 

@@ -35,11 +35,11 @@ Với mỗi kỹ năng của JD (bảng `job_skills`: `required` = bắt buộc 
 
 ## 3. Dữ liệu mẫu
 
-Kỹ năng (UUID cố định của profile-service): Java `…0001-000000000001`, Spring Boot `…02`, SQL `…03`, Git `…04`, Docker `…11`, Tiếng Anh `…17`.
+Kỹ năng (UUID cố định của profile-service): Java `…0001-000000000001`, Spring Boot `…02`, SQL `…03`, Git `…04`, Docker `…11`, Giao tiếp `…18`.
 
 `verified_score` của ba ứng viên mẫu, tính tay từ `profile-service/src/main/resources/hs01/candidates.json` theo trọng số `skill_mappings`:
 
-| Ứng viên | Java | Spring Boot | SQL | Git | Docker | Tiếng Anh |
+| Ứng viên | Java | Spring Boot | SQL | Git | Docker | Giao tiếp |
 | --- | --- | --- | --- | --- | --- | --- |
 | C1 `lms-sv-001` | 82,058824 | 80,454545 | 81,153846 | 90 | — | chỉ tự khai 65 |
 | C2 `lms-sv-002` | 65 | — | 65 | 80 | — | — |
@@ -47,7 +47,7 @@ Kỹ năng (UUID cố định của profile-service): Java `…0001-000000000001
 
 Hai JD mẫu (Công ty A, `APPROVED`, seed bởi `DevDataSeeder` của company-service khi chạy profile `dev`):
 
-- **JD6** `00000000-0000-0000-0003-000000000006` "Backend Developer Java (mẫu DN-06)": bắt buộc Java 80, Spring Boot 70, SQL 90; ưu tiên Docker 50, Tiếng Anh 60, Git 60.
+- **JD6** `00000000-0000-0000-0003-000000000006` "Backend Developer Java (mẫu DN-06)": bắt buộc Java 80, Spring Boot 70, SQL 90; ưu tiên Docker 50, Giao tiếp 60, Git 60.
 - **JD7** `00000000-0000-0000-0003-000000000007` "Fresher Java (mẫu DN-06)": chỉ bắt buộc Java 60, SQL 60, Git 60.
 
 ## 4. Ba ví dụ tính tay
@@ -62,15 +62,15 @@ Mỗi ví dụ có test cho đúng con số này (`MatchCalculatorTest.example1�
 | Spring Boot | bắt buộc | 80,454545 | 70 | 1 |
 | SQL | bắt buộc | 81,153846 | 90 | 0,901709 |
 | Docker | ưu tiên | 0 (không có) | 50 | 0 |
-| Tiếng Anh | ưu tiên | 0 (chỉ tự khai 65, không tính) | 60 | 0 |
+| Giao tiếp | ưu tiên | 0 (chỉ tự khai 65, không tính) | 60 | 0 |
 | Git | ưu tiên | 90 | 60 | 1 |
 
 - `R = (1 + 1 + 0,901709) / 3 = 0,967236`
 - `P = (0 + 0 + 1) / 3 = 0,333333`
 - `70 × 0,967236 + 30 × 0,333333 = 67,7065 + 10 = 77,7065` → làm tròn **78**.
 - `belowMinimum = false`: kỹ năng bắt buộc thấp nhất là SQL 81,15 ≥ 0,5 × 90 = 45.
-- `met`: Java, Spring Boot, Git. `missing`: SQL (81,153846 / 90), Docker (0 / 50), Tiếng Anh (0 / 60).
-- **Điểm tự khai 65 của Tiếng Anh không được tính.** Nếu tính, `s` của Tiếng Anh = min(65 / 60, 1) = 1, `P = 2/3`, điểm = 67,7065 + 20 = 87,7 → **88**. Con số 78 chứng minh tự khai không cộng điểm.
+- `met`: Java, Spring Boot, Git. `missing`: SQL (81,153846 / 90), Docker (0 / 50), Giao tiếp (0 / 60).
+- **Điểm tự khai 65 của Giao tiếp không được tính.** Nếu tính, `s` của Giao tiếp = min(65 / 60, 1) = 1, `P = 2/3`, điểm = 67,7065 + 20 = 87,7 → **88**. Con số 78 chứng minh tự khai không cộng điểm.
 
 ### Ví dụ 2: JD7 × C3, có kỹ năng dưới 50% → `score 60`, `belowMinimum true`
 
@@ -89,8 +89,8 @@ Mỗi ví dụ có test cho đúng con số này (`MatchCalculatorTest.example1�
 
 - Mọi `v = 0` nên mọi `s = 0`, `R = 0`, `P = 0`, điểm = 0.
 - `belowMinimum = true` (ba kỹ năng bắt buộc đều có `v = 0 < 0,5 × min_score`).
-- `met` rỗng; `missing` đủ 6 kỹ năng theo thứ tự Java, Spring Boot, SQL (bắt buộc), rồi Docker, Git, Tiếng Anh (ưu tiên), mỗi kỹ năng `candidateScore = 0`.
-- Ứng viên chỉ có điểm tự khai cũng ra kết quả như vậy (xem ví dụ 1: Tiếng Anh).
+- `met` rỗng; `missing` đủ 6 kỹ năng theo thứ tự Java, Spring Boot, SQL (bắt buộc), rồi Docker, Git, Giao tiếp (ưu tiên), mỗi kỹ năng `candidateScore = 0`.
+- Ứng viên chỉ có điểm tự khai cũng ra kết quả như vậy (xem ví dụ 1: Giao tiếp).
 
 ## 5. Các quy tắc khác đã có test
 
