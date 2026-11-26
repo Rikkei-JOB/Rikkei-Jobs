@@ -19,7 +19,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -30,7 +29,8 @@ import org.springframework.web.bind.annotation.RestController;
 
 /**
  * Qua gateway: {@code /api/v1/jobs/**} (DN-02). Công ty chỉ lấy từ company_hr theo userId của JWT; body không
- * quyết định companyId/status. Phân quyền đặt ở từng method (không ở mức class) để DN-04/DN-07 nới GET /jobs/{id}.
+ * quyết định companyId/status. Phân quyền đặt ở từng method (không ở mức class). Chi tiết JD của HR đã chuyển sang
+ * {@code GET /companies/me/jobs/{id}} (MyCompanyJobController); {@code GET /jobs/**} công khai ở PublicJobController.
  */
 @Tag(name = "HR - JD")
 @RestController
@@ -133,19 +133,5 @@ public class JobController {
     @PreAuthorize(Roles.HR)
     public JobResponse close(@PathVariable UUID id, @AuthenticationPrincipal AuthPrincipal principal) {
         return jobService.close(principal.getUserId(), id);
-    }
-
-    @Operation(
-            summary = "Xem JD",
-            description = "Vai trò: HR (DN-02). Chỉ JD của công ty mình; công ty LOCKED vẫn xem được.")
-    @ApiResponse(responseCode = "200", description = "Chi tiết JD kèm kỹ năng")
-    @ApiResponse(responseCode = "400", description = "BAD_REQUEST: id không phải UUID")
-    @ApiResponse(responseCode = "401", description = "UNAUTHORIZED: thiếu hoặc sai token; ACCOUNT_DISABLED: HR bị khoá")
-    @ApiResponse(responseCode = "403", description = "FORBIDDEN: không phải HR")
-    @ApiResponse(responseCode = "404", description = "NOT_FOUND: không có JD hoặc JD của công ty khác")
-    @GetMapping("/{id}")
-    @PreAuthorize(Roles.HR)
-    public JobResponse get(@PathVariable UUID id, @AuthenticationPrincipal AuthPrincipal principal) {
-        return jobService.get(principal.getUserId(), id);
     }
 }

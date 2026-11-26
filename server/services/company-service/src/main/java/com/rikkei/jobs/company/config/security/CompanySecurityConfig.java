@@ -21,7 +21,8 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 
 /**
  * Chain riêng của company-service: giống chain mặc định của common-core, thêm đường công khai để
- * trình duyệt tải logo (thẻ img không gửi được Authorization). Chain mặc định nhường chỗ cho bean này.
+ * trình duyệt tải logo (thẻ img không gửi được Authorization) và trang việc làm GET /jobs, GET /jobs/{id}.
+ * Chain mặc định nhường chỗ cho bean này.
  */
 @Configuration
 @EnableConfigurationProperties(AppProperties.class)
@@ -45,6 +46,9 @@ public class CompanySecurityConfig {
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .requestMatchers("/actuator/health/**", "/actuator/info", "/actuator/prometheus").permitAll()
                         .requestMatchers(HttpMethod.GET, "/companies/logos/**").permitAll()
+                        // Trang việc làm công khai (DN-07). "/jobs/*" chỉ khớp một đoạn, nên
+                        // /jobs/{id}/match/** (DN-06) vẫn cần đăng nhập. Token hợp lệ vẫn được JWT filter đọc.
+                        .requestMatchers(HttpMethod.GET, "/jobs", "/jobs/*").permitAll()
                         .requestMatchers(SecurityConfig.API_DOCS_PATHS).permitAll()
                         // /internal/** do InternalKeyFilter bảo vệ, JWT không áp dụng.
                         .requestMatchers(InternalKeyFilter.INTERNAL_PATTERN).permitAll()

@@ -117,7 +117,7 @@ class JobApiTest extends CompanyApiTestSupport {
     }
 
     private ResultActions getJob(String auth, UUID id) throws Exception {
-        return mvc.perform(get("/jobs/" + id).header("Authorization", auth));
+        return mvc.perform(get("/companies/me/jobs/" + id).header("Authorization", auth));
     }
 
     private ResultActions listMine(String auth, String query) throws Exception {

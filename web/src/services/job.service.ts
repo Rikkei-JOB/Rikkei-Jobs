@@ -7,7 +7,7 @@ export const jobService = {
   listMine: async (params: JobListParams) =>
     (await api.get<PageResult<JobSummary>>("/companies/me/jobs", { params: { size: 20, ...params } })).data,
 
-  get: async (id: string) => (await api.get<Job>(`/jobs/${id}`)).data,
+  get: async (id: string) => (await api.get<Job>(`/companies/me/jobs/${id}`)).data,
 
   create: async (payload: JobPayload) => (await api.post<Job>("/jobs", payload)).data,
 

@@ -2,6 +2,7 @@ package com.rikkei.jobs.company.repository;
 
 import com.rikkei.jobs.company.entity.Job;
 import com.rikkei.jobs.company.entity.JobStatus;
+import java.time.LocalDate;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
@@ -24,4 +25,20 @@ public interface JobRepository extends JpaRepository<Job, UUID> {
     @Query("select j.companyId, count(j) from Job j where j.companyId in :ids and j.status <> :excluded group by j.companyId")
     List<Object[]> countByCompanyIdsExcludingStatus(@Param("ids") Collection<UUID> ids,
                                                     @Param("excluded") JobStatus excluded);
+
+    /*
+     * Quy tắc "ứng viên thấy JD nào" (DN-07 §4.2) chỉ viết ở hai truy vấn dưới: JD APPROVED, hạn nộp từ hôm nay
+     * (giờ Việt Nam, nơi gọi truyền JobRules.today) và công ty ACTIVE. GET /jobs, chi tiết công khai và DN-04 dùng chung.
+     */
+    String VISIBLE_TO_CANDIDATES = "from Job j join Company c on c.id = j.companyId "
+            + "where j.status = com.rikkei.jobs.company.entity.JobStatus.APPROVED and j.deadline >= :today "
+            + "and c.status = com.rikkei.jobs.company.entity.CompanyStatus.ACTIVE";
+
+    /** Mới duyệt trước ({@code reviewedAt}, dữ liệu cũ thiếu thì {@code updatedAt}), rồi id; {@code p} không mang sort. */
+    @Query(value = "select j " + VISIBLE_TO_CANDIDATES + " order by coalesce(j.reviewedAt, j.updatedAt) desc, j.id desc",
+            countQuery = "select count(j) " + VISIBLE_TO_CANDIDATES)
+    Page<Job> findVisibleToCandidates(@Param("today") LocalDate today, Pageable p);
+
+    @Query("select j " + VISIBLE_TO_CANDIDATES + " and j.id = :id")
+    Optional<Job> findVisibleToCandidatesById(@Param("id") UUID id, @Param("today") LocalDate today);
 }
