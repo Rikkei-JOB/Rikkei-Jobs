@@ -26,7 +26,8 @@ Trong DN-07 (chốt):
 - Bảng `company_actions` (thêm giá trị `CLOSE_JD`), `GET /staff/companies/{id}/history`, tab "Lịch sử thao tác".
 - Job hằng ngày đóng JD quá hạn.
 - Màn "Duyệt JD" `/staff/jobs`.
-- **Bản tối thiểu của trang việc làm** (chốt phương án A, để demo tiêu chí 1 và 3 trên giao diện): quy tắc "ứng viên thấy JD nào", `GET /jobs` và chi tiết JD dạng ứng viên thấy, trang `/candidate/jobs` và `/candidate/jobs/{id}` chuyển từ mock sang dữ liệu thật, có nút Ứng tuyển (UT-01).
+- **Backend của trang việc làm** (chốt phương án A, để demo tiêu chí 1 và 3 trên giao diện): quy tắc "ứng viên thấy JD nào", `GET /jobs` và `GET /jobs/{id}` dạng ứng viên thấy. **Cập nhật 26/11:** giao diện ứng viên `/candidate/jobs` đã được DN-04 (người khác) làm và merge vào `test`; `candidate-job.service.ts` (commit `d7198e6`) đã đọc được hợp đồng `{items: PublicJobSummary[]}` / `PublicJobDetail` của mục 4.3 khi đặt `NEXT_PUBLIC_JOB_API_PATH=/jobs`. DN-07 **không sửa** trang ứng viên; demo trang việc làm bằng cấu hình đó (chốt).
+- Tab **"JD của công ty"** trong trang chi tiết doanh nghiệp của cán bộ (chốt trong spec DN-05 làm mới giao diện `2026-11-24-dn-ui-refresh-design.md`, dời sang DN-07).
 
 Ngoài phạm vi:
 
@@ -109,7 +110,7 @@ Một JD **hiện với ứng viên** khi và chỉ khi: `status = APPROVED` **v
 
 Mọi endpoint `@PreAuthorize(Roles.STAFF)`; token HR/CANDIDATE/ADMIN → 403. Mỗi thao tác chạy trong một transaction, dùng `@Version` của `jobs` (xung đột → 409 `CONFLICT`, handler đã có), ghi `reviewed_by = principal.userId()`, `reviewed_at = now`, và **một** dòng `company_actions` trong cùng transaction.
 
-**`GET /staff/jobs?status=PENDING&companyId=&page=1&size=20`** → `200` `PageResponse<StaffJobItem>`. `status` mặc định `PENDING`, nhận một trong 5 trạng thái; `companyId` tuỳ chọn; sai → 400. Sắp: `PENDING` theo `updated_at` **tăng dần** (gửi sớm nhất trước — JD đang `PENDING` không sửa được nên `updated_at` chính là lúc gửi); trạng thái khác theo `updated_at` giảm dần. `StaffJobItem`: `id, title, status, deadline, submittedAt` (= `updatedAt`), `company {id, name}`. Kèm số lượng theo từng trạng thái cho tab là tuỳ người làm (có thể gọi thêm hoặc trả `counts` riêng).
+**`GET /staff/jobs?status=PENDING&companyId=&page=1&size=20`** → `200` `PageResponse<StaffJobItem>`. `status` **tuỳ chọn** (cập nhật 26/11): một trong 5 trạng thái, bỏ trống = mọi trạng thái (dùng cho tab "JD của công ty"); màn Duyệt JD luôn gửi `status`. `companyId` tuỳ chọn; sai → 400. Sắp: `PENDING` theo `updated_at` **tăng dần** (gửi sớm nhất trước — JD đang `PENDING` không sửa được nên `updated_at` chính là lúc gửi); trạng thái khác và khi bỏ trống `status` theo `updated_at` giảm dần. `StaffJobItem`: `id, title, status, deadline, submittedAt` (= `updatedAt`), `company {id, name}`. Kèm số lượng theo từng trạng thái cho tab là tuỳ người làm (có thể gọi thêm hoặc trả `counts` riêng).
 
 **`GET /staff/jobs/{id}`** → `200` `StaffJobDetail` = `PublicJobDetail` + `status, rejectReason, reviewedAt, reviewedBy {id, fullName}`. Mọi trạng thái, mọi công ty (kể cả công ty bị khoá). Không tồn tại → 404.
 
@@ -165,7 +166,7 @@ Các điểm hiện dùng `isAdminLocked()` để **chặn** chuyển sang `isLo
 
 | Điểm | Hành vi khi bị khoá theo công ty |
 | --- | --- |
-| `LoginServiceImpl` (đăng nhập email/mật khẩu) | 403 `ACCOUNT_DISABLED`, message "Công ty của bạn đang bị khoá, liên hệ cán bộ tuyển dụng" (khoá riêng giữ message cũ) |
+| `LoginServiceImpl` (đăng nhập email/mật khẩu) | 403 `ACCOUNT_DISABLED`, message "Công ty của bạn đang bị khoá, liên hệ cán bộ tuyển dụng" (khoá riêng giữ message cũ). Cập nhật 26/11: theo `b66749e` trên `test`, khoá chỉ được báo **sau khi** mật khẩu đúng (chống dò email bị khoá); kiểm tra khoá theo công ty đặt cùng chỗ với khoá riêng |
 | `SsoUserServiceImpl` | như trên (HR không đăng nhập SSO nhưng giữ đồng bộ) |
 | `IdentityJwtAuthenticationFilter` | 401 `ACCOUNT_DISABLED` |
 | `PasswordResetServiceImpl` (quên / đặt lại mật khẩu) | chặn như khoá riêng |
@@ -183,11 +184,11 @@ Bật `@EnableScheduling` trong company-service (chưa có). Một bean `JobAuto
 
 ## 5. Frontend
 
-Đọc `web/AGENTS.md` và `web/node_modules/next/dist/docs/` trước khi viết code Next. react-hook-form + zod, TanStack Query (khoá cache kèm user id), `api` sẵn có, `@base-ui/react` (Dialog, Tabs), cùng phong cách các màn DN-02/DN-05. Mockup đã chốt nằm ở `.superpowers/brainstorm/1505-1795060628/content/` (không commit).
+Đọc `web/AGENTS.md` và `web/node_modules/next/dist/docs/` trước khi viết code Next. react-hook-form + zod, TanStack Query (khoá cache kèm user id), `api` sẵn có, `@base-ui/react` (Dialog, Tabs, Menu), cùng phong cách các màn DN-02/DN-05. **Cập nhật 26/11:** HR và cán bộ dùng khung `ManagerShell` (lớp `admin-theme`) theo `2026-11-24-dn-ui-refresh-design.md` §3: tiêu đề trang `text-xl font-semibold text-[#18233a]`, nút chính cùng hàng bên phải, các trang **không** đặt `max-w-*` riêng; màu chỉ dùng token (`primary` đã là đỏ trong khung). Mục "Duyệt JD" đã có trong nhóm **Duyệt ▾** của thanh cán bộ. Mockup đã chốt nằm ở `.superpowers/brainstorm/1505-1795060628/content/` (không commit).
 
 ### 5.1 Khối chi tiết JD dùng chung
 
-Component `JobPublicView` (ví dụ `web/src/app/components/job/job-public-view.tsx`) hiển thị `PublicJobDetail`: logo + tên + ngành/quy mô/thành phố công ty; tiêu đề; chip cấp độ, loại hình, hình thức, lương, số lượng, hạn nộp; địa chỉ; kỹ năng Bắt buộc / Ưu tiên kèm mức và tên bậc (ghép tên với `GET /skills`); Mô tả, Yêu cầu khác, Quyền lợi. Có chỗ để chèn thêm (slot/children) cho nút Ứng tuyển và cho phần điểm khớp của DN-04/DN-06. Dùng ở màn Duyệt JD và trang chi tiết của ứng viên, nên cán bộ thấy đúng thứ ứng viên thấy.
+Component `JobPublicView` (ví dụ `web/src/app/components/job/job-public-view.tsx`) hiển thị `PublicJobDetail`: logo + tên + ngành/quy mô/thành phố công ty; tiêu đề; chip cấp độ, loại hình, hình thức, lương, số lượng, hạn nộp; địa chỉ; kỹ năng Bắt buộc / Ưu tiên kèm mức và tên bậc (ghép tên với `GET /skills`); Mô tả, Yêu cầu khác, Quyền lợi. Có chỗ để chèn thêm (slot/children). Dùng ở màn Duyệt JD (cập nhật 26/11: trang chi tiết của ứng viên thuộc DN-04, DN-07 không đụng; DN-04 có thể dùng lại component này khi hiển thị các trường mở rộng).
 
 ### 5.2 Màn "Duyệt JD" `/staff/jobs` (chốt: bố cục A)
 
@@ -201,17 +202,14 @@ Component `JobPublicView` (ví dụ `web/src/app/components/job/job-public-view.
 
 ### 5.3 Chi tiết doanh nghiệp `/staff/companies/{id}` (chốt theo mockup)
 
-- Nút **Khoá công ty** (đang hoạt động) / **Mở khoá** (đang khoá) ở góc phải tiêu đề.
+- Trang dùng `CompanyHeader` có sẵn (DN-05 làm mới). Vùng nút: **+ Thêm HR** và **Khoá công ty** (đang hoạt động) / **Mở khoá** (đang khoá). Tab đặt qua prop `tabs` của `CompanyHeader`.
 - Công ty đang khoá: banner đỏ "Công ty đang bị khoá từ <thời điểm> bởi <cán bộ>. Lý do: … HR không đăng nhập được; JD đang tuyển bị ẩn khỏi trang việc làm."
-- Hai tab: **Tài khoản HR (n)** (bảng hiện tại của DN-05, thêm nhãn "Khoá theo công ty") và **Lịch sử thao tác** (bảng Thời điểm / Cán bộ / Hành động có nhãn màu / JD / Lý do, phân trang).
+- Ba tab: **Tài khoản HR (n)** (bảng hiện tại của DN-05, thêm nhãn "Khoá theo công ty"), **JD của công ty** (cập nhật 26/11: bảng Tiêu đề / Trạng thái (nhãn màu) / Hạn nộp / Cập nhật, bộ lọc trạng thái Tất cả + 5 trạng thái, phân trang, dùng `GET /staff/jobs?companyId=<id>&status=`; bấm một dòng mở `/staff/jobs?companyId=<id>&status=<trạng thái JD>&jobId=<id>` để xem và xử lý ở màn Duyệt JD) và **Lịch sử thao tác** (bảng Thời điểm / Cán bộ / Hành động có nhãn màu / JD / Lý do, phân trang). Tab đang chọn lưu trên URL (`?tab=hr|jobs|history`).
 - Hộp khoá: nêu hậu quả, ô lý do bắt buộc. Mở khoá: hộp xác nhận, không có lý do.
 
-### 5.4 Trang việc làm của ứng viên (chốt theo mockup)
+### 5.4 Trang việc làm của ứng viên
 
-- `/candidate/jobs`: tiêu đề "Việc làm · n vị trí đang tuyển", danh sách thẻ (logo, tiêu đề, công ty, thành phố, hình thức, loại, hạn nộp), phân trang, trạng thái rỗng "Hiện chưa có vị trí nào đang tuyển.". Thẻ dẫn tới chi tiết.
-- `/candidate/jobs/{id}`: `JobPublicView` + nút **Ứng tuyển** mở hộp chọn CV có sẵn của UT-01 (`ApplyButton`/`apply-dialog`; truyền `acceptingApplications = true` vì JD đã qua quy tắc hiển thị). 404 → "Không tìm thấy JD" kèm link về danh sách.
-- Bỏ phụ thuộc mock: hai trang không còn đọc `NEXT_PUBLIC_JOB_API_PATH`; `candidate-job.service.ts` gọi `GET /jobs`, `GET /jobs/{id}` qua `api`, kiểu dữ liệu đổi sang `PublicJobSummary`/`PublicJobDetail` (hợp đồng `CandidateJob` của UT-01 là bản đề xuất, được thay). Đổi mặc định `NEXT_PUBLIC_JOB_PAGE_PATH` (`web/src/config/application-status.ts`) từ `/jobs` sang `/candidate/jobs` để các link "trang Việc làm" của UT-01 tới đúng trang; DN-04 đổi lại khi có trang cho khách (người thiết kế chọn). Giữ nguyên các trang ứng tuyển của UT-01; cập nhật `web/.env.example` và tài liệu UT-01.
-- Trang vẫn nằm trong khu vực đăng nhập của ứng viên (trang cho khách thuộc DN-04).
+Cập nhật 26/11: **không đổi** trang `/candidate/jobs` và `/candidate/jobs/{id}` (thuộc DN-04, đã merge). Khi demo tiêu chí 1 và 3, đặt `NEXT_PUBLIC_JOB_API_PATH=/jobs` và `NEXT_PUBLIC_JOB_PAGE_PATH=/candidate/jobs` trong `web/.env.local`; `candidate-job.service.ts` đọc `GET /jobs` (tham số `size=100`) và `GET /jobs/{id}` của mục 4.3. Ghi cấu hình này vào `.env.example` (dạng chú thích) và tài liệu DN-07. `GET /jobs` phải chấp nhận `size=100` (đúng giới hạn tối đa).
 
 ### 5.5 HR
 
