@@ -8,6 +8,7 @@ import org.springframework.data.jpa.repository.*;
 import org.springframework.data.repository.query.Param;
 
 public interface ApplicationRepository extends JpaRepository<Application, UUID> {
+    boolean existsByCompanyIdAndUserId(UUID companyId, UUID userId);
     Page<Application> findByUserId(UUID userId, Pageable page);
     Page<Application> findByUserIdAndStatus(UUID userId, ApplicationStatus status, Pageable page);
     boolean existsByUserIdAndJobIdAndStatusNotIn(UUID userId, UUID jobId, Collection<ApplicationStatus> statuses);
