@@ -58,7 +58,7 @@ export function PublicHeader() {
         <span className="block text-[10px] font-bold tracking-[0.1em] text-muted-foreground uppercase max-sm:hidden">Đổi mới Sáng tạo &amp; Sự nghiệp</span>
       </Link>
 
-      <nav aria-label="Điều hướng chính" className="hidden items-center gap-6 self-stretch text-sm font-semibold text-heading lg:flex xl:gap-7">
+      <nav aria-label={candidate ? "Menu ứng viên" : "Điều hướng chính"} className="hidden items-center gap-6 self-stretch text-sm font-semibold text-heading lg:flex xl:gap-7">
         {candidate
           ? CANDIDATE_NAV.map(entry => isGroup(entry)
             ? <NavDropdown key={`${pathname}:${entry.label}`} group={entry} pathname={pathname} />

@@ -58,6 +58,7 @@ export function SelectMenu({ value, onValueChange, options, placeholder, icon, r
       aria-describedby={props["aria-describedby"]}
       aria-invalid={props["aria-invalid"] || undefined}
       data-active={active || undefined}
+      data-value={value}
       onBlur={onBlur}
       className={className ?? "ui-select-trigger"}
     >
@@ -76,7 +77,7 @@ export function SelectMenu({ value, onValueChange, options, placeholder, icon, r
       <Select.Positioner className="ui-select-positioner" side="bottom" align="start" sideOffset={6} alignItemWithTrigger={false} collisionPadding={12}>
         <Select.Popup className="ui-select-popup">
           <Select.List className="ui-select-list">
-            {options.map(option => <Select.Item key={option.value} value={option.value} disabled={option.disabled}
+            {options.map(option => <Select.Item key={option.value} value={option.value} disabled={option.disabled} data-value={option.value}
               label={option.textValue ?? (typeof option.label === "string" ? option.label : undefined)} className="ui-select-item">
               <Select.ItemText className="ui-select-item-text">{option.label}</Select.ItemText>
               <Select.ItemIndicator className="ui-select-item-check"><Check aria-hidden="true" /></Select.ItemIndicator>
