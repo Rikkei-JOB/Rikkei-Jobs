@@ -11,5 +11,8 @@ export const cvService = {
     (await api.put<CvDetail>(`/profile/cvs/${id}/sections`, { sections })).data,
   pdf: async (id: string, inline = false) =>
     (await api.get<Blob>(`/profile/cvs/${id}/pdf`, { params: inline ? { inline: true } : undefined, responseType: "blob", timeout: 30000 })).data,
+  /** Dựng PDF theo bản nháp chưa lưu để xem trước; không ghi DB. */
+  preview: async (id: string, sections: CvSectionPayload[]) =>
+    (await api.post<Blob>(`/profile/cvs/${id}/preview`, { sections }, { responseType: "blob", timeout: 30000 })).data,
   publicProfile: async (token: string) => (await api.get<PublicProfile>(`/profile/public/${encodeURIComponent(token)}`)).data,
 };

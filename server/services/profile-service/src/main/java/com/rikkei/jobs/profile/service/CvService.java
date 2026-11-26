@@ -99,10 +99,7 @@ public class CvService {
     @Transactional
     public CvDetail replaceSections(UUID owner, UUID id, SectionsRequest request) {
         var cv = cv(owner, id);
-        var types = request.sections().stream().map(SectionRequest::section).toList();
-        if (types.size() != CvSection.Type.values().length || !EnumSet.copyOf(types).equals(EnumSet.allOf(CvSection.Type.class))) {
-            throw new BadRequestException("Danh sách phần phải gồm đúng mỗi phần một lần: " + Arrays.toString(CvSection.Type.values()));
-        }
+        validate(request);
         Map<CvSection.Type, CvSection> existing = sections.findAllByCvIdOrderBySortOrderAsc(cv.getId()).stream()
             .collect(Collectors.toMap(CvSection::getSection, Function.identity()));
         List<CvSection> rows = new ArrayList<>();
@@ -111,7 +108,7 @@ public class CvService {
             // Cập nhật tại chỗ: xoá rồi chèn lại cùng khoá chính sẽ đụng thứ tự flush của Hibernate.
             var row = existing.getOrDefault(r.section(), section(cv.getId(), r.section(), i, r.included(), null));
             row.setSortOrder(i); row.setIncluded(r.included());
-            row.setItemIds(r.section() == CvSection.Type.SUMMARY || r.itemIds() == null ? null : write(new LinkedHashSet<>(r.itemIds())));
+            row.setItemIds(itemIds(r));
             rows.add(row);
         }
         sections.saveAll(rows);
@@ -119,11 +116,24 @@ public class CvService {
         return detail(cvs.save(cv));
     }
 
-    public Rendered render(UUID owner, UUID id) {
+    public Rendered render(UUID owner, UUID id) { return render(owner, id, null); }
+
+    /** draft != null: dựng theo bản nháp chưa lưu (xem trước trực tiếp), không ghi gì xuống DB. */
+    public Rendered render(UUID owner, UUID id, SectionsRequest draft) {
         var cv = cv(owner, id);
         var profile = profiles.findById(owner).orElseThrow(() -> new ProfileFileException(409, "PROFILE_REQUIRED",
             "Hãy hoàn thiện thông tin cá nhân trước khi xuất CV."));
-        var visible = buildSections(cv, profile).stream().filter(SectionView::included)
+        List<CvSection> rows;
+        if (draft == null) rows = sections.findAllByCvIdOrderBySortOrderAsc(cv.getId());
+        else {
+            validate(draft);
+            rows = new ArrayList<>();
+            for (int i = 0; i < draft.sections().size(); i++) {
+                var r = draft.sections().get(i);
+                rows.add(section(cv.getId(), r.section(), i, r.included(), itemIds(r)));
+            }
+        }
+        var visible = buildSections(cv, profile, rows).stream().filter(SectionView::included)
             .map(s -> new SectionView(s.section(), s.label(), true, s.allItems(), s.text(),
                 s.items().stream().filter(ItemView::selected).toList()))
             .filter(s -> s.section() == CvSection.Type.SUMMARY ? s.text() != null && !s.text().isBlank() : !s.items().isEmpty())
@@ -152,10 +162,21 @@ public class CvService {
     private CvDetail detail(Cv cv) {
         var profile = profiles.findById(cv.getUserId()).orElse(null);
         return new CvDetail(cv.getId(), cv.getName(), cv.getTargetPosition(), cv.getTemplate(), publicUrl(cv),
-            cv.getCreatedAt(), cv.getUpdatedAt(), buildSections(cv, profile));
+            cv.getCreatedAt(), cv.getUpdatedAt(), buildSections(cv, profile, sections.findAllByCvIdOrderBySortOrderAsc(cv.getId())));
     }
 
-    private List<SectionView> buildSections(Cv cv, CandidateProfile profile) {
+    private static void validate(SectionsRequest request) {
+        var types = request.sections().stream().map(SectionRequest::section).toList();
+        if (types.size() != CvSection.Type.values().length || !EnumSet.copyOf(types).equals(EnumSet.allOf(CvSection.Type.class))) {
+            throw new BadRequestException("Danh sách phần phải gồm đúng mỗi phần một lần: " + Arrays.toString(CvSection.Type.values()));
+        }
+    }
+
+    private String itemIds(SectionRequest r) {
+        return r.section() == CvSection.Type.SUMMARY || r.itemIds() == null ? null : write(new LinkedHashSet<>(r.itemIds()));
+    }
+
+    private List<SectionView> buildSections(Cv cv, CandidateProfile profile, List<CvSection> rows) {
         UUID owner = cv.getUserId();
         List<ItemView> skillItems = skills.getSkills(owner).stream()
             .filter(s -> s.verifiedScore() != null || s.selfScore() != null).map(CvService::skillItem).toList();
@@ -171,7 +192,7 @@ public class CvService {
         items.put(CvSection.Type.SUMMARY, List.of());
         String summary = profile == null ? null : firstNonBlank(profile.getSummary(), profile.getHeadline());
 
-        return sections.findAllByCvIdOrderBySortOrderAsc(cv.getId()).stream().map(s -> {
+        return rows.stream().map(s -> {
             Set<UUID> chosen = s.getItemIds() == null ? null : new HashSet<>(read(s.getItemIds()));
             var marked = items.get(s.getSection()).stream()
                 .map(i -> new ItemView(i.id(), i.title(), i.subtitle(), i.period(), i.detail(), i.verified(),
