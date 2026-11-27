@@ -8,21 +8,25 @@ import { Popover } from "@base-ui/react/popover";
 import { Building2, ChevronDown, KeyRound, LogOut, Menu as MenuIcon, X } from "lucide-react";
 import { ROLE_MENU } from "@/config/menu";
 import type { User } from "@/interface/auth";
+import { SiteFooter } from "./site-footer";
+import { BrandLogo } from "@/app/components/ui/brand-logo";
 import "./hr-shell.css";
 
 const items = ROLE_MENU.HR.filter(item => item.href !== "/hr/company");
-const selected = (pathname: string, href: string) => pathname === href || pathname.startsWith(`${href}/`);
+// Trang tổng quan /hr chỉ sáng khi đúng đường dẫn, không sáng cho mọi trang con.
+const selected = (pathname: string, href: string) => pathname === href || (href !== "/hr" && pathname.startsWith(`${href}/`));
 
 export function HrShell({ user, children, onLogout }: { user: User; children: ReactNode; onLogout(): void }) {
   const pathname = usePathname();
   return <div className="hr-shell hr-theme">
     <a className="hr-skip-link" href="#hr-content">Đến nội dung chính</a>
     <header className="hr-header"><div className="hr-topbar">
-      <Link href="/hr" className="hr-brand" aria-label="Rikkei Jobs, trang chủ HR"><span>Rikkei</span> Jobs<span className="hr-brand-label">NHÀ TUYỂN DỤNG</span></Link>
+      <Link href="/hr" className="hr-brand" aria-label="Rikkei Jobs, trang chủ HR"><BrandLogo height={26} /><span className="hr-brand-label">NHÀ TUYỂN DỤNG</span></Link>
       <nav className="hr-desktop-nav" aria-label="Menu HR">{items.map(item => <Link key={item.href} href={item.href} className="hr-nav-link" aria-current={selected(pathname, item.href) ? "page" : undefined}>{item.label}</Link>)}</nav>
       <HeaderActions key={`${user.id}:${pathname}`} user={user} pathname={pathname} onLogout={onLogout} />
     </div></header>
     <main id="hr-content" className="hr-main">{children}</main>
+    <SiteFooter compact />
   </div>;
 }
 

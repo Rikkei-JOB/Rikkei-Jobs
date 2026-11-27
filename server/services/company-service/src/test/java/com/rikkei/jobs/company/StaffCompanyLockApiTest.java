@@ -142,7 +142,7 @@ class StaffCompanyLockApiTest extends CompanyApiTestSupport {
     }
 
     private List<String> publicJobIds() throws Exception {
-        String body = mvc.perform(get("/jobs")).andExpect(status().isOk())
+        String body = mvc.perform(get("/public/jobs")).andExpect(status().isOk())
                 .andReturn().getResponse().getContentAsString();
         return JsonPath.read(body, "$.items[*].id");
     }
@@ -191,7 +191,7 @@ class StaffCompanyLockApiTest extends CompanyApiTestSupport {
         assertThat(history.get(0).getTargetId()).isNull();
 
         assertThat(publicJobIds()).containsExactly(ofB.getId().toString());
-        mvc.perform(get("/jobs/" + ofA.getId())).andExpect(status().isNotFound());
+        mvc.perform(get("/public/jobs/" + ofA.getId())).andExpect(status().isNotFound());
         mvc.perform(get("/companies/me").header("Authorization", "Bearer " + token(HR1, Role.HR)))
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.code").value("ACCOUNT_DISABLED"))
@@ -427,8 +427,8 @@ class StaffCompanyLockApiTest extends CompanyApiTestSupport {
 
         mvc.perform(post("/staff/jobs/" + pending.getId() + "/approve").header("Authorization", staff()))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.status").value("APPROVED"))
-                .andExpect(jsonPath("$.companyLocked").value(true));
+                .andExpect(jsonPath("$.job.status").value("APPROVED"))
+                .andExpect(jsonPath("$.company.status").value("LOCKED"));
         assertThat(publicJobIds()).doesNotContain(pending.getId().toString());
 
         unlock(a.getId()).andExpect(status().isOk());

@@ -7,8 +7,7 @@ import { Button } from "@/app/components/ui/button"
 import { formatDate, formatDateTime, STATUS_LABEL, STATUS_ORDER } from "@/app/components/job/job-labels"
 import { JobStatusBadge } from "@/app/components/job/job-status-badge"
 import { useStaffJobs } from "@/hooks/use-staff-jobs"
-import type { JobStatus } from "@/interface/job"
-import type { StaffJobItem } from "@/interface/staff-job"
+import type { StaffJobItem, StaffJobStatus } from "@/interface/staff-job"
 import { getErrorMessage } from "@/services/api"
 
 const PAGE_SIZE = 20
@@ -16,26 +15,25 @@ const PAGE_SIZE = 20
 interface CompanyJobsTableProps {
   companyId: string
   /** undefined = Tất cả. */
-  status: JobStatus | undefined
+  status: StaffJobStatus | undefined
   page: number
-  onChange: (next: { status: JobStatus | undefined; page: number }) => void
-  enabled?: boolean
+  onChange: (next: { status: StaffJobStatus | undefined; page: number }) => void
 }
 
-/** Mở JD ở màn "Duyệt JD" (đúng tab trạng thái, lọc theo công ty). JD nháp không có tab ở màn duyệt nên không mở. */
-function reviewHref(companyId: string, job: StaffJobItem): string | null {
-  if (job.status === "DRAFT") return null
-  const query = new URLSearchParams({ companyId, status: job.status, jobId: job.id })
-  return `/staff/jobs?${query}`
+/** Mở JD ở màn duyệt JD của cán bộ (UI-01: /staff/jobs/{id}). Cán bộ không thấy JD nháp nên mọi dòng đều mở được. */
+function reviewHref(job: StaffJobItem): string | null {
+  return `/staff/jobs/${encodeURIComponent(job.id)}`
 }
 
 /** Tab "JD của công ty": Tiêu đề / Trạng thái / Hạn nộp / Cập nhật, lọc theo trạng thái, có phân trang. */
-export function CompanyJobsTable({ companyId, status, page, onChange, enabled = true }: CompanyJobsTableProps) {
+export function CompanyJobsTable({ companyId, status, page, onChange }: CompanyJobsTableProps) {
   const router = useRouter()
-  const { data, error, isPending, isFetching, isPlaceholderData, refetch } = useStaffJobs(
-    { companyId, status, page, size: PAGE_SIZE },
-    enabled,
-  )
+  const { data, error, isPending, isFetching, isPlaceholderData, refetch } = useStaffJobs({
+    companyId,
+    status,
+    page,
+    size: PAGE_SIZE,
+  })
   const lastPage = data ? Math.max(1, Math.ceil(data.total / data.size)) : 1
 
   return (
@@ -43,12 +41,12 @@ export function CompanyJobsTable({ companyId, status, page, onChange, enabled = 
       <div className="flex flex-wrap items-center gap-2">
         <select
           value={status ?? ""}
-          onChange={(e) => onChange({ status: (e.target.value || undefined) as JobStatus | undefined, page: 1 })}
+          onChange={(e) => onChange({ status: (e.target.value || undefined) as StaffJobStatus | undefined, page: 1 })}
           aria-label="Lọc theo trạng thái JD"
           className="h-7 rounded-md border border-input bg-background px-2 text-xs"
         >
           <option value="">Tất cả</option>
-          {STATUS_ORDER.map((s) => (
+          {STATUS_ORDER.filter((s): s is StaffJobStatus => s !== "DRAFT").map((s) => (
             <option key={s} value={s}>
               {STATUS_LABEL[s]}
             </option>
@@ -84,7 +82,7 @@ export function CompanyJobsTable({ companyId, status, page, onChange, enabled = 
               </thead>
               <tbody>
                 {data.items.map((job) => {
-                  const href = reviewHref(companyId, job)
+                  const href = reviewHref(job)
                   return (
                     <tr
                       key={job.id}

@@ -65,36 +65,37 @@ export function ReviewDetail(props: DetailProps) {
     return <AdvanceReview {...props} message={advanced || "Hồ sơ đã rời hàng đợi."} />;
   }
   const data = preview.data;
-  return <div className="mx-auto max-w-6xl space-y-5">
-    <Link href={reviewHref(filters)} className="text-sm underline">Quay lại hàng đợi</Link>
-    {preview.isPending ? <p role="status">Đang tải hồ sơ...</p> : preview.isError ?
-      <Alert variant="destructive">{getErrorMessage(preview.error)} <Button onClick={() => preview.refetch()}>Thử lại</Button></Alert>
+  return <div className="ptit-page max-w-6xl">
+    <Link href={reviewHref(filters)} className="inline-flex w-fit items-center text-sm font-semibold text-primary underline-offset-4 hover:underline">← Quay lại hàng đợi</Link>
+    {preview.isPending ? <p role="status" className="text-sm text-muted-foreground">Đang tải hồ sơ...</p> : preview.isError ?
+      <Alert variant="destructive" className="flex items-center justify-between gap-2"><span>{getErrorMessage(preview.error)}</span> <Button variant="outline" size="sm" onClick={() => preview.refetch()}>Thử lại</Button></Alert>
       : data && <>
-        <header className="space-y-1">
-          <h1 className="text-xl font-semibold">{data.fullName}</h1>
-          <p className="text-sm text-muted-foreground">{[data.classCode, data.courseName].filter(Boolean).join(" · ")}</p>
-          {data.headline && <h2 className="font-medium">{data.headline}</h2>}
-          {data.summary && <p className="whitespace-pre-wrap text-sm">{data.summary}</p>}
+        <header className="ptit-surface space-y-1.5 p-6">
+          <p className="ptit-eyebrow">CHI TIẾT HỒ SƠ CHỜ DUYỆT</p>
+          <h1 className="text-2xl font-bold text-heading">{data.fullName}</h1>
+          <p className="text-sm font-medium text-muted-foreground">{[data.classCode, data.courseName].filter(Boolean).join(" · ")}</p>
+          {data.headline && <h2 className="pt-1 font-semibold text-heading">{data.headline}</h2>}
+          {data.summary && <p className="whitespace-pre-wrap text-sm leading-relaxed text-body">{data.summary}</p>}
         </header>
-        <section aria-label="Bản xem trước của HR" className="rounded-xl border bg-card p-4">
-          <p className="mb-4 text-sm font-medium text-muted-foreground">Bản xem trước của HR</p>
+        <section aria-label="Bản xem trước của HR" className="ptit-surface p-6">
+          <p className="mb-4 text-xs font-bold tracking-wider text-primary uppercase">Bản xem trước của HR</p>
           <SkillProfile readOnly previewSkills={data.skills} />
         </section>
         <ReviewEditor preview={data} disabled={decide.isPending} onBusy={setEditing}
           onStale={() => setAdvanced("Hồ sơ đã rời hàng đợi.")}
           onSaved={() => preview.refetch()} />
-        <section className="space-y-3 rounded-lg border bg-card p-4">
-          <h2 className="font-semibold">Quyết định duyệt hồ sơ</h2>
-          <label className="block space-y-1 text-sm">Lý do trả lại
-            <textarea className="block w-full rounded-md border p-2" rows={2} value={reason}
+        <section className="ptit-surface space-y-4 p-6">
+          <h2 className="text-lg font-bold text-heading">Quyết định duyệt hồ sơ</h2>
+          <label className="block space-y-1.5 text-sm font-semibold text-heading">Lý do trả lại
+            <textarea className="block w-full rounded-xl border border-input bg-white p-3 text-base font-normal text-foreground outline-none focus:border-ring focus:ring-2 focus:ring-ring/20 md:text-sm" rows={3} value={reason}
               onChange={event => setReason(event.target.value)} disabled={decide.isPending} />
           </label>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-3">
             <Button disabled={editing || decide.isPending || preview.isFetching} onClick={() => decide.mutate("approve")}>Duyệt hồ sơ</Button>
             <Button variant="destructive" disabled={!reason.trim() || editing || decide.isPending || preview.isFetching}
               onClick={() => decide.mutate("reject")}>Trả lại hồ sơ</Button>
           </div>
-          {decide.isPending && <p role="status">Đang ghi nhận quyết định...</p>}
+          {decide.isPending && <p role="status" className="text-sm text-muted-foreground">Đang ghi nhận quyết định...</p>}
           {decide.isError && <Alert variant="destructive">{getErrorMessage(decide.error)}</Alert>}
         </section>
       </>}

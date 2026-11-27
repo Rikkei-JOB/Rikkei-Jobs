@@ -25,7 +25,7 @@ export function CareerBanner() {
         <rect x="182" y="47" width="38" height="38" rx="10" fill="#F9DADD" />
         <circle cx="201" cy="60" r="6" fill="#B4232D" />
         <path d="M190 77C190 68 212 68 212 77" fill="#B4232D" />
-        <text x="233" y="63" fill="#7E2533" fontSize="18" fontWeight="700" fontFamily="Inter, sans-serif">CV</text>
+        <text x="233" y="63" fill="#7E2533" fontSize="18" fontWeight="700" style={{ fontFamily: "var(--font-sans), sans-serif" }}>CV</text>
         <rect x="233" y="73" width="66" height="4" rx="2" fill="#D6A7AD" />
         <path d="M183 100H310" stroke="#E9C7CB" />
         <rect x="183" y="114" width="70" height="5" rx="2.5" fill="#B5616C" />
@@ -41,13 +41,13 @@ export function CareerBanner() {
         <rect x="44" y="56" width="126" height="58" rx="13" fill="#FFF7F5" />
         <rect x="54" y="67" width="36" height="36" rx="10" fill="#FBE4E6" />
         <path d="M68 78L62 85L68 92M78 78L84 85L78 92M75 76L71 94" stroke="#B4232D" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-        <text x="99" y="91" fill="#7E2533" fontSize="13" fontWeight="600" fontFamily="Inter, sans-serif">Kỹ năng</text>
+        <text x="99" y="91" fill="#7E2533" fontSize="13" fontWeight="600" style={{ fontFamily: "var(--font-sans), sans-serif" }}>Kỹ năng</text>
       </g>
       <g transform="rotate(7 352 149)">
         <rect x="305" y="123" width="103" height="61" rx="13" fill="#FFF7F5" />
         <rect x="318" y="137" width="29" height="23" rx="4" fill="#F9DADD" stroke="#B4232D" strokeWidth="1.6" />
         <path d="M326 136V133H339V136M318 146H347M330 145V149H335V145" stroke="#B4232D" strokeWidth="1.6" strokeLinejoin="round" />
-        <text x="355" y="152" fill="#7E2533" fontSize="12" fontWeight="600" fontFamily="Inter, sans-serif">Cơ hội</text>
+        <text x="355" y="152" fill="#7E2533" fontSize="12" fontWeight="600" style={{ fontFamily: "var(--font-sans), sans-serif" }}>Cơ hội</text>
       </g>
       <circle cx="146" cy="212" r="22" fill="#F2CB87" />
       <path d="M136 212L143 219L156 205" stroke="#7E2533" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />

@@ -3,6 +3,10 @@
 .manager-topbar { height: 64px; max-width: 1440px; margin: auto; padding: 0 32px; display: flex; gap: 40px; align-items: center; }
 .manager-brand { display: inline-flex; align-items: baseline; gap: 5px; color: #18233a; font-size: 21px; font-weight: 700; letter-spacing: -.04em; white-space: nowrap; }
 .manager-brand > span:first-child { color: #b4232d; }
+/* Logo kèm nhãn vai trò bên dưới, cùng kiểu .hr-brand của khung HR/Mentor. */
+.manager-brand:has(.manager-brand-label) { flex-direction: column; align-items: flex-start; gap: 2px; }
+.manager-brand svg { display: block; }
+.manager-brand-label { font-size: 9px; line-height: 12px; font-weight: 700; letter-spacing: .14em; color: #1d4ed8; }
 .manager-brand-dot { width: 5px; height: 5px; align-self: center; margin-left: 3px; background: #b4232d; border-radius: 50%; }
 .manager-desktop-nav { align-self: stretch; display: flex; gap: 20px; min-width: 0; align-items: stretch; }
 .manager-nav-link { white-space: nowrap; display: inline-flex; align-items: center; gap: 6px; min-height: 44px; color: #475569; font-size: 14px; font-weight: 500; border-bottom: 2px solid transparent; padding: 2px 0 0; }
@@ -53,3 +57,6 @@
   .manager-main { padding: 20px 16px; }
   .manager-panel-heading { padding: 12px 16px; }
 }
+/* Footer luôn ở đáy kể cả trang ít nội dung. */
+.manager-shell { display: flex; flex-direction: column; }
+.manager-main { flex: 1; }

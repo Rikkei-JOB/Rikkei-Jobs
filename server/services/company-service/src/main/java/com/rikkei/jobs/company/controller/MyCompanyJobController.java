@@ -3,7 +3,6 @@ package com.rikkei.jobs.company.controller;
 import com.rikkei.jobs.common.config.security.principle.AuthPrincipal;
 import com.rikkei.jobs.common.config.security.principle.Roles;
 import com.rikkei.jobs.common.dto.response.PageResponse;
-import com.rikkei.jobs.company.dto.response.JobResponse;
 import com.rikkei.jobs.company.dto.response.JobStatusSummary;
 import com.rikkei.jobs.company.dto.response.JobSummary;
 import com.rikkei.jobs.company.entity.JobStatus;
@@ -11,17 +10,15 @@ import com.rikkei.jobs.company.service.JobService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-/** Qua gateway: {@code GET /api/v1/companies/me/jobs[/{id}]} (DN-02, chi tiết chuyển về đây ở DN-07), cạnh MyCompanyController. */
+/** Qua gateway: {@code GET /api/v1/companies/me/jobs} (DN-02), cạnh MyCompanyController. */
 @Tag(name = "HR - JD")
 @RestController
 @RequestMapping("/companies/me/jobs")
@@ -45,21 +42,6 @@ public class MyCompanyJobController {
                                          @RequestParam(defaultValue = "20") int size,
                                          @AuthenticationPrincipal AuthPrincipal principal) {
         return jobService.listMine(principal.getUserId(), status, page, size);
-    }
-
-    /** Trước DN-07 là {@code GET /jobs/{id}}; đường đó nay thuộc trang việc làm công khai. */
-    @Operation(
-            summary = "Xem JD của công ty mình",
-            description = "Vai trò: HR. Chỉ JD của công ty mình (mọi trạng thái); công ty LOCKED vẫn xem được.")
-    @ApiResponse(responseCode = "200", description = "Chi tiết JD kèm kỹ năng")
-    @ApiResponse(responseCode = "400", description = "BAD_REQUEST: id không phải UUID")
-    @ApiResponse(responseCode = "401", description = "UNAUTHORIZED: thiếu hoặc sai token; ACCOUNT_DISABLED: HR bị khoá")
-    @ApiResponse(responseCode = "403", description = "FORBIDDEN: không phải HR")
-    @ApiResponse(responseCode = "404", description = "NOT_FOUND: không có JD hoặc JD của công ty khác")
-    @GetMapping("/{id}")
-    @PreAuthorize(Roles.HR)
-    public JobResponse get(@PathVariable UUID id, @AuthenticationPrincipal AuthPrincipal principal) {
-        return jobService.get(principal.getUserId(), id);
     }
 
     @Operation(

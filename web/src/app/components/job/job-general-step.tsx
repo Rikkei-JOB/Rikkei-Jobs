@@ -1,6 +1,7 @@
 "use client"
 
-import { useWatch, type UseFormReturn } from "react-hook-form"
+import { Controller, useWatch, type UseFormReturn } from "react-hook-form"
+import { SelectMenu } from "@/app/components/ui/select-menu"
 import { FormField } from "@/app/components/auth/form-field"
 import { Input } from "@/app/components/ui/input"
 import { LEVEL_LABEL, TYPE_LABEL, WORK_MODE_LABEL } from "@/app/components/job/job-labels"
@@ -47,24 +48,40 @@ export function JobGeneralStep({ form }: { form: UseFormReturn<JobFormValues> })
           <Input placeholder="Ví dụ: Backend Developer" {...field("position")} />
         </FormField>
         <FormField label="Cấp độ *" htmlFor="job-level" error={error("level")}>
-          <select className={`${CONTROL_CLASS} h-7`} {...field("level")}>
-            <option value="">Chưa chọn</option>
-            {JOB_LEVELS.map((v) => (
-              <option key={v} value={v}>
-                {LEVEL_LABEL[v]}
-              </option>
-            ))}
-          </select>
+          <Controller
+            name="level"
+            control={control}
+            render={({ field: f }) => (
+              <SelectMenu
+                id={`job-level`}
+                aria-invalid={Boolean(errors.level)}
+                aria-describedby={errors.level ? `job-level-error` : undefined}
+                value={f.value ?? ""}
+                onValueChange={f.onChange}
+                onBlur={f.onBlur}
+                className="ui-select-trigger h-7 min-h-7 rounded-md px-2 text-sm md:text-xs"
+                options={[{ value: "", label: "Chưa chọn" }, ...JOB_LEVELS.map((v) => ({ value: v, label: LEVEL_LABEL[v] }))]}
+              />
+            )}
+          />
         </FormField>
         <FormField label="Loại hình *" htmlFor="job-type" error={error("type")}>
-          <select className={`${CONTROL_CLASS} h-7`} {...field("type")}>
-            <option value="">Chưa chọn</option>
-            {JOB_TYPES.map((v) => (
-              <option key={v} value={v}>
-                {TYPE_LABEL[v]}
-              </option>
-            ))}
-          </select>
+          <Controller
+            name="type"
+            control={control}
+            render={({ field: f }) => (
+              <SelectMenu
+                id={`job-type`}
+                aria-invalid={Boolean(errors.type)}
+                aria-describedby={errors.type ? `job-type-error` : undefined}
+                value={f.value ?? ""}
+                onValueChange={f.onChange}
+                onBlur={f.onBlur}
+                className="ui-select-trigger h-7 min-h-7 rounded-md px-2 text-sm md:text-xs"
+                options={[{ value: "", label: "Chưa chọn" }, ...JOB_TYPES.map((v) => ({ value: v, label: TYPE_LABEL[v] }))]}
+              />
+            )}
+          />
         </FormField>
       </div>
 
@@ -78,14 +95,22 @@ export function JobGeneralStep({ form }: { form: UseFormReturn<JobFormValues> })
           {formatSalary(salaryMax) ? <p className="text-xs text-muted-foreground">{formatSalary(salaryMax)}</p> : null}
         </FormField>
         <FormField label="Hình thức *" htmlFor="job-workMode" error={error("workMode")}>
-          <select className={`${CONTROL_CLASS} h-7`} {...field("workMode")}>
-            <option value="">Chưa chọn</option>
-            {WORK_MODES.map((v) => (
-              <option key={v} value={v}>
-                {WORK_MODE_LABEL[v]}
-              </option>
-            ))}
-          </select>
+          <Controller
+            name="workMode"
+            control={control}
+            render={({ field: f }) => (
+              <SelectMenu
+                id={`job-workMode`}
+                aria-invalid={Boolean(errors.workMode)}
+                aria-describedby={errors.workMode ? `job-workMode-error` : undefined}
+                value={f.value ?? ""}
+                onValueChange={f.onChange}
+                onBlur={f.onBlur}
+                className="ui-select-trigger h-7 min-h-7 rounded-md px-2 text-sm md:text-xs"
+                options={[{ value: "", label: "Chưa chọn" }, ...WORK_MODES.map((v) => ({ value: v, label: WORK_MODE_LABEL[v] }))]}
+              />
+            )}
+          />
         </FormField>
       </div>
 

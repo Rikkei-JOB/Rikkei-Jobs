@@ -1,6 +1,7 @@
 import { test, expect } from "@playwright/test";
 import { careerFixtures, closedJobId, jobsApiPattern, cors } from "./candidate-career-fixtures";
 import { jobId, cvId } from "./ut01-fixtures";
+import { chooseOption, expectOption } from "./select-menu";
 
 test.beforeEach(async ({ page }) => { await careerFixtures(page); });
 
@@ -50,7 +51,7 @@ test("opens job detail and submits the chosen CV", async ({ page }) => {
   await page.keyboard.press("Escape");
   await expect(trigger).toBeFocused();
   await trigger.click();
-  await page.getByLabel("Chọn CV").selectOption(cvId);
+  await chooseOption(page.getByLabel("Chọn CV"), cvId);
   await page.getByLabel("Thư giới thiệu", { exact: true }).fill("Mong được đồng hành cùng đội ngũ.");
   const request = page.waitForRequest(r => r.method() === "POST" && r.url().endsWith(`/jobs/${jobId}/apply`));
   await page.getByRole("button", { name: "Gửi ứng tuyển", exact: true }).click();
@@ -112,7 +113,7 @@ test("CV loading can be retried while preserving the introduction", async ({ pag
   await expect(dialog.getByRole("button", { name: "Gửi ứng tuyển", exact: true })).toBeDisabled();
   failed = false;
   await page.getByRole("button", { name: "Tải lại CV", exact: true }).click();
-  await page.getByLabel("Chọn CV").selectOption(cvId);
+  await chooseOption(page.getByLabel("Chọn CV"), cvId);
   await expect(page.getByLabel("Thư giới thiệu", { exact: true })).toHaveValue("Giữ lại phần giới thiệu này.");
   await expect(dialog.getByRole("button", { name: "Gửi ứng tuyển", exact: true })).toBeEnabled();
 });
@@ -131,16 +132,16 @@ test("reopening refreshes CVs before allowing submission with a new selection", 
     await page.goto(`/candidate/jobs/${jobId}`);
     const trigger = page.getByRole("button", { name: "Ứng tuyển", exact: true });
     await trigger.click();
-    await page.getByLabel("Chọn CV").selectOption(cvId);
+    await chooseOption(page.getByLabel("Chọn CV"), cvId);
     await page.keyboard.press("Escape");
     await trigger.click();
     await refreshing;
     const send = page.getByRole("button", { name: "Gửi ứng tuyển", exact: true });
     await expect(send).toBeDisabled();
     release();
-    await expect(page.getByLabel("Chọn CV")).toHaveValue("");
+    await expectOption(page.getByLabel("Chọn CV"), "");
     await expect(send).toBeDisabled();
-    await page.getByLabel("Chọn CV").selectOption("40000000-0000-0000-0000-000000000002");
+    await chooseOption(page.getByLabel("Chọn CV"), "40000000-0000-0000-0000-000000000002");
     await expect(send).toBeEnabled();
   } finally { release(); }
 });
@@ -150,7 +151,7 @@ test("uncertain submission blocks resending until the result is reconciled", asy
   await page.route(`**/recruitment/jobs/${jobId}/apply`, route => { attempts++; return route.abort("failed"); });
   await page.goto(`/candidate/jobs/${jobId}`);
   await page.getByRole("button", { name: "Ứng tuyển", exact: true }).click();
-  await page.getByLabel("Chọn CV").selectOption(cvId);
+  await chooseOption(page.getByLabel("Chọn CV"), cvId);
   await page.getByLabel("Thư giới thiệu", { exact: true }).fill("Giữ nguyên khi chưa rõ kết quả.");
   await page.getByRole("button", { name: "Gửi ứng tuyển", exact: true }).click();
   await expect(page.getByRole("button", { name: "Gửi ứng tuyển", exact: true })).toBeDisabled();

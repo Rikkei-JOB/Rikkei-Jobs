@@ -1,6 +1,7 @@
 import { test, expect } from "@playwright/test";
 import { mkdirSync } from "node:fs";
 import { resolve } from "node:path";
+import { chooseOption } from "./select-menu";
 
 test("UT-02 STAFF lọc đơn và chỉ đọc chi tiết", async ({ page }) => {
   const id = "20000000-0000-0000-0000-000000000003";
@@ -27,7 +28,7 @@ test("UT-02 STAFF lọc đơn và chỉ đọc chi tiết", async ({ page }) => 
   });
   await page.goto("/staff/applications");
   await expect(page.getByText("Ứng viên B")).toBeVisible();
-  await page.getByLabel("Trạng thái").selectOption("INTERVIEW");
+  await chooseOption(page.getByLabel("Trạng thái"), "INTERVIEW");
   await expect(page).toHaveURL(/status=INTERVIEW/);
   mkdirSync(resolve(__dirname, "../../docs/api/screenshots"), { recursive: true });
   await page.screenshot({ path: resolve(__dirname, "../../docs/api/screenshots/ut02-staff-list.png"), fullPage: true });

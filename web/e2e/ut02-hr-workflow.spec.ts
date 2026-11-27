@@ -1,6 +1,7 @@
 import { test, expect, type Page } from "@playwright/test";
 import { mkdirSync } from "node:fs";
 import { resolve } from "node:path";
+import { chooseOption } from "./select-menu";
 
 const id = "20000000-0000-0000-0000-000000000002";
 const userId = "30000000-0000-0000-0000-000000000002";
@@ -56,7 +57,7 @@ test("UT-02 HR chuyển bước và chỉ thêm vòng khi đã phỏng vấn", a
   await page.getByLabel("Email người phỏng vấn").fill("interviewer@example.test");
   await page.getByRole("button", { name: "Thêm vòng" }).click();
   await expect(page.getByRole("heading", { name: "Vòng 1: Kỹ thuật" })).toBeVisible();
-  await page.getByLabel("Kết quả vòng 1").selectOption("PASS");
+  await chooseOption(page.getByLabel("Kết quả vòng 1"), "PASS");
   await page.getByLabel("Điểm vòng 1").fill("85");
   await page.getByRole("button", { name: "Lưu kết quả" }).click();
   await expect(page.getByText("Điểm: 85/100")).toBeVisible();

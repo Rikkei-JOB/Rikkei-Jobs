@@ -19,7 +19,7 @@ import { UnlockHrDialog } from "@/app/components/staff-company/unlock-hr-dialog"
 import { useAuthGuard } from "@/hooks/use-auth-guard"
 import { useStaffCompany } from "@/hooks/use-staff-companies"
 import type { StaffHrAccount } from "@/interface/company"
-import type { JobStatus } from "@/interface/job"
+import type { StaffJobStatus } from "@/interface/staff-job"
 
 /** Các tab của trang; tab đang chọn nằm trên URL (?tab=hr|jobs|history), mặc định hr. */
 const TABS = ["hr", "jobs", "history"] as const
@@ -41,7 +41,7 @@ function StaffCompanyDetailView() {
   const [notice, setNotice] = React.useState("")
   const [conflict, setConflict] = React.useState("")
   // Bộ lọc / trang của hai tab dưới giữ nguyên khi chuyển qua lại giữa các tab.
-  const [jobsView, setJobsView] = React.useState<{ status: JobStatus | undefined; page: number }>({ status: undefined, page: 1 })
+  const [jobsView, setJobsView] = React.useState<{ status: StaffJobStatus | undefined; page: number }>({ status: undefined, page: 1 })
   const [historyPage, setHistoryPage] = React.useState(1)
 
   if (!allowed) return null

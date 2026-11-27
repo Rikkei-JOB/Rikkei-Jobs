@@ -52,7 +52,7 @@ Màu quá trình ứng tuyển tiếp tục lấy từ `web/src/config/applicati
 
 ### Typography
 
-Font chung **Inter**, lấy từ root layout; dùng chung `font-sans`. Kiểm tra dấu tiếng Việt, chữ đậm và số trên trình duyệt thực tế.
+Font chung **Lexend** (font biến thiên, subset `latin`, `latin-ext`, `vietnamese`), lấy từ root layout; dùng chung `font-sans`, không ghi cứng tên font trong component (SVG dùng `var(--font-sans)`). Lexend rộng và đậm hơn Inter: tiêu đề dùng 600–700, hạn chế 800–900; ngoại lệ là tiêu đề hero trang công khai (800, 32–54px, phần nhấn mạnh tô chuyển màu). Kiểm tra dấu tiếng Việt, chữ đậm và số trên trình duyệt thực tế.
 
 | Loại chữ | Desktop: size / line-height | Mobile | Weight |
 | --- | --- | --- | --- |
@@ -86,7 +86,7 @@ Giữ bề mặt form/list ổn định khi tải dữ liệu. Gradient dành ch
 
 ## 4. Nền tảng component
 
-Stack hiện có: **Next.js, React, TypeScript, Tailwind, shadcn với Base UI, Lucide**. Dùng Inter và Lucide cho UI mới. Ưu tiên component hiện có; thêm dependency khi công cụ sẵn có không đáp ứng được nhu cầu cụ thể.
+Stack hiện có: **Next.js, React, TypeScript, Tailwind, shadcn với Base UI, Lucide**. Dùng Lexend và Lucide cho UI mới. Ưu tiên component hiện có; thêm dependency khi công cụ sẵn có không đáp ứng được nhu cầu cụ thể.
 
 | Component | Quy tắc chung |
 | --- | --- |
@@ -124,13 +124,25 @@ Breakpoint desktop của sản phẩm là **1200px**. Tailwind `xl` mặc địn
 
 - **Ứng viên:** top bar sticky 64px; logo, menu, chuông, tài khoản. Dưới 1200px dùng menu thu gọn, chuông luôn tiếp cận được.
 - **Offer ứng viên:** phản hồi tại trang chi tiết mở từ email/thông báo, bắt buộc đăng nhập đúng tài khoản; không có menu hoặc danh sách Offer riêng. Trang chi tiết quay lại hồ sơ ứng tuyển. Đổi tài khoản phải đồng bộ các tab và xoá cache của phiên trước.
-- **HR:** top bar sticky 64px, menu Tin tuyển dụng / Hồ sơ ứng tuyển / Lịch phỏng vấn / Thực tập sinh; menu tài khoản chứa công ty, đổi mật khẩu, đăng xuất. Dưới 1200px thu gọn menu. Khung nội dung tối đa 1200px (padding ngoài 24px). Thông báo HR chờ API riêng; không dùng API thông báo ứng viên.
-- **Staff/Admin/Mentor:** giữ khung hiện có trong giai đoạn chuyển đổi; áp dụng tokens/component chung khi sửa màn.
+- **HR:** top bar sticky 64px, menu Tổng quan (chỉ sáng khi đúng `/hr`) / Tin tuyển dụng / Hồ sơ ứng tuyển / Lịch phỏng vấn / Thực tập sinh; menu tài khoản chứa công ty, đổi mật khẩu, đăng xuất. Dưới 1200px thu gọn menu. Khung nội dung tối đa 1200px (padding ngoài 24px). Thông báo HR chờ API riêng; không dùng API thông báo ứng viên.
+- **Bố cục theo vai trò (cùng nền sáng, cùng token, chỉ khác điều hướng; `layout/role-shells.tsx` + `role-shells.css`, tiền tố `rs-`):** HR giữ thanh ngang (`HrShell`). Mentor (`MentorShell`): sidebar trắng 248px, mục đang mở là viên đỏ nhạt, thẻ tài khoản ở đáy, không có thanh trên trên desktop. Cán bộ (`StaffShell`): thanh trên toàn chiều ngang + rail icon 92px (nhãn dưới biểu tượng, ngăn cách theo `ROLE_NAV_GROUPS.STAFF`). Quản trị (`AdminShell`): sidebar xám nhạt `#f8fafc` có tiêu đề nhóm (`ROLE_NAV_GROUPS.ADMIN`), mục đang mở là thẻ trắng có vạch đỏ trái, thanh trên có breadcrumb. Dưới 1024px mọi khung ẩn sidebar/rail, dùng thanh trên với nút "Mở menu". Nội dung trang vẫn nằm trong `.hr-main` (Mentor, Quản trị) hoặc `.manager-main` (Cán bộ); không dùng sidebar tối.
+- **Trang Mentor (`components/mentor/`):** Tổng quan `/mentor` (lời chào, 4 thẻ số liệu, lịch sắp tới, cần chấm, đánh giá gần đây), Lịch `/mentor/schedule` (dải 7 ngày + danh sách theo ngày), Đánh giá `/mentor/reviews` (tab theo trạng thái, khung chấm điểm, mở thẳng một vòng bằng `?round=`), Hồ sơ `/mentor/profile` (mở từ menu tài khoản; họ tên, email từ LMS chỉ xem; chức danh, đơn vị, kinh nghiệm, liên hệ, chuyên môn, giới thiệu lưu qua `/profiles/work/me`, component chung `components/work-profile/`). Ba trang dùng chung cache `useMentorRounds`; tiền tố CSS `mtr-`.
+- **Trang công khai (trang chủ, `/jobs`, `/companies`):** `PublicHeader` + `SiteFooter`, hero tối đỏ-navy có ô tìm kiếm lớn. Bảng việc làm (`components/job-board`) ở `/jobs`: bộ lọc nằm trên URL, danh sách trái + xem nhanh phải từ 1024px, dưới 1024px bấm thẻ mở trang chi tiết. Dữ liệu chỉ lấy từ API `/public/**` của company-service, không có dữ liệu mẫu ở frontend.
+- **Minh hoạ trang ứng viên (`components/job-board/illustrations.tsx`):** SVG tự vẽ, `aria-hidden`, màu theo bảng màu job-board, chữ trong hình dùng `var(--font-sans)`. Không dùng ảnh chụp hay hình tải từ nguồn ngoài. Hình hero chỉ hiện từ 1024px; trạng thái trống dùng `EmptySearchArt` thay icon.
+- **Ô chọn thả xuống:** dùng `SelectMenu` (`components/ui/select-menu.tsx`, dựa trên Select của Base UI), không dùng `<select>` của trình duyệt vì danh sách mặc định không đổi kiểu được. Trong form react-hook-form, nối qua `Controller`; trường rỗng có `placeholder`.
+- **Khu Admin (`components/admin/`, khung `AdminShell`):** menu Tổng quan · Tài khoản · Duyệt JD · Đơn ứng tuyển · Kỹ năng; hồ sơ ở `/admin/profile`. Tài khoản: tab theo vai trò kèm số đếm, khoá/mở khoá ngay trong dòng (bắt buộc lý do; không tự khoá mình, không khoá quản trị), API `/admin/users/**` (identity). Kỹ năng: lọc theo nhóm, thêm/sửa tên và nhóm, mã không đổi và không xoá, API `/admin/skills/**` (profile). Duyệt JD dùng lại component của Staff với `base="/admin/jobs"`. Tiền tố CSS `adm-`.
+- **Khung Staff (`StaffShell`):** logo kèm nhãn "CÁN BỘ TUYỂN DỤNG", menu tài khoản có "Hồ sơ cá nhân" (`/staff/profile`, cùng component hồ sơ nghề nghiệp với Mentor), footer `SiteFooter compact` ở đáy. Mọi trang Staff mở đầu bằng `TaskBanner` compact như HR/Mentor; nút hành động đặt trong banner (`data-primary` cho nút chính nền trắng).
+- **Staff Tổng quan `/staff` và Duyệt JD `/staff/jobs` (DN-07, `components/staff-jobs/`):** Tổng quan gom số liệu từ API sẵn có (JD, hồ sơ chờ duyệt, đơn ứng tuyển, doanh nghiệp, lần đồng bộ). Duyệt JD: thẻ trạng thái kèm số đếm, bảng (thẻ trên mobile), trang chi tiết có danh sách tự kiểm tra, Duyệt (xác nhận 2 bước) hoặc Trả lại kèm lý do chọn nhanh, sau khi xử lý mở JD chờ duyệt tiếp theo. API `/staff/jobs/**` (company-service). Tiền tố CSS `sjr-`, `sov-`.
+- **Khu HR:** `/hr` là bảng điều khiển (`components/hr-dashboard/`, tiền tố CSS `hrd-`): banner chào kèm tóm tắt, 4 thẻ số liệu dẫn tới danh sách đã lọc, dải 5 bước quy trình ứng tuyển, hai cột "Phỏng vấn sắp tới" (14 ngày) và "Tin cần chú ý" (bị trả lại, còn ≤7 ngày hạn nộp), thẻ hồ sơ công ty. Mọi số liệu lấy từ API sẵn có, không ghi số mẫu. `/hr/jobs`, `/hr/company`, `/hr/interns` mở đầu bằng `TaskBanner` có minh hoạ riêng; liên kết chính trong banner dùng `data-primary`. `/hr/interns` liệt kê hồ sơ HIRED thật; bước theo dõi/nghiệm thu ghi "Sắp ra mắt" cho tới khi có backend thực tập.
+- **Đăng nhập (`/login`):** khung `(auth)/layout.tsx` gắn `.auth-theme` (token đỏ như `.admin-theme`), header chỉ có liên kết thật (Việc làm IT, Công ty, Trang chủ), không đặt "pill" vai trò không bấm được. Từ 1024px chia 2 cột: `LoginShowcase` (minh hoạ, ai đăng nhập bằng cách nào) và `AuthCard` 440px. Tab mở theo `?tab=hr` (liên kết "Đăng nhập doanh nghiệp" dùng đường dẫn này). Chưa cấu hình `NEXT_PUBLIC_LMS_LOGIN_URL` mà bật mock thì danh sách tài khoản mẫu là lối chính, không hiện nút bị vô hiệu. Tab dùng chung: Base UI 1.9 đánh dấu tab đang chọn bằng `aria-selected`, CSS phải bắt cả `[aria-selected=true]`.
+- **Footer (`SiteFooter`):** bản đầy đủ nền tối `#0b1024` với vạch màu thương hiệu, logo `BrandLogo inverse`, các cột "Dành cho ứng viên", "Nhà tuyển dụng", "Liên hệ" (trang công khai, đăng nhập, ứng viên). Bản `compact` là một hàng sáng (logo, liên kết nhanh, bản quyền) cho khung HR/Mentor/Admin.
+- **Ứng viên dùng chung header và footer với trang công khai:** `CandidateShell` chỉ gồm `PublicHeader` + nội dung + `SiteFooter`. Khi ứng viên đăng nhập, `PublicHeader` hiện menu Việc làm IT · Công ty · Ứng tuyển ▾ · Hồ sơ ▾ · Phát triển ▾, chuông thông báo, menu tài khoản; dưới 1024px gom vào nút ☰. Trang chủ của ứng viên là `/` (`ROLE_LANDING`); `/candidate` và `/candidate/jobs[/id]` chuyển hướng ở `next.config.ts` về `/` và `/jobs[/id]`, nên chỉ có một trang việc làm.
+- **Staff:** dùng `StaffShell` (thanh trên + rail icon, thay `ManagerShell` của DN-05); áp dụng tokens/component chung khi sửa màn.
 - **Trang chi tiết:** nội dung chính và aside 280px khi đủ rộng; tablet về một cột. Sticky aside lấy offset theo header, dùng `--app-sticky-offset` hiện có.
 - **CTA đáy mobile:** chừa padding nội dung cùng safe-area; modal mở thì CTA nền được ẩn; sau đóng trả focus khi control đã hiện lại.
 - **Lớp hiển thị:** nội dung thông thường; CTA đáy 15; header ứng viên 30; menu/popover 40; modal/backdrop 50. Kiểm tra stacking context trước khi tăng z-index.
 - **Banner tìm việc:** gradient `#8F1D2B → #B4232D`, minh hoạ SVG công nghệ; cao 220px desktop/tablet và 180px mobile. Banner đặt trên thanh tìm kiếm.
-- **Banner ứng tuyển/phỏng vấn:** dùng `ui/task-banner.tsx` và CSS module, gradient cùng phong cách banner tìm việc, SVG hồ sơ/lịch hẹn chỉ trang trí. Giữ tên trang làm H1 duy nhất; mô tả và CTA/thông tin múi giờ bên trái. Ứng viên min-height 200px, HR compact min-height 160px; chiều cao tự tăng khi nội dung dài. Mobile padding 20px, H1 24/30px, ẩn minh hoạ để ưu tiên chữ. Bộ lọc, tabs và chuyển Tuần/Danh sách đặt dưới banner trên surface sáng. Ảnh trước/sau tại `docs/design/task-banners/`.
+- **Banner ứng tuyển/phỏng vấn:** dùng `ui/task-banner.tsx` và CSS module, gradient cùng phong cách banner tìm việc, SVG chỉ trang trí (`illustration`: applications, interviews, company, jobs, dashboard, interns; cùng bảng màu giấy `#FFF5F2`, đỏ `#B4232D`, điểm nhấn vàng `#F2CB87`). Liên kết hoặc nút chính trong banner đặt `data-primary` (nền trắng, chữ đỏ). Giữ tên trang làm H1 duy nhất; mô tả và CTA/thông tin múi giờ bên trái. Ứng viên min-height 200px, HR compact min-height 160px; chiều cao tự tăng khi nội dung dài. Mobile padding 20px, H1 24/30px, ẩn minh hoạ để ưu tiên chữ. Bộ lọc, tabs và chuyển Tuần/Danh sách đặt dưới banner trên surface sáng. Ảnh trước/sau tại `docs/design/task-banners/`.
 
 Trang không tràn ngang ở 360px. Tên vị trí/công ty và nội dung dài được wrap; phần chi tiết hiển thị đầy đủ. Giới hạn cuộn ngang trong vùng bảng khi thật sự cần, giữ các hành động chính có thể truy cập.
 
@@ -176,6 +188,9 @@ Các đường dẫn tính từ gốc repo:
 | `web/src/app/components/layout/app-shell.tsx` | Chọn layout theo vai trò |
 | `web/src/app/components/layout/candidate-shell.tsx` | Top bar và điều hướng ứng viên |
 | `web/src/app/components/layout/hr-shell.tsx` | Top bar và điều hướng HR |
+| `web/src/app/components/layout/role-shells.tsx` | Khung Mentor (sidebar), Cán bộ (thanh trên + rail), Quản trị (sidebar nhóm + breadcrumb) |
+| `web/src/app/components/layout/public-header.tsx` | Header các trang công khai |
+| `web/src/app/components/job-board/` | Bảng việc làm, chi tiết tin, trang công ty (`job-board.css`) |
 | `web/src/app/components/layout/hr-shell.css` | Mapping token chung vào HR và responsive trong giai đoạn chuyển đổi |
 | `web/src/app/components/applications/career.css` | Theme ứng viên hiện có, cần hợp nhất dần với theme chung |
 | `web/src/app/components/applications/candidate-journey.css` | Mapping token chung và responsive cho đơn ứng tuyển, phỏng vấn, offer ứng viên |
@@ -211,3 +226,7 @@ Các bản đặc tả riêng trong `docs/superpowers/specs/` giải thích từ
 | --- | --- | --- |
 | 1.0 | 24/11/2026 | Thống nhất phong cách đỏ trầm từ giao diện ứng viên làm nền tảng toàn team; ghi rõ hiện trạng và hướng chuyển đổi theme/component. |
 | 1.1 | 25/11/2026 | Bổ sung tokens nền tảng chung, khung HR dùng top bar và quy tắc chuyển đổi theo vai trò. |
+| 1.2 | 26/11/2026 | Bảng điều khiển HR, minh hoạ banner cho tin tuyển dụng/công ty/tổng quan/thực tập sinh, `data-primary` cho liên kết trong banner. |
+| 1.3 | 26/11/2026 | Mỗi vai trò làm việc một bố cục điều hướng riêng trên nền sáng (Mentor sidebar, Cán bộ rail icon, Quản trị sidebar nhóm + breadcrumb); bỏ `WorkspaceShell`/`ManagerShell`. |
+| 1.4 | 26/11/2026 | Làm lại trang đăng nhập (2 cột, `?tab=hr`, nút đỏ qua `.auth-theme`); sửa trạng thái tab đang chọn theo `aria-selected`. |
+| 1.5 | 26/11/2026 | Gộp `test` (HS-04, UT-03): màn liên hệ UT-03 mở đầu bằng `TaskBanner`, dropdown dùng `SelectMenu`; mục "Mở liên hệ"/"Nhật ký liên hệ" vào rail cán bộ, "Lịch sử xem liên hệ" vào nhóm Hồ sơ của ứng viên. |

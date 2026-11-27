@@ -3,7 +3,9 @@
 import * as React from "react"
 import Link from "next/link"
 import { useRouter, useSearchParams } from "next/navigation"
+import { Plus, UserSearch } from "lucide-react"
 import { Alert } from "@/app/components/ui/alert"
+import { TaskBanner } from "@/app/components/ui/task-banner"
 import { Button } from "@/app/components/ui/button"
 import { JobTable } from "@/app/components/job/job-table"
 import { clearJobListNotice, peekJobListNotice } from "@/app/components/job/job-flash"
@@ -57,14 +59,15 @@ function HrJobsView() {
 
   return (
     <div className="hr-page">
-      <div className="hr-page-heading">
-        <div><p className="hr-eyebrow">QUẢN LÝ TUYỂN DỤNG</p><h1>Tin tuyển dụng</h1><p className="hr-description">Quản lý vị trí đang tuyển và tiến trình duyệt tin của {company?.name ?? "công ty"}.</p></div>
-        {locked ? null : (
-          <Button size="sm" render={<Link href="/hr/jobs/new" />} nativeButton={false}>
-            + Tạo tin tuyển dụng
-          </Button>
-        )}
-      </div>
+      <TaskBanner
+        eyebrow="Quản lý tuyển dụng"
+        title="Tin tuyển dụng"
+        description={`Quản lý vị trí đang tuyển và tiến trình duyệt tin của ${company?.name ?? "công ty"}.`}
+        illustration="jobs"
+      >
+        {locked ? null : <Link href="/hr/jobs/new" data-primary=""><Plus className="size-4" aria-hidden="true" />Tạo tin tuyển dụng</Link>}
+        <Link href="/hr/recruitment"><UserSearch className="size-4" aria-hidden="true" />Hồ sơ ứng tuyển</Link>
+      </TaskBanner>
 
       {notice ? <Alert variant="success">{notice}</Alert> : null}
       {locked ? <Alert>Công ty đang bị khoá, bạn chỉ xem được danh sách tin tuyển dụng.</Alert> : null}

@@ -9,8 +9,7 @@ export const jobService = {
 
   summaryMine: async () => (await api.get<JobStatusSummary>("/companies/me/jobs/summary")).data,
 
-  get: async (id: string, signal?: AbortSignal) =>
-    (await api.get<Job>(`/companies/me/jobs/${encodeURIComponent(id)}`, { signal })).data,
+  get: async (id: string, signal?: AbortSignal) => (await api.get<Job>(`/jobs/${encodeURIComponent(id)}`, { signal })).data,
 
   create: async (payload: JobPayload) => (await api.post<Job>("/jobs", payload)).data,
 

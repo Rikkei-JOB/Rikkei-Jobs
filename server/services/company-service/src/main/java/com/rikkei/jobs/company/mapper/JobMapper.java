@@ -19,16 +19,11 @@ public class JobMapper {
             .thenComparing(Comparator.comparingInt(JobSkill::getMinScore).reversed())
             .thenComparing(JobSkill::getSkillId);
 
-    /** Kỹ năng đã sắp theo {@link #SKILL_ORDER}; trang công khai (PublicJobMapper) dùng chung để cùng thứ tự. */
-    public List<JobSkillResponse> toSkillResponses(List<JobSkill> skills) {
-        return skills.stream()
+    public JobResponse toResponse(Job job, List<JobSkill> skills) {
+        List<JobSkillResponse> sorted = skills.stream()
                 .sorted(SKILL_ORDER)
                 .map(s -> new JobSkillResponse(s.getSkillId(), s.isRequired(), s.getMinScore()))
                 .toList();
-    }
-
-    public JobResponse toResponse(Job job, List<JobSkill> skills) {
-        List<JobSkillResponse> sorted = toSkillResponses(skills);
         return new JobResponse(job.getId(), job.getCompanyId(), job.getTitle(), job.getPosition(), job.getLevel(),
                 job.getType(), job.getQuantity(), job.getCity(), job.getAddress(), job.getWorkMode(),
                 job.getSalaryMin(), job.getSalaryMax(), job.getDescription(), job.getRequirements(),

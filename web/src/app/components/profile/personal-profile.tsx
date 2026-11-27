@@ -2,7 +2,8 @@
 
 import * as React from "react";
 import { Cake, Globe, GraduationCap, LockKeyhole, Mail, MapPin, Pencil, Phone } from "lucide-react";
-import { useForm } from "react-hook-form";
+import { Controller, useForm } from "react-hook-form";
+import { SelectMenu } from "@/app/components/ui/select-menu";
 import { useQuery } from "@tanstack/react-query";
 import { FormDialog } from "./form-dialog";
 import { BADGE, CHIP, PRIMARY_CTA, SECONDARY_CTA, TONE } from "./display";
@@ -126,7 +127,7 @@ function VisibilityBadge({ profile }: { profile: CandidateProfile }) {
 }
 
 function PersonalProfileForm({ initialProfile, onSaved }: { initialProfile: CandidateProfile; onSaved: (profile: CandidateProfile) => void }) {
-  const { register, handleSubmit, reset, setError, formState: { errors, isDirty, isSubmitting } } = useForm<CandidateProfileValues>({
+  const { register, control, handleSubmit, reset, setError, formState: { errors, isDirty, isSubmitting } } = useForm<CandidateProfileValues>({
     resolver: zodResolver(candidateProfileSchema), defaultValues: toValues(initialProfile),
   });
   const [formError, setFormError] = React.useState<string | null>(null);
@@ -179,9 +180,10 @@ function PersonalProfileForm({ initialProfile, onSaved }: { initialProfile: Cand
             <Input {...fieldProps("dob")} type="date" max={localToday()} {...register("dob")} />
           </FormField>
           <FormField label="Giới tính" htmlFor="personal-gender" error={errors.gender?.message}>
-            <select {...fieldProps("gender")} className={`${CONTROL_CLASS} h-7`} {...register("gender")}>
-              <option value="">Chưa chọn</option><option value="MALE">Nam</option><option value="FEMALE">Nữ</option><option value="OTHER">Khác</option>
-            </select>
+            <Controller name="gender" control={control} render={({ field }) => (
+              <SelectMenu {...fieldProps("gender")} value={field.value ?? ""} onValueChange={field.onChange} onBlur={field.onBlur} className="ui-select-trigger h-7 min-h-7 rounded-md px-2 text-sm md:text-xs"
+                options={[{ value: "", label: "Chưa chọn" }, { value: "MALE", label: "Nam" }, { value: "FEMALE", label: "Nữ" }, { value: "OTHER", label: "Khác" }]} />
+            )} />
           </FormField>
           <FormField label="Số điện thoại" htmlFor="personal-phone" error={errors.phone?.message}>
             <Input {...fieldProps("phone")} type="tel" autoComplete="tel" {...register("phone")} />

@@ -95,10 +95,10 @@ class HrLockedFilterTest extends CompanyApiTestSupport {
                 .andExpect(jsonPath("$.message").value("Công ty của bạn đang bị khoá, liên hệ cán bộ tuyển dụng"));
         mvc.perform(get("/companies/me/jobs").header("Authorization", auth))
                 .andExpect(status().isUnauthorized());
-        // Bộ lọc chạy trước cả endpoint công khai: token HR này nhận 401 ở GET /jobs (chấp nhận theo spec 4.7).
-        mvc.perform(get("/jobs").header("Authorization", auth))
+        // Bộ lọc chạy trước cả endpoint công khai: token HR này nhận 401 ở GET /public/jobs (chấp nhận theo spec 4.7).
+        mvc.perform(get("/public/jobs").header("Authorization", auth))
                 .andExpect(status().isUnauthorized());
-        mvc.perform(get("/jobs")).andExpect(status().isOk());
+        mvc.perform(get("/public/jobs")).andExpect(status().isOk());
         // HR vừa khoá riêng vừa thuộc công ty bị khoá: message khoá riêng.
         mvc.perform(get("/companies/me").header("Authorization", bearer(HR2, Role.HR)))
                 .andExpect(status().isUnauthorized())

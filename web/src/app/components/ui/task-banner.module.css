@@ -20,6 +20,14 @@
 .meta { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 12px; color: #ffe8eb; font-size: 12px; line-height: 18px; }
 .banner .copy a { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 8px 14px; border: 1px solid #ffffff70; border-radius: 8px; color: #fff; font-size: 14px; font-weight: 600; text-decoration: none; }
 .banner .copy a:hover { background: #ffffff15; border-color: #fff; }
+.banner .copy a[data-primary] { background: #fff; border-color: #fff; color: #b4232d; }
+.banner .copy a[data-primary]:hover { background: #fff1f2; }
+.banner .copy .meta button { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; height: auto; padding: 8px 14px; border: 1px solid #ffffff70; border-radius: 8px; background: transparent; color: #fff; font-size: 14px; font-weight: 600; }
+.banner .copy .meta button:hover:not(:disabled) { background: #ffffff15; border-color: #fff; }
+.banner .copy .meta button[data-primary] { background: #fff; border-color: #fff; color: #b4232d; }
+.banner .copy .meta button[data-primary]:hover:not(:disabled) { background: #fff1f2; }
+.banner .copy .meta button:disabled { opacity: .6; }
+.banner .copy .meta button:focus-visible { outline: 2px solid white; outline-offset: 4px; }
 .banner .copy a:focus-visible, .banner .copy .title:focus-visible { outline: 2px solid white; outline-offset: 4px; }
 .art { width: 30%; max-width: 300px; height: auto; flex: 0 0 auto; margin-block: -14px; }
 .compact .art { max-width: 240px; margin-block: -24px; }

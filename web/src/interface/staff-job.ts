@@ -1,44 +1,29 @@
-import type { JobStatus } from "@/interface/job";
-import type { PublicJobDetail } from "@/interface/public-job";
+import type { CompanyStatus } from "@/interface/company";
+import type { Job, JobLevel, JobStatus } from "@/interface/job";
 
-/** Công ty rút gọn trong danh sách JD của cán bộ (CompanyRef); name null khi không tra được công ty. */
-export interface CompanyRef {
-  id: string;
-  name: string | null;
-}
+/** DN-07: trạng thái cán bộ thấy (không có DRAFT). */
+export type StaffJobStatus = Exclude<JobStatus, "DRAFT">;
 
-/** Cán bộ đã xử lý JD (StaffRef); fullName null khi không tra được identity-service. */
-export interface StaffRef {
-  id: string;
-  fullName: string | null;
-}
-
-/** Một dòng trong GET /staff/jobs (StaffJobItem). deadline dạng yyyy-MM-dd; submittedAt là ISO instant (lần cập nhật cuối). */
+/** Một dòng GET /staff/jobs. submittedAt = lần HR gửi duyệt hoặc sửa gần nhất. */
 export interface StaffJobItem {
   id: string;
   title: string;
-  status: JobStatus;
+  level: JobLevel | null;
+  status: StaffJobStatus;
   deadline: string | null;
   submittedAt: string;
-  company: CompanyRef;
-}
-
-/**
- * GET /staff/jobs/{id} (StaffJobDetail): nội dung như ứng viên thấy cộng thông tin duyệt.
- * job.publishedAt chỉ có nghĩa khi JD đang APPROVED.
- */
-export interface StaffJobDetail {
-  job: PublicJobDetail;
-  status: JobStatus;
-  rejectReason: string | null;
   reviewedAt: string | null;
-  reviewedBy: StaffRef | null;
-  companyLocked: boolean;
+  requiredSkillCount: number;
+  rejectReason: string | null;
+  companyId: string;
+  companyName: string | null;
+  companyStatus: CompanyStatus | null;
 }
 
-export interface StaffJobListParams {
-  status?: JobStatus;
-  companyId?: string;
-  page: number;
-  size?: number;
+export interface StaffJobSummary { total: number; byStatus: Record<StaffJobStatus, number> }
+
+export interface StaffJobDetail {
+  job: Job;
+  reviewedBy: string | null;
+  company: { id: string; name: string; status: CompanyStatus; industry: string | null; size: string | null; city: string | null; logoUrl: string | null } | null;
 }

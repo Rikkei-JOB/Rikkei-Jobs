@@ -8,6 +8,7 @@ import { useCreateCompany } from "@/hooks/use-staff-companies"
 import type { Company } from "@/interface/company"
 import { COMPANY_SIZES, createCompanySchema, toCreatePayload, type CreateCompanyValues } from "@/schemas/company.schema"
 import { ApiError, getErrorMessage } from "@/services/api"
+import { SelectMenu } from "@/app/components/ui/select-menu"
 
 type Field = keyof CreateCompanyValues
 type FieldErrors = Partial<Record<Field, string>>
@@ -25,7 +26,6 @@ const EMPTY: CreateCompanyValues = {
 
 const FIELDS: Field[] = ["name", "taxCode", "industry", "size", "address", "city", "website", "description"]
 
-const inputClass = "h-7 w-full rounded-md border border-input bg-background px-2 text-xs"
 
 /** Hộp cán bộ tạo công ty (POST /staff/companies); chỉ render khi mở (đóng = unmount nên form tự reset). */
 export function CreateCompanyDialog({ onClose, onCreated }: { onClose: () => void; onCreated: (company: Company) => void }) {
@@ -131,20 +131,13 @@ export function CreateCompanyDialog({ onClose, onCreated }: { onClose: () => voi
               {row(
                 "size",
                 "Quy mô",
-                <select
+                <SelectMenu
                   id="create-company-size"
                   value={values.size}
-                  onChange={(e) => set("size", e.target.value as CreateCompanyValues["size"])}
+                  onValueChange={(value) => set("size", value as CreateCompanyValues["size"])}
                   disabled={disabled}
-                  className={inputClass}
-                >
-                  <option value="">Chưa chọn</option>
-                  {COMPANY_SIZES.map((size) => (
-                    <option key={size} value={size}>
-                      {size} nhân sự
-                    </option>
-                  ))}
-                </select>,
+                  options={[{ value: "", label: "Chưa chọn" }, ...COMPANY_SIZES.map((size) => ({ value: size, label: `${size} nhân sự` }))]}
+                />,
               )}
             </div>
             {row(

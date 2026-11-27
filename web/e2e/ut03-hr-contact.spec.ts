@@ -1,12 +1,13 @@
 import { test,expect } from "@playwright/test";
 import { contactFixtures,candidateId } from "./ut03-fixtures";
+import { chooseOptionByLabel } from "./select-menu";
 test("locked HR requests contact and does not reveal automatically",async({page})=>{
   const state=await contactFixtures(page);
   await page.goto("/hr/candidates/"+candidateId+"/contact");
   await expect(page.getByText("Liên hệ: đã ẩn",{exact:true})).toBeVisible();
   expect(state.views).toBe(0);
   await page.getByRole("button",{name:"Xin mở liên hệ",exact:true}).click();
-  await page.getByLabel("JD liên quan").selectOption({label:"Java Developer"});
+  await chooseOptionByLabel(page.getByLabel("JD liên quan"), "Java Developer");
   await page.getByLabel("Lý do xin mở liên hệ").fill("Cần trao đổi vị trí Java");
   await page.getByRole("button",{name:"Gửi yêu cầu",exact:true}).click();
   await expect(page.getByText("Đang chờ STAFF duyệt")).toBeVisible();

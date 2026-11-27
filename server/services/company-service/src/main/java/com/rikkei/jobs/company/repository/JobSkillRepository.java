@@ -14,6 +14,8 @@ public interface JobSkillRepository extends JpaRepository<JobSkill, JobSkillId> 
 
     List<JobSkill> findByJobId(UUID jobId);
 
+    List<JobSkill> findByJobIdIn(Collection<UUID> jobIds);
+
     /** Mỗi dòng là [jobId, số kỹ năng bắt buộc]; JD không có kỹ năng bắt buộc sẽ không xuất hiện. */
     @Query("select s.jobId, count(s) from JobSkill s where s.jobId in :ids and s.required = true group by s.jobId")
     List<Object[]> countRequiredByJobIds(@Param("ids") Collection<UUID> ids);

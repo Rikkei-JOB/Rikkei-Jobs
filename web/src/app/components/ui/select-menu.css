@@ -1,0 +1,43 @@
+/* Ô chọn thả xuống dùng chung (SelectMenu). Màu theo chuẩn: đỏ #b4232d, navy #051a53, viền #cbd5e1. */
+@layer components {
+  .ui-select-trigger {
+    display: inline-flex; align-items: center; gap: 8px; width: 100%; min-height: 40px; padding: 0 12px;
+    border: 1px solid #cbd5e1; border-radius: 8px; background: #fff; color: #051a53;
+    font: inherit; font-size: 14px; text-align: left; cursor: pointer;
+    transition: border-color .15s ease, box-shadow .15s ease;
+  }
+  .ui-select-trigger:hover { border-color: #94a3b8; }
+  .ui-select-trigger:focus-visible { outline: none; border-color: #b4232d; box-shadow: 0 0 0 3px rgb(180 35 45 / .15); }
+  .ui-select-trigger[data-popup-open] { border-color: #b4232d; box-shadow: 0 0 0 3px rgb(180 35 45 / .12); }
+  .ui-select-trigger[data-disabled] { opacity: .55; cursor: not-allowed; background: #f8fafc; }
+  .ui-select-trigger[aria-invalid="true"] { border-color: #dc2626; }
+  .ui-select-icon { display: inline-flex; flex-shrink: 0; color: #64748b; }
+  .ui-select-icon svg { width: 18px; height: 18px; }
+  .ui-select-value { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .ui-select-value[data-placeholder], .ui-select-placeholder { color: #64748b; font-weight: 400; }
+  .ui-select-chevron { display: inline-flex; flex-shrink: 0; margin-left: auto; color: #64748b; transition: transform .15s ease; }
+  .ui-select-chevron svg { width: 16px; height: 16px; }
+  [data-popup-open] > .ui-select-chevron { transform: rotate(180deg); color: #b4232d; }
+
+  .ui-select-positioner { z-index: 60; outline: none; }
+  .ui-select-popup {
+    min-width: var(--anchor-width); max-width: min(420px, calc(100vw - 24px));
+    max-height: min(320px, var(--available-height)); overflow-y: auto; overscroll-behavior: contain;
+    padding: 6px; border: 1px solid #e2e8f0; border-radius: 12px; background: #fff; color: #334155;
+    box-shadow: 0 16px 40px rgb(15 23 42 / .14), 0 2px 6px rgb(15 23 42 / .06);
+    transform-origin: var(--transform-origin); transition: opacity .12s ease, transform .12s ease;
+  }
+  .ui-select-popup[data-starting-style], .ui-select-popup[data-ending-style] { opacity: 0; transform: scale(.97) translateY(-4px); }
+  .ui-select-list { outline: none; }
+  .ui-select-item {
+    display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 40px; padding: 8px 10px;
+    border-radius: 8px; font-size: 14px; line-height: 1.4; cursor: pointer; outline: none; user-select: none;
+  }
+  .ui-select-item[data-highlighted] { background: #fff1f2; color: #b4232d; }
+  .ui-select-item[data-selected] { color: #b4232d; font-weight: 600; }
+  .ui-select-item[data-disabled] { opacity: .45; cursor: not-allowed; }
+  .ui-select-item-text { min-width: 0; overflow-wrap: anywhere; }
+  .ui-select-item-check { display: inline-flex; flex-shrink: 0; color: #b4232d; }
+  .ui-select-item-check svg { width: 16px; height: 16px; }
+  @media (prefers-reduced-motion: reduce) { .ui-select-popup, .ui-select-chevron, .ui-select-trigger { transition: none; } }
+}

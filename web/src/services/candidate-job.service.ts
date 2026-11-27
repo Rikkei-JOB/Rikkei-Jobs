@@ -11,8 +11,8 @@ export interface CandidateJob {
 
 /**
  * TẠM THỜI (trước DN-07 Task 7 / DN-04): ngoài mock (`http://localhost:9000/jobs`, trả mảng CandidateJob),
- * service này đọc được cả API thật của company-service (`NEXT_PUBLIC_JOB_API_PATH=/jobs` qua gateway),
- * vốn trả `{items: PublicJobSummary[]}` và `PublicJobDetail`. API thật chỉ trả JD đang hiện với ứng viên
+ * service này đọc được cả API thật của company-service (`NEXT_PUBLIC_JOB_API_PATH=/public/jobs` qua gateway, UI-01),
+ * vốn trả `{items: PublicJobItem[]}` và `PublicJobDetail`. API thật chỉ trả JD đang hiện với ứng viên
  * (APPROVED, còn hạn, công ty hoạt động), nên luôn nhận hồ sơ. Sẽ thay bằng giao diện chuẩn ở DN-04.
  */
 interface RealJob {

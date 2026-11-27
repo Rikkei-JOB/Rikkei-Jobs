@@ -47,12 +47,18 @@ test("MENTOR chỉ chấm vòng được mời", async ({ page }) => {
     return route.fulfill({ headers: cors, json: {} });
   });
   await page.goto("/mentor/reviews");
-  await expect(page.getByText("Java Developer")).toBeVisible();
+  // Màn chấm điểm của Mentor (MentorReviews): vòng đã tới giờ mở sẵn khung chấm, kết quả chọn bằng nút radio.
+  const card = page.getByRole("article", { name: "Vòng 1 · Kỹ thuật" });
+  await expect(card.getByText("Java Developer")).toBeVisible();
   await expect(page.getByText("a@example.test")).toHaveCount(0);
-  await page.getByLabel("Kết quả vòng 1").selectOption("PASS");
-  await page.getByLabel("Điểm vòng 1").fill("85");
-  await page.getByRole("button", { name: "Lưu kết quả" }).click();
-  await expect(page.getByText("Điểm: 85/100")).toBeVisible();
+  // Nút radio được ẩn để nhãn hiển thị thay, nên bấm vào nhãn rồi kiểm tra trạng thái chọn.
+  await card.getByText("Đạt", { exact: true }).click();
+  await expect(card.getByRole("radio", { name: "Đạt", exact: true })).toBeChecked();
+  await card.getByLabel(/Điểm chuyên môn/).fill("85");
+  await card.getByRole("button", { name: "Lưu đánh giá" }).click();
+  await expect.poll(() => result).toBe("PASS");
+  await page.getByRole("tab", { name: /Đã chấm/ }).click();
+  await expect(page.getByRole("article", { name: "Vòng 1 · Kỹ thuật" }).getByText("85/100")).toBeVisible();
   mkdirSync(resolve(__dirname, "../../docs/api/screenshots"), { recursive: true });
   await page.screenshot({ path: resolve(__dirname, "../../docs/api/screenshots/ut02-mentor-reviews.png"), fullPage: true });
 });

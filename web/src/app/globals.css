@@ -93,9 +93,10 @@
     --sidebar-ring: oklch(0.708 0 0);
 }
 
-/* Khung cán bộ (ManagerShell): đỏ Rikkei, nền xám nhạt; không đụng :root.
+/* Khung cán bộ (StaffShell) và các trang đăng nhập/mật khẩu (.auth-theme): đỏ Rikkei, nền xám nhạt; không đụng :root.
    body:has(.hr-shell): hộp thoại/menu của trang HR portal ra body, ngoài .hr-theme của HrShell, nên cũng cần token đỏ. */
 .admin-theme,
+.auth-theme,
 body:has(.hr-shell) {
     --background: oklch(0.972 0.003 265);
     --foreground: oklch(0.372 0.039 257);
@@ -152,4 +153,191 @@ body:has(.hr-shell) {
   html {
     @apply font-sans;
     }
+}
+
+/* Đặt trong layer components để class tiện ích Tailwind (hidden, max-md:hidden...) được ưu tiên. */
+@layer components {
+  /* =========================================================================
+     PTIT Reference Portal Layout & Shared Components
+     ========================================================================= */
+
+  .ptit-utility-bar {
+    background: linear-gradient(90deg, #8F1D2B 0%, #9E1C26 60%, #831824 100%);
+    color: rgba(255, 255, 255, 0.94);
+    font-size: 12px;
+    line-height: 18px;
+  }
+
+  .ptit-utility-inner {
+    max-width: 1440px;
+    margin: 0 auto;
+    padding: 6px 32px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+  }
+
+  .ptit-hero-surface {
+    position: relative;
+    overflow: hidden;
+    background:
+      radial-gradient(circle at 12% 28%, rgba(218, 37, 29, 0.09) 0%, transparent 45%),
+      radial-gradient(circle at 88% 20%, rgba(29, 78, 216, 0.08) 0%, transparent 48%),
+      linear-gradient(112deg, #FFF1F2 0%, #FFF7F8 42%, #F8FAFC 72%, #EFF6FF 100%);
+    border-bottom: 1px solid #FECDD3;
+  }
+
+  .ptit-hero-dots {
+    background-image: radial-gradient(rgba(180, 35, 45, 0.14) 1.25px, transparent 1.25px);
+    background-size: 18px 18px;
+  }
+
+  .ptit-page {
+    width: 100%;
+    max-width: 1200px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    min-width: 0;
+  }
+
+  .ptit-page-heading {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 16px;
+  }
+
+  .ptit-eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 6px;
+    color: var(--brand);
+    font-size: 11px;
+    line-height: 16px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+  }
+
+  .ptit-page-title {
+    color: var(--heading);
+    font-size: 28px;
+    line-height: 38px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+  }
+
+  .ptit-page-desc {
+    margin-top: 6px;
+    color: var(--text-muted);
+    font-size: 14px;
+    line-height: 22px;
+  }
+
+  .ptit-surface {
+    background: var(--surface);
+    border: 1px solid var(--surface-border);
+    border-radius: 14px;
+    box-shadow: 0 2px 10px rgb(15 23 42 / 0.04);
+  }
+
+  .ptit-filter-bar {
+    background: var(--surface);
+    border: 1px solid var(--surface-border);
+    border-radius: 14px;
+    padding: 20px 24px;
+    box-shadow: 0 4px 20px rgb(15 23 42 / 0.04);
+  }
+
+  .ptit-table-wrap {
+    background: var(--surface);
+    border: 1px solid var(--surface-border);
+    border-radius: 14px;
+    overflow: hidden;
+    box-shadow: 0 2px 10px rgb(15 23 42 / 0.04);
+  }
+
+  .ptit-table {
+    width: 100%;
+    text-align: left;
+    font-size: 14px;
+    border-collapse: collapse;
+  }
+
+  .ptit-table thead th {
+    background: #F8FAFC;
+    color: var(--heading);
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    padding: 14px 20px;
+    border-bottom: 1px solid var(--surface-border);
+  }
+
+  .ptit-table tbody td {
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--surface-border);
+    color: var(--body);
+    vertical-align: middle;
+  }
+
+  .ptit-table tbody tr:last-child td {
+    border-bottom: 0;
+  }
+
+  .ptit-table tbody tr {
+    transition: background-color 150ms ease;
+  }
+
+  .ptit-table tbody tr:hover {
+    background: #FFF8F8;
+  }
+
+  .ptit-role-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    border-radius: 8px;
+    padding: 6px 12px;
+    font-size: 12px;
+    line-height: 16px;
+    font-weight: 700;
+    color: #FFFFFF;
+    transition: transform 150ms ease, opacity 150ms ease;
+  }
+
+  .ptit-role-pill:hover {
+    opacity: 0.94;
+  }
+
+  .ptit-role-pill-hr {
+    background: #1D4ED8;
+  }
+
+  .ptit-role-pill-staff {
+    background: #4338CA;
+  }
+
+  .ptit-role-pill-candidate {
+    background: #DA251D;
+  }
+
+  @media (max-width: 767px) {
+    .ptit-utility-inner {
+      padding: 6px 16px;
+    }
+    .ptit-page-title {
+      font-size: 22px;
+      line-height: 30px;
+    }
+    .ptit-filter-bar {
+      padding: 16px;
+    }
+  }
 }

@@ -1,26 +1,13 @@
 import { api } from "@/services/api";
 import type { PageResult } from "@/interface/company";
-import type { StaffJobDetail, StaffJobItem, StaffJobListParams } from "@/interface/staff-job";
+import type { StaffJobDetail, StaffJobItem, StaffJobStatus, StaffJobSummary } from "@/interface/staff-job";
 
-/** DN-07: các endpoint /api/v1/staff/jobs/... để cán bộ (STAFF) duyệt, trả lại, đóng JD. */
+/** DN-07: cán bộ duyệt / trả lại JD (company-service /staff/jobs). */
 export const staffJobService = {
-  list: async ({ status, companyId, page, size }: StaffJobListParams) =>
-    (
-      await api.get<PageResult<StaffJobItem>>("/staff/jobs", {
-        params: { status, companyId: companyId || undefined, page, size },
-      })
-    ).data,
-
-  get: async (id: string) => (await api.get<StaffJobDetail>(`/staff/jobs/${id}`)).data,
-
-  /** Chỉ JD PENDING. 409 INVALID_JOB_STATUS / JOB_EXPIRED / CONFLICT. */
-  approve: async (id: string) => (await api.post<StaffJobDetail>(`/staff/jobs/${id}/approve`)).data,
-
-  /** Chỉ JD PENDING; lý do bắt buộc (400 errors.reason). */
-  reject: async (id: string, reason: string) =>
-    (await api.post<StaffJobDetail>(`/staff/jobs/${id}/reject`, { reason })).data,
-
-  /** Chỉ JD APPROVED; lý do bắt buộc (400 errors.reason). */
-  close: async (id: string, reason: string) =>
-    (await api.post<StaffJobDetail>(`/staff/jobs/${id}/close`, { reason })).data,
+  list: async (params: { status?: StaffJobStatus; q?: string; companyId?: string; page?: number; size?: number }) =>
+    (await api.get<PageResult<StaffJobItem>>("/staff/jobs", { params: { ...params, q: params.q || undefined } })).data,
+  summary: async () => (await api.get<StaffJobSummary>("/staff/jobs/summary")).data,
+  get: async (id: string) => (await api.get<StaffJobDetail>(`/staff/jobs/${encodeURIComponent(id)}`)).data,
+  approve: async (id: string) => (await api.post<StaffJobDetail>(`/staff/jobs/${encodeURIComponent(id)}/approve`)).data,
+  reject: async (id: string, reason: string) => (await api.post<StaffJobDetail>(`/staff/jobs/${encodeURIComponent(id)}/reject`, { reason })).data,
 };

@@ -8,12 +8,24 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 
-/**
- * Chi tiết JD cho ứng viên và khách (GET /jobs/{id}). Cố ý không có status, rejectReason, reviewedBy, createdBy.
- * Kỹ năng sắp như DN-02 (bắt buộc trước, rồi điểm tối thiểu giảm dần).
- */
-public record PublicJobDetail(UUID id, String title, String position, JobLevel level, JobType type, WorkMode workMode,
-                              Integer quantity, String city, String address, Long salaryMin, Long salaryMax,
-                              LocalDate deadline, Instant publishedAt, String description, String requirements,
-                              String benefits, List<JobSkillResponse> skills, PublicCompanyInfo company) {
+/** GET /public/jobs/{id}: nội dung JD ứng viên được xem; không có trạng thái duyệt, lý do trả lại hay người tạo. */
+public record PublicJobDetail(
+        UUID id,
+        String title,
+        String position,
+        JobLevel level,
+        JobType type,
+        Integer quantity,
+        String city,
+        String address,
+        WorkMode workMode,
+        Long salaryMin,
+        Long salaryMax,
+        String description,
+        String requirements,
+        String benefits,
+        LocalDate deadline,
+        Instant createdAt,
+        List<JobSkillResponse> skills,
+        PublicCompanySummary company) {
 }
