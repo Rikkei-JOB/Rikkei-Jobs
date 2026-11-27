@@ -26,7 +26,7 @@ function reasonFieldError(error: unknown): string | null {
   return typeof message === "string" ? message : null
 }
 
-/** Hộp nhập lý do bắt buộc (trả lại / đóng JD, khoá công ty); chỉ render khi mở nên đóng = form tự reset. */
+/** Hộp nhập lý do bắt buộc (khoá công ty); chỉ render khi mở nên đóng hộp là form tự reset. */
 export function ReasonDialog({ title, description, confirmLabel, onConfirm, onClose }: ReasonDialogProps) {
   const [reason, setReason] = React.useState("")
   const [fieldError, setFieldError] = React.useState("")
@@ -69,11 +69,11 @@ export function ReasonDialog({ title, description, confirmLabel, onConfirm, onCl
     >
       <Dialog.Portal>
         <Dialog.Backdrop className="fixed inset-0 z-50 bg-black/45" />
-        <Dialog.Popup className="fixed left-1/2 top-1/2 z-50 w-[calc(100%-2rem)] max-w-md -translate-x-1/2 -translate-y-1/2 rounded-2xl border bg-background p-6 shadow-xl">
-          <Dialog.Title className="text-base font-semibold">{title}</Dialog.Title>
-          <Dialog.Description className="mb-4 mt-2 text-xs/relaxed text-muted-foreground">{description}</Dialog.Description>
-          <form onSubmit={submit} noValidate className="space-y-3">
-            <label htmlFor={`${id}-reason`} className="block text-xs font-medium">
+        <Dialog.Popup className="fixed top-1/2 left-1/2 z-50 w-[calc(100%-2rem)] max-w-lg -translate-x-1/2 -translate-y-1/2 rounded-2xl border bg-background p-6 shadow-xl">
+          <Dialog.Title className="text-xl font-semibold text-heading">{title}</Dialog.Title>
+          <Dialog.Description className="mt-2 text-sm/relaxed text-muted-foreground">{description}</Dialog.Description>
+          <form onSubmit={submit} noValidate className="mt-5 space-y-2">
+            <label htmlFor={`${id}-reason`} className="block text-sm font-semibold">
               Lý do <span className="text-destructive">*</span>
             </label>
             <textarea
@@ -84,7 +84,7 @@ export function ReasonDialog({ title, description, confirmLabel, onConfirm, onCl
               disabled={submitting}
               aria-invalid={fieldError ? true : undefined}
               aria-describedby={`${id}-hint${fieldError ? ` ${id}-error` : ""}`}
-              className="w-full rounded-md border border-input bg-background p-2 text-xs aria-invalid:border-destructive"
+              className="w-full rounded-lg border border-[#CBD5E1] bg-background p-3 text-base leading-relaxed outline-none focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-ring/30 aria-invalid:border-destructive sm:text-sm"
             />
             <div className="flex items-start justify-between gap-2 text-xs">
               {fieldError ? (
@@ -99,15 +99,15 @@ export function ReasonDialog({ title, description, confirmLabel, onConfirm, onCl
               </span>
             </div>
             {formError ? (
-              <p role="alert" className="text-xs text-destructive">
+              <p role="alert" className="text-sm text-destructive">
                 {formError}
               </p>
             ) : null}
-            <div className="flex justify-end gap-2">
-              <Dialog.Close disabled={submitting} render={<Button type="button" variant="outline" />}>
+            <div className="flex flex-wrap justify-end gap-3 pt-2">
+              <Dialog.Close disabled={submitting} render={<Button type="button" variant="outline" className="min-h-11" />}>
                 Huỷ
               </Dialog.Close>
-              <Button type="submit" variant="destructive" disabled={submitting}>
+              <Button type="submit" variant="destructive" className="min-h-11" disabled={submitting}>
                 {submitting ? "Đang xử lý..." : confirmLabel}
               </Button>
             </div>

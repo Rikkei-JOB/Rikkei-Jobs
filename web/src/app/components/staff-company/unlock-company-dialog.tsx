@@ -47,21 +47,21 @@ export function UnlockCompanyDialog({ company, onClose, onDone, onConflict }: Un
     >
       <Dialog.Portal>
         <Dialog.Backdrop className="fixed inset-0 z-50 bg-black/45" />
-        <Dialog.Popup className="fixed left-1/2 top-1/2 z-50 w-[calc(100%-2rem)] max-w-md -translate-x-1/2 -translate-y-1/2 rounded-2xl border bg-background p-6 shadow-xl">
-          <Dialog.Title className="text-base font-semibold">Mở khoá {company.name}?</Dialog.Title>
-          <Dialog.Description className="mb-4 mt-2 text-xs/relaxed text-muted-foreground">
+        <Dialog.Popup className="fixed top-1/2 left-1/2 z-50 w-[calc(100%-2rem)] max-w-lg -translate-x-1/2 -translate-y-1/2 rounded-2xl border bg-background p-6 shadow-xl">
+          <Dialog.Title className="text-xl font-semibold text-heading">Mở khoá {company.name}?</Dialog.Title>
+          <Dialog.Description className="mt-2 text-sm/relaxed text-muted-foreground">
             HR của công ty đăng nhập lại được (trừ HR đang bị khoá riêng). JD đang tuyển còn hạn hiện lại trên trang việc làm.
           </Dialog.Description>
           {error ? (
-            <p role="alert" className="mb-3 text-xs text-destructive">
+            <p role="alert" className="mt-4 text-sm text-destructive">
               {error}
             </p>
           ) : null}
-          <div className="flex justify-end gap-2">
-            <Dialog.Close disabled={unlock.isPending} render={<Button type="button" variant="outline" />}>
+          <div className="mt-6 flex flex-wrap justify-end gap-3">
+            <Dialog.Close disabled={unlock.isPending} render={<Button type="button" variant="outline" className="min-h-11" />}>
               Huỷ
             </Dialog.Close>
-            <Button type="button" onClick={confirm} disabled={unlock.isPending}>
+            <Button type="button" className="min-h-11" onClick={confirm} disabled={unlock.isPending}>
               {unlock.isPending ? "Đang xử lý..." : "Mở khoá"}
             </Button>
           </div>

@@ -30,12 +30,11 @@ export function useStaffCompany(id: string, enabled = true) {
 }
 
 /** DN-07: lịch sử thao tác của công ty (khoá / mở khoá, duyệt / trả lại / đóng JD), giữ trang cũ khi chuyển trang. */
-export function useCompanyHistory(id: string, page: number, enabled = true) {
+export function useCompanyHistory(id: string, page: number) {
   const userId = useAuthStore((state) => state.user?.id);
   return useQuery({
     queryKey: staffCompanyKeys.history(userId, id, page),
     queryFn: () => staffCompanyService.history(id, { page, size: HISTORY_PAGE_SIZE }),
-    enabled,
     placeholderData: keepPreviousData,
   });
 }

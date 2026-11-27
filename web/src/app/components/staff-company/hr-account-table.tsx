@@ -31,50 +31,56 @@ interface HrAccountTableProps {
  */
 export function HrAccountTable({ accounts, onLock, onUnlock }: HrAccountTableProps) {
   if (accounts.length === 0) {
-    return <p className="rounded-md border border-dashed py-8 text-center text-xs text-muted-foreground">Công ty chưa có tài khoản HR</p>
+    return (
+      <p className="rounded-xl border border-dashed bg-card px-6 py-10 text-center text-sm text-muted-foreground">
+        Công ty chưa có tài khoản HR nào.
+      </p>
+    )
   }
   return (
-    <div className="overflow-x-auto rounded-xl border bg-white">
-      <table className="w-full text-left text-xs">
-        <thead className="bg-muted/50 text-muted-foreground">
+    <div className="overflow-x-auto rounded-xl border bg-card">
+      <table className="w-full text-left text-sm">
+        <thead className="bg-[#F8FAFC] text-xs text-muted-foreground">
           <tr>
-            <th className="px-3 py-2 font-medium">Tài khoản</th>
-            <th className="px-3 py-2 font-medium">Trạng thái</th>
-            <th className="px-3 py-2 text-right font-medium">Thao tác</th>
+            <th className="px-4 py-3 font-semibold">Tài khoản</th>
+            <th className="px-4 py-3 font-semibold">Trạng thái</th>
+            <th className="px-4 py-3 text-right font-semibold">Thao tác</th>
           </tr>
         </thead>
         <tbody>
           {accounts.map((account) => (
             <tr key={account.userId} className="border-t align-top">
-              <td className="px-3 py-2">
-                <div className="font-bold">{account.fullName}</div>
-                <div className="break-all text-muted-foreground">{account.email}</div>
+              <td className="px-4 py-3">
+                <div className="font-semibold text-heading">{account.fullName}</div>
+                <div className="break-all text-xs text-muted-foreground">{account.email}</div>
               </td>
-              <td className="px-3 py-2">
-                <div className="space-y-0.5">
-                  <div className="flex flex-wrap gap-1">
+              <td className="px-4 py-3">
+                <div className="space-y-1">
+                  <div className="flex flex-wrap gap-1.5">
                     {account.companyLocked ? (
-                      <span className="inline-block rounded-full border border-destructive/30 px-2 py-0.5 text-destructive">Khoá theo công ty</span>
+                      <span className="inline-block rounded-full border border-red-200 px-2 py-0.5 text-xs font-medium text-red-700">
+                        Khoá theo công ty
+                      </span>
                     ) : null}
                     {account.status === "LOCKED" ? (
-                      <span className="inline-block rounded-full bg-destructive/10 px-2 py-0.5 text-destructive">Đã khoá</span>
+                      <span className="inline-block rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-700">Đã khoá</span>
                     ) : account.companyLocked ? null : (
                       // Bị khoá theo công ty thì không ghi "Hoạt động" (dễ hiểu nhầm là đăng nhập được).
-                      <span className="inline-block rounded-full bg-green-100 px-2 py-0.5 text-green-700">Hoạt động</span>
+                      <span className="inline-block rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-700">Hoạt động</span>
                     )}
                   </div>
                   {account.status === "LOCKED" && account.lockedAt ? (
-                    <div className="text-muted-foreground">Khoá lúc {formatDateTime(account.lockedAt)}</div>
+                    <div className="text-xs text-muted-foreground">Khoá lúc {formatDateTime(account.lockedAt)}</div>
                   ) : null}
                   {account.status === "LOCKED" && account.lockedReason ? (
-                    <div className="text-muted-foreground">Lý do: {account.lockedReason}</div>
+                    <div className="text-xs break-words text-muted-foreground">Lý do: {account.lockedReason}</div>
                   ) : null}
                   {account.status !== "LOCKED" && account.tempLockedUntil ? (
-                    <div className="text-muted-foreground">Tạm khoá do sai mật khẩu đến {formatTime(account.tempLockedUntil)}</div>
+                    <div className="text-xs text-muted-foreground">Tạm khoá do sai mật khẩu đến {formatTime(account.tempLockedUntil)}</div>
                   ) : null}
                 </div>
               </td>
-              <td className="px-3 py-2 text-right">
+              <td className="px-4 py-3 text-right">
                 {account.status === "LOCKED" ? (
                   <Button variant="outline" size="sm" onClick={() => onUnlock(account)}>
                     Mở khoá

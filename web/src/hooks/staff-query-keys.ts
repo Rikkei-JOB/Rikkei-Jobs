@@ -13,7 +13,7 @@ export const staffCompanyKeys = {
   history: (userId: string | undefined, id: string, page: number) => [...staffCompanyKeys.histories(userId, id), page] as const,
 };
 
-/** Gốc khoá cache JD của cán bộ; trùng với khoá gốc trong use-staff-jobs.ts (UI-01) để làm mới lẫn nhau. */
+/** Gốc khoá cache JD của cán bộ (use-staff-jobs.ts dùng chính khoá này) để hai bên làm mới cache của nhau. */
 export const staffJobKeys = {
   all: (userId: string | undefined) => ["staff-jobs", userId ?? null] as const,
 };

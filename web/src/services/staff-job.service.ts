@@ -2,7 +2,7 @@ import { api } from "@/services/api";
 import type { PageResult } from "@/interface/company";
 import type { StaffJobDetail, StaffJobItem, StaffJobStatus, StaffJobSummary } from "@/interface/staff-job";
 
-/** DN-07: cán bộ duyệt / trả lại JD (company-service /staff/jobs). */
+/** DN-07: cán bộ duyệt / trả lại / đóng JD (company-service /staff/jobs). */
 export const staffJobService = {
   list: async (params: { status?: StaffJobStatus; q?: string; companyId?: string; page?: number; size?: number }) =>
     (await api.get<PageResult<StaffJobItem>>("/staff/jobs", { params: { ...params, q: params.q || undefined } })).data,
@@ -10,4 +10,6 @@ export const staffJobService = {
   get: async (id: string) => (await api.get<StaffJobDetail>(`/staff/jobs/${encodeURIComponent(id)}`)).data,
   approve: async (id: string) => (await api.post<StaffJobDetail>(`/staff/jobs/${encodeURIComponent(id)}/approve`)).data,
   reject: async (id: string, reason: string) => (await api.post<StaffJobDetail>(`/staff/jobs/${encodeURIComponent(id)}/reject`, { reason })).data,
+  /** Đóng JD đang tuyển (APPROVED -> CLOSED); lý do bắt buộc, ghi vào lịch sử công ty. */
+  close: async (id: string, reason: string) => (await api.post<StaffJobDetail>(`/staff/jobs/${encodeURIComponent(id)}/close`, { reason })).data,
 };

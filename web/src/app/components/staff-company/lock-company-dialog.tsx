@@ -1,6 +1,6 @@
 "use client"
 
-import { ReasonDialog } from "@/app/components/staff-job/reason-dialog"
+import { ReasonDialog } from "@/app/components/staff-company/reason-dialog"
 import { useLockCompany } from "@/hooks/use-staff-companies"
 import { ApiError } from "@/services/api"
 

@@ -71,8 +71,8 @@ export interface StaffHrAccount {
   companyLocked: boolean;
 }
 
-/** Cán bộ thực hiện thao tác (StaffRef); fullName null khi không tra được identity-service. */
-export interface StaffActor {
+/** Cán bộ thực hiện thao tác (StaffRef của backend); fullName null khi không tra được identity-service. */
+export interface StaffRef {
   id: string;
   fullName: string | null;
 }
@@ -81,7 +81,7 @@ export interface StaffActor {
 export interface CompanyLockInfo {
   lockedAt: string;
   reason: string | null;
-  lockedBy: StaffActor;
+  lockedBy: StaffRef;
 }
 
 /** GET /staff/companies/{id}. lock null khi công ty ACTIVE (hoặc LOCKED mà chưa có dòng LOCK, dữ liệu cũ). */
@@ -98,7 +98,7 @@ export interface CompanyActionItem {
   action: CompanyActionType;
   createdAt: string;
   reason: string | null;
-  staff: StaffActor;
+  staff: StaffRef;
   job: { id: string; title: string | null } | null;
 }
 
