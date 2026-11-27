@@ -34,6 +34,11 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+/**
+ * Qua gateway: /api/v1/staff/companies/**. Mọi endpoint ở đây **chỉ** {@code Roles.STAFF} (DN-05, DN-07): quản trị
+ * duyệt / trả lại / đóng được JD ở {@link StaffJobController} ({@code STAFF_OR_ADMIN}) nhưng không khoá được công ty,
+ * không xem được chi tiết công ty và lịch sử thao tác.
+ */
 @Tag(name = "Cán bộ - Doanh nghiệp")
 @RestController
 @RequestMapping("/staff/companies")

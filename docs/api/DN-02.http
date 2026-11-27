@@ -5,8 +5,9 @@
 # ...006/...007 APPROVED (DN-06); Cong ty B: ...008 APPROVED, ...009 PENDING (DN-07).
 # Muon dat lai JD mau: xoa cac dong cua company.match_scores, company.company_actions, company.job_skills, company.jobs
 # roi khoi dong lai company-service voi profile dev.
-# DN-07: chi tiet JD cua HR la GET /companies/me/jobs/{id} (GET /jobs/{id} nay la trang viec lam cong khai);
-# duyet / tra lai JD bang API cua can bo, xem DN-07.http. HR cua cong ty bi khoa nhan 401 ACCOUNT_DISABLED o moi request.
+# Chi tiet JD cua HR la GET /jobs/{id} (khong doi tu DN-02). Trang viec lam cong khai cua UI-01 nam o
+# GET /public/jobs, /public/jobs/{id}. Duyet / tra lai / dong JD bang API cua can bo, xem DN-07.http.
+# HR cua cong ty bi khoa nhan 401 ACCOUNT_DISABLED o moi request cua company-service (DN-07).
 
 @gw = http://localhost:8080/api/v1
 @company = http://localhost:8085
@@ -186,7 +187,7 @@ Content-Type: application/json
 ############################## 5. JD bi tra lai ##############################
 
 ### 5a. Xem JD bi tra lai -> 200 REJECTED, rejectReason = "Mức lương chưa rõ đơn vị, phần quyền lợi còn sơ sài.", 9 ky nang
-GET {{gw}}/companies/me/jobs/{{jdRejected}}
+GET {{gw}}/jobs/{{jdRejected}}
 Authorization: Bearer {{hr1Login.response.body.accessToken}}
 
 ### 5b. Sua luong va ky nang trong mot loi goi -> 200, van REJECTED (rejectReason con)
@@ -224,7 +225,7 @@ Authorization: Bearer {{hr1Login.response.body.accessToken}}
 ############################## 6. Cong ty khac va vai tro ##############################
 
 ### 6a. hr2 xem JD cua Cong ty A -> 404 NOT_FOUND (giong id khong ton tai)
-GET {{gw}}/companies/me/jobs/{{jdApproved}}
+GET {{gw}}/jobs/{{jdApproved}}
 Authorization: Bearer {{hr2Login.response.body.accessToken}}
 
 ### 6b. hr2 sua JD cua Cong ty A -> 404 NOT_FOUND
@@ -235,13 +236,13 @@ Content-Type: application/json
 { "title": "Dap pha JD cua A" }
 
 ### 6c. id khong ton tai -> 404 NOT_FOUND
-GET {{gw}}/companies/me/jobs/00000000-0000-0000-0003-000000000999
+GET {{gw}}/jobs/00000000-0000-0000-0003-000000000999
 Authorization: Bearer {{hr1Login.response.body.accessToken}}
 
 ### 6d. Khong co token -> 401 UNAUTHORIZED
-GET {{gw}}/companies/me/jobs/{{jdApproved}}
+GET {{gw}}/jobs/{{jdApproved}}
 
-### 6e. (DN-07) GET /jobs/{id} khong token la trang viec lam cong khai -> 200 voi JD dang tuyen, 404 voi JD chua duyet
+### 6e. (UI-01) Trang viec lam cong khai la GET /public/jobs/{id}, khong token -> 200 voi JD dang tuyen, 404 voi JD chua duyet
 GET {{gw}}/jobs/{{jdApproved}}
 
 ############################## 7. API noi bo cho UT-01 (KHONG qua gateway) ##############################

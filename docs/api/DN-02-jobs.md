@@ -27,7 +27,7 @@ Tiêu chí nghiệm thu:
 5. Lưu được JD loại `INTERNSHIP` (TT-02 dùng).
 6. PR vào `test`, tiêu đề bắt đầu `[DN-02]`, có cách chạy, dữ liệu mẫu, ảnh màn hình; OpenAPI có endpoint mới; làm đủ DB, BE, FE.
 
-Ngoài phạm vi: duyệt / trả lại JD và màn "Duyệt JD" (DN-07); trang việc làm và chi tiết JD cho ứng viên, `job_views` (DN-04); tính điểm khớp `GET /jobs/{id}/match/{userId}` (DN-06); STAFF/ADMIN sửa JD hộ; trạng thái "Tạm dừng".
+Ngoài phạm vi: duyệt / trả lại JD và màn "Duyệt JD" (UI-01 + DN-07); trang việc làm và chi tiết JD cho ứng viên `GET /public/jobs**` (UI-01), `job_views` (DN-04); tính điểm khớp `GET /jobs/{id}/match/{userId}` (DN-06); STAFF/ADMIN sửa JD hộ; trạng thái "Tạm dừng".
 
 ## 2. Cơ sở dữ liệu
 
@@ -50,7 +50,7 @@ Schema `company`, migration `V3__jobs.sql` (V1, V2 của DN-01/DN-05 giữ nguy�
 | `description`, `requirements`, `benefits` | TEXT | `requirements` là "Yêu cầu khác" |
 | `deadline` | DATE | ngày cuối nhận hồ sơ theo giờ `Asia/Ho_Chi_Minh`, nhận hết ngày đó |
 | `status` | VARCHAR(10), NOT NULL, mặc định `DRAFT` | CHECK `DRAFT`, `PENDING`, `APPROVED`, `REJECTED`, `CLOSED` |
-| `reviewed_by`, `reviewed_at`, `reject_reason` | UUID, TIMESTAMPTZ, VARCHAR(1000) | để sẵn cho DN-07 |
+| `reviewed_by`, `reviewed_at`, `reject_reason` | UUID, TIMESTAMPTZ, VARCHAR(1000) | cán bộ duyệt / trả lại / đóng ghi vào đây (DN-07) |
 | `created_by` | UUID, NOT NULL | userId của HR tạo |
 | `created_at`, `updated_at` | TIMESTAMPTZ | |
 | `version` | BIGINT, NOT NULL, mặc định 0 | `@Version` chống ghi đè đồng thời, không đưa ra DTO |
@@ -72,14 +72,14 @@ Các cột nội dung để NULL được vì bản nháp chỉ bắt buộc `ti
 
 Qua gateway `http://localhost:8080/api/v1` (gateway có thêm `/api/v1/jobs/**` trong route `company`, `StripPrefix=2`; `/api/v1/companies/**` đã có từ DN-01). Thành công trả thẳng DTO, lỗi là `{code, message, errors?}`. Đặc tả đầy đủ: [company-openapi.yaml](company-openapi.yaml).
 
-**Cập nhật DN-07** ([DN-07-job-review.md](DN-07-job-review.md)): chi tiết JD của HR chuyển từ `GET /jobs/{id}` sang **`GET /companies/me/jobs/{id}`** (cùng quyền, cùng hành vi, cùng `JobResponse`); `GET /jobs` và `GET /jobs/{id}` nay là trang việc làm công khai. Các endpoint ghi (`POST /jobs`, `PUT /jobs/{id}`, `PUT /jobs/{id}/skills`, `submit`, `close`) giữ nguyên. Cán bộ duyệt / trả lại / đóng JD bằng `/staff/jobs/**`.
+**Cập nhật DN-07 / UI-01** ([DN-07-job-review.md](DN-07-job-review.md)): mọi endpoint JD của HR **giữ nguyên đường dẫn DN-02**, gồm `GET /jobs/{id}`. Trang việc làm công khai của UI-01 nằm ở `GET /public/jobs`, `GET /public/jobs/{id}` nên không tranh chấp với `/jobs/**` của HR. (Bản nháp DN-07 từng dời chi tiết của HR sang `GET /companies/me/jobs/{id}`; quyết định đó đã huỷ, đường đó không còn tồn tại.) Cán bộ duyệt / trả lại / đóng JD bằng `/staff/jobs/**`.
 
 | Endpoint | Vai trò | Thành công | Lỗi chính |
 | --- | --- | --- | --- |
 | `GET /companies/me/jobs?status=&page=1&size=20` | `HR` | 200 `PageResponse<JobSummary>` (`id, title, level, status, deadline, updatedAt, requiredSkillCount, rejectReason`), mới cập nhật trước | 400 `BAD_REQUEST` (page/size/status sai), 404 (HR chưa có công ty) |
 | `GET /companies/me/jobs/summary` | `HR` | 200 `{total, byStatus: {DRAFT, PENDING, APPROVED, REJECTED, CLOSED}, expiringSoon}` | 404 (HR chưa có công ty) |
 | `POST /jobs` | `HR` | 201 `JobResponse`, `DRAFT` | 400 `VALIDATION_ERROR`, 403 `COMPANY_LOCKED`, 503 `EXTERNAL_UNAVAILABLE` |
-| `GET /companies/me/jobs/{id}` (trước DN-07 là `GET /jobs/{id}`) | `HR` | 200 `JobResponse` | 404 `NOT_FOUND` |
+| `GET /jobs/{id}` | `HR` | 200 `JobResponse` | 404 `NOT_FOUND` |
 | `PUT /jobs/{id}` | `HR` | 200 `JobResponse` | 400, 403 `COMPANY_LOCKED`, 404, 409 `JOB_NOT_EDITABLE` / `CONFLICT`, 503 |
 | `PUT /jobs/{id}/skills` (body là mảng) | `HR` | 200 `JobResponse` | như `PUT /jobs/{id}` |
 | `POST /jobs/{id}/submit` | `HR` | 200 `JobResponse`, `PENDING` | 400 `VALIDATION_ERROR` (liệt kê mọi lỗi), 403, 404, 409 `INVALID_JOB_STATUS` |
@@ -89,7 +89,7 @@ Mọi endpoint còn có 401 `UNAUTHORIZED`, 401 `ACCOUNT_DISABLED` (HR bị cán
 
 Quyền:
 
-- `@PreAuthorize(Roles.HR)` trên từng method (không đặt ở mức class). DN-07 đã dời chi tiết của HR sang `GET /companies/me/jobs/{id}` để `GET /jobs/{id}` thuộc về trang việc làm công khai.
+- `@PreAuthorize(Roles.HR)` trên từng method (không đặt ở mức class), kể cả `GET /jobs/{id}`. Trang việc làm công khai của UI-01 dùng tiền tố riêng `/public/**` nên `/jobs/**` vẫn là của HR.
 - JD của công ty khác và id không tồn tại cho **cùng một** 404 `NOT_FOUND` "Không tìm thấy JD" (lọc bằng `findByIdAndCompanyId`).
 - Công ty `LOCKED` (từ DN-07): HR của công ty bị khoá nhận 401 `ACCOUNT_DISABLED` "Công ty của bạn đang bị khoá, liên hệ cán bộ tuyển dụng" ở **mọi** endpoint, kể cả `GET` (`HrLockedFilter` chạy trước controller). Trước DN-07 là `GET` 200 và ghi 403 `COMPANY_LOCKED`; nhánh 403 còn giữ trong code làm lớp phòng thủ thứ hai.
 
@@ -233,7 +233,7 @@ Chỉ có khi chạy company-service với profile `dev` (`DEV_DATA_ENABLED=true
 | `…0004` | Middle Java Developer | MIDDLE | FULLTIME | `DRAFT` | chưa có hạn nộp, chưa có kỹ năng |
 | `…0005` | Senior DevOps | SENIOR | FULLTIME | `CLOSED` | hạn nộp đã qua (hôm nay − 10 ngày) |
 
-Tài khoản (seed của identity/company DN-01): `hr1@rikkeijobs.test` (Công ty A) và `hr2@rikkeijobs.test` (Công ty B), mật khẩu `Test@123`; `candidate1` đăng nhập SSO với `lmsUserId` `lms-sv-001`. `GET /staff/companies` cho Công ty A trả `jdCount = 4` (bỏ JD nháp).
+Tài khoản (seed của identity/company DN-01): `hr1@rikkeijobs.test` (Công ty A) và `hr2@rikkeijobs.test` (Công ty B), mật khẩu `Test@123`; `candidate1` đăng nhập SSO với `lmsUserId` `lms-sv-001`. `GET /staff/companies` cho Công ty A trả `jdCount = 6` (7 JD seed trừ 1 JD nháp; con số 4 ghi trước đây là của seed DN-02 khi chưa có JD của DN-06).
 
 Từ DN-07 có thêm 2 JD của **Công ty B** (`…0008` "Thực tập sinh Marketing" `APPROVED`, `…0009` "Nhân viên vận hành sàn TMĐT" `PENDING`) và 2 JD `APPROVED` của DN-06 (`…0006`, `…0007`). JD HR gửi duyệt được cán bộ duyệt / trả lại ở `/staff/jobs` (DN-07, [DN-07-job-review.md](DN-07-job-review.md)); không còn cần cập nhật SQL tạm.
 

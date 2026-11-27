@@ -2,21 +2,21 @@ openapi: 3.0.3
 info:
   title: Rikkei Jobs - company-service
   version: 1.0.0
-  description: DN-01 hồ sơ doanh nghiệp và tài khoản HR; DN-05 danh sách, chi tiết công ty cho cán bộ và khoá/mở khoá HR (/staff/hr-accounts/**); DN-02 JD của HR (/jobs/**, /companies/me/jobs) và API nội bộ /internal/jobs/{jobId}/application-context cho UT-01; DN-07 trang việc làm công khai (GET /jobs, GET /jobs/{id}), cán bộ duyệt / trả lại / đóng JD (/staff/jobs/**), khoá / mở khoá công ty và lịch sử thao tác (/staff/companies/{id}/lock|unlock|history). Theo docs/conventions.md - thành công trả thẳng DTO (không bọc), mọi lỗi là { code, message, errors? } với message tiếng Việt. Đường dẫn qua gateway; company-service tự phục vụ ở /staff/companies/**, /staff/hr-accounts/**, /staff/jobs/**, /companies/**, /jobs/** (gateway bỏ tiền tố /api/v1). Riêng /internal/** không có route gateway, chỉ gọi thẳng cổng 8085.
+  description: DN-01 hồ sơ doanh nghiệp và tài khoản HR; DN-05 danh sách, chi tiết công ty cho cán bộ và khoá/mở khoá HR (/staff/hr-accounts/**); DN-02 JD của HR (/jobs/**, /companies/me/jobs) và API nội bộ /internal/jobs/{jobId}/application-context cho UT-01; UI-01 trang việc làm công khai (/public/jobs, /public/companies) và hàng chờ duyệt JD của cán bộ (/staff/jobs/**); DN-07 thêm POST /staff/jobs/{id}/close, ghi lịch sử company_actions cho mọi thao tác JD của cán bộ, mã JOB_EXPIRED, khoá / mở khoá công ty và lịch sử thao tác (/staff/companies/{id}/lock|unlock|history). Theo docs/conventions.md - thành công trả thẳng DTO (không bọc), mọi lỗi là { code, message, errors? } với message tiếng Việt. Đường dẫn qua gateway; company-service tự phục vụ ở /staff/companies/**, /staff/hr-accounts/**, /staff/jobs/**, /companies/**, /jobs/**, /public/jobs/**, /public/companies/** (gateway bỏ tiền tố /api/v1). Riêng /internal/** không có route gateway, chỉ gọi thẳng cổng 8085.
 servers:
   - url: http://localhost:8080/api/v1
-    description: Qua gateway (gateway bỏ /api/v1, company-service phục vụ /staff/companies/..., /staff/jobs/..., /companies/... và /jobs/...)
+    description: Qua gateway (gateway bỏ /api/v1, company-service phục vụ /staff/companies/..., /staff/jobs/..., /companies/..., /jobs/... và /public/...)
 tags:
   - name: staff
-    description: Cán bộ tuyển dụng (role STAFF)
+    description: Cán bộ tuyển dụng (role STAFF). /staff/companies/** chỉ STAFF; ADMIN chỉ dùng được /staff/jobs/** (xem tag staff-job).
   - name: company
     description: HR quản lý công ty của chính mình (role HR)
   - name: job
     description: HR quản lý JD của công ty mình (role HR, DN-02). Công ty lấy từ company_hr theo userId của JWT; JD của công ty khác trả 404 giống id không tồn tại. HR của công ty LOCKED nhận 401 ACCOUNT_DISABLED ở mọi endpoint (DN-07).
   - name: public-job
-    description: 'Trang việc làm công khai (DN-07), không cần đăng nhập. Một JD hiện với ứng viên khi và chỉ khi status = APPROVED, deadline >= hôm nay theo Asia/Ho_Chi_Minh và công ty ACTIVE. DN-04 sẽ thêm tham số lọc, sort và matchScore vào chính các endpoint này.'
+    description: 'Trang việc làm công khai (UI-01), không cần đăng nhập, ở /public/**. Một JD hiện với ứng viên khi và chỉ khi status = APPROVED, deadline >= hôm nay theo Asia/Ho_Chi_Minh (hoặc không ghi hạn nộp) và công ty ACTIVE - quy tắc viết một chỗ ở PublicJobSpecifications.visible. Điểm khớp (matchScore, sort=match) chưa làm.'
   - name: staff-job
-    description: Cán bộ duyệt / trả lại / đóng JD (role STAFF, DN-07). Mỗi thao tác ghi reviewedBy/At và một dòng lịch sử company_actions trong cùng transaction.
+    description: Cán bộ duyệt / trả lại / đóng JD (role STAFF hoặc ADMIN; hàng chờ và duyệt / trả lại của UI-01, đóng JD của DN-07). Mỗi thao tác ghi reviewedBy/At và một dòng lịch sử company_actions trong cùng transaction (phần DN-07). JD nháp không hiện với cán bộ và trả 404.
   - name: match
     description: Điểm khớp ứng viên với JD theo kỹ năng (DN-06). CANDIDATE xem của mình, HR/STAFF xem của ứng viên. Công thức ở docs/matching.md.
   - name: internal
@@ -322,14 +322,16 @@ paths:
   /staff/jobs:
     get:
       tags: [staff-job]
-      summary: Cán bộ xem hàng chờ / danh sách JD (DN-07)
+      summary: Cán bộ xem hàng chờ / danh sách JD (UI-01)
       description: |
-        Vai trò STAFF. status tuỳ chọn (bỏ trống = mọi trạng thái, dùng cho tab "JD của công ty"); companyId tuỳ chọn. Sắp: status = PENDING theo
-        updatedAt tăng dần (gửi sớm nhất trước), trạng thái khác hoặc bỏ trống theo updatedAt giảm dần, rồi id. Mọi công ty, kể cả công ty bị khoá.
-        page từ 1, size tối đa 100.
+        Vai trò STAFF hoặc ADMIN. Không bao giờ có JD nháp. status tuỳ chọn (bỏ trống = mọi trạng thái trừ DRAFT, dùng cho tab "JD của công ty"
+        của DN-07); status=DRAFT trả 400 "Cán bộ không xem được JD nháp.". q tìm theo tiêu đề, vị trí hoặc tên công ty (không phân biệt hoa thường).
+        companyId tuỳ chọn. Sắp: status = PENDING theo updatedAt tăng dần (gửi sớm nhất trước, hàng chờ), còn lại updatedAt giảm dần, rồi id.
+        Mọi công ty, kể cả công ty bị khoá (companyStatus cho biết). page từ 1, size tối đa 100.
       security: [{ bearerAuth: [] }]
       parameters:
-        - { name: status, in: query, required: false, schema: { $ref: '#/components/schemas/JobStatus' } }
+        - { name: status, in: query, required: false, description: 'PENDING, APPROVED, REJECTED hoặc CLOSED; DRAFT bị từ chối', schema: { $ref: '#/components/schemas/JobStatus' } }
+        - { name: q, in: query, required: false, schema: { type: string } }
         - { name: companyId, in: query, required: false, schema: { type: string, format: uuid } }
         - { name: page, in: query, required: false, schema: { type: integer, minimum: 1, default: 1 } }
         - { name: size, in: query, required: false, schema: { type: integer, minimum: 1, maximum: 100, default: 20 } }
@@ -340,7 +342,7 @@ paths:
             application/json:
               schema: { $ref: '#/components/schemas/StaffJobPage' }
         '400':
-          description: BAD_REQUEST - page/size ngoài khoảng, status không phải một trong 5 giá trị, companyId không phải UUID
+          description: BAD_REQUEST - page/size ngoài khoảng, status sai giá trị hoặc bằng DRAFT, companyId không phải UUID
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Error' }
@@ -350,15 +352,40 @@ paths:
             application/json:
               schema: { $ref: '#/components/schemas/Error' }
         '403':
-          description: FORBIDDEN (không phải STAFF) hoặc MUST_CHANGE_PASSWORD
+          description: FORBIDDEN (không phải STAFF/ADMIN) hoặc MUST_CHANGE_PASSWORD
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+  /staff/jobs/summary:
+    get:
+      tags: [staff-job]
+      summary: Cán bộ xem số JD theo trạng thái (UI-01)
+      description: Vai trò STAFF hoặc ADMIN. Số JD toàn hệ thống theo trạng thái, đủ 4 khoá PENDING, APPROVED, REJECTED, CLOSED (không tính DRAFT); màn Duyệt JD lấy số trên tab từ đây.
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: '{total, byStatus}'
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/StaffJobSummary' }
+        '401':
+          description: UNAUTHORIZED - thiếu hoặc sai token
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '403':
+          description: FORBIDDEN (không phải STAFF/ADMIN) hoặc MUST_CHANGE_PASSWORD
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Error' }
   /staff/jobs/{id}:
     get:
       tags: [staff-job]
-      summary: Cán bộ xem chi tiết JD (DN-07)
-      description: Vai trò STAFF. Mọi trạng thái, mọi công ty (kể cả công ty bị khoá). reviewedBy null khi JD chưa được cán bộ xử lý; reviewedBy.fullName null khi không tra được identity-service.
+      summary: Cán bộ xem chi tiết JD (UI-01)
+      description: |
+        Vai trò STAFF hoặc ADMIN. Mọi trạng thái trừ DRAFT, mọi công ty (kể cả công ty bị khoá - company.status = LOCKED là nguồn của nhãn
+        "Công ty đang bị khoá" trên giao diện). reviewedBy là userId của cán bộ xử lý gần nhất (duyệt, trả lại hoặc đóng), null khi chưa ai xử lý;
+        tên cán bộ xem ở GET /staff/companies/{id}/history.
       security: [{ bearerAuth: [] }]
       parameters:
         - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
@@ -379,23 +406,23 @@ paths:
             application/json:
               schema: { $ref: '#/components/schemas/Error' }
         '403':
-          description: FORBIDDEN (không phải STAFF) hoặc MUST_CHANGE_PASSWORD
+          description: FORBIDDEN (không phải STAFF/ADMIN) hoặc MUST_CHANGE_PASSWORD
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Error' }
         '404':
-          description: NOT_FOUND - không có JD
+          description: NOT_FOUND - không có JD, hoặc JD đang là nháp (DRAFT)
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Error' }
   /staff/jobs/{id}/approve:
     post:
       tags: [staff-job]
-      summary: Cán bộ duyệt JD (DN-07)
+      summary: Cán bộ duyệt JD (UI-01, lịch sử của DN-07)
       description: |
-        Vai trò STAFF. Không có body. Chỉ PENDING → APPROVED; xoá rejectReason, ghi reviewedBy = cán bộ, reviewedAt = bây giờ, lịch sử APPROVE_JD
-        (reason null). Hạn nộp trước hôm nay (Asia/Ho_Chi_Minh) → 409 JOB_EXPIRED. JD của công ty bị khoá vẫn duyệt được nhưng chỉ hiện ở trang
-        việc làm khi công ty được mở khoá. Lỗi trạng thái không ghi lịch sử.
+        Vai trò STAFF hoặc ADMIN. Không có body. Chỉ PENDING → APPROVED; xoá rejectReason, ghi reviewedBy = cán bộ, reviewedAt = bây giờ, và một
+        dòng lịch sử công ty APPROVE_JD (reason null, phần DN-07 thêm vào). Hạn nộp trước hôm nay (Asia/Ho_Chi_Minh) → 409 JOB_EXPIRED. JD của
+        công ty bị khoá vẫn duyệt được nhưng chỉ hiện ở trang việc làm khi công ty được mở khoá. Lỗi trạng thái không ghi lịch sử.
       security: [{ bearerAuth: [] }]
       parameters:
         - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
@@ -416,25 +443,25 @@ paths:
             application/json:
               schema: { $ref: '#/components/schemas/Error' }
         '403':
-          description: FORBIDDEN (không phải STAFF) hoặc MUST_CHANGE_PASSWORD
+          description: FORBIDDEN (không phải STAFF/ADMIN) hoặc MUST_CHANGE_PASSWORD
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Error' }
         '404':
-          description: NOT_FOUND - không có JD
+          description: NOT_FOUND - không có JD, hoặc JD đang là nháp (DRAFT)
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Error' }
         '409':
-          description: 'INVALID_JOB_STATUS - JD không ở PENDING (ví dụ DRAFT); JOB_EXPIRED - "JD đã quá hạn nộp, hãy trả lại để HR sửa hạn nộp"; CONFLICT - JD vừa được xử lý ở nơi khác (@Version)'
+          description: 'INVALID_JOB_STATUS - JD không ở PENDING (REJECTED, APPROVED, CLOSED); JOB_EXPIRED - "Hạn nộp của JD đã qua. Hãy trả lại để HR cập nhật hạn nộp trước khi duyệt."; CONFLICT - JD vừa được xử lý ở nơi khác (@Version)'
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Error' }
   /staff/jobs/{id}/reject:
     post:
       tags: [staff-job]
-      summary: Cán bộ trả lại JD (DN-07)
-      description: Vai trò STAFF. Chỉ PENDING → REJECTED. Lý do bắt buộc (cắt khoảng trắng, 1-1000 ký tự), lưu vào rejectReason (HR thấy trên form DN-02 và gửi duyệt lại được) và lịch sử REJECT_JD.
+      summary: Cán bộ trả lại JD (UI-01, lịch sử của DN-07)
+      description: Vai trò STAFF hoặc ADMIN. Chỉ PENDING → REJECTED. Lý do bắt buộc (cắt khoảng trắng, 1-1000 ký tự), lưu vào rejectReason (HR thấy trên form DN-02 và gửi duyệt lại được) và lịch sử REJECT_JD (DN-07).
       security: [{ bearerAuth: [] }]
       parameters:
         - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
@@ -461,12 +488,12 @@ paths:
             application/json:
               schema: { $ref: '#/components/schemas/Error' }
         '403':
-          description: FORBIDDEN (không phải STAFF) hoặc MUST_CHANGE_PASSWORD
+          description: FORBIDDEN (không phải STAFF/ADMIN) hoặc MUST_CHANGE_PASSWORD
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Error' }
         '404':
-          description: NOT_FOUND - không có JD
+          description: NOT_FOUND - không có JD, hoặc JD đang là nháp (DRAFT)
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Error' }
@@ -479,7 +506,10 @@ paths:
     post:
       tags: [staff-job]
       summary: Cán bộ đóng JD đang tuyển (DN-07)
-      description: Vai trò STAFF. Chỉ APPROVED → CLOSED (đóng do vi phạm). Lý do bắt buộc như trả lại, chỉ ghi vào lịch sử CLOSE_JD; rejectReason không đổi.
+      description: |
+        Vai trò STAFF hoặc ADMIN. Chỉ APPROVED → CLOSED (đóng do vi phạm). Lý do bắt buộc như trả lại, chỉ ghi vào lịch sử CLOSE_JD;
+        rejectReason không đổi. Thao tác này ghi đè reviewedBy/reviewedAt bằng người đóng và thời điểm đóng - người duyệt trước đó chỉ còn
+        trong lịch sử công ty. CLOSED là trạng thái cuối: HR không sửa và không gửi duyệt lại JD này được (DN-02).
       security: [{ bearerAuth: [] }]
       parameters:
         - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
@@ -505,17 +535,17 @@ paths:
             application/json:
               schema: { $ref: '#/components/schemas/Error' }
         '403':
-          description: FORBIDDEN (không phải STAFF) hoặc MUST_CHANGE_PASSWORD
+          description: FORBIDDEN (không phải STAFF/ADMIN) hoặc MUST_CHANGE_PASSWORD
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Error' }
         '404':
-          description: NOT_FOUND - không có JD
+          description: NOT_FOUND - không có JD, hoặc JD đang là nháp (DRAFT)
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Error' }
         '409':
-          description: INVALID_JOB_STATUS - JD không ở APPROVED; CONFLICT - JD vừa được xử lý ở nơi khác
+          description: 'INVALID_JOB_STATUS - "Chỉ đóng được JD đang đăng (đã duyệt)."; CONFLICT - JD vừa được xử lý ở nơi khác'
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Error' }
@@ -841,63 +871,7 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Error' }
-  /companies/me/jobs/{id}:
-    get:
-      tags: [job]
-      summary: HR xem chi tiết JD của công ty mình
-      description: Vai trò HR. Trước DN-07 là GET /jobs/{id} (đường đó nay là chi tiết công khai); cùng quyền, cùng hành vi, cùng JobResponse. Chỉ JD của công ty mình, mọi trạng thái.
-      security: [{ bearerAuth: [] }]
-      parameters:
-        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
-      responses:
-        '200':
-          description: Chi tiết JD kèm kỹ năng
-          content:
-            application/json:
-              schema: { $ref: '#/components/schemas/JobResponse' }
-        '400':
-          description: BAD_REQUEST - id không phải UUID
-          content:
-            application/json:
-              schema: { $ref: '#/components/schemas/Error' }
-        '401':
-          description: UNAUTHORIZED; ACCOUNT_DISABLED - HR bị cán bộ khoá hoặc công ty của HR đang bị khoá
-          content:
-            application/json:
-              schema: { $ref: '#/components/schemas/Error' }
-        '403':
-          description: FORBIDDEN (không phải HR) hoặc MUST_CHANGE_PASSWORD
-          content:
-            application/json:
-              schema: { $ref: '#/components/schemas/Error' }
-        '404':
-          description: NOT_FOUND - không có JD, hoặc JD của công ty khác (cùng một lỗi)
-          content:
-            application/json:
-              schema: { $ref: '#/components/schemas/Error' }
   /jobs:
-    get:
-      tags: [public-job]
-      summary: Trang việc làm - danh sách JD đang tuyển (công khai, DN-07)
-      description: |
-        Không cần đăng nhập; token thiếu hoặc sai vẫn 200. Token hợp lệ vẫn đi qua bộ lọc chung (token mustChangePassword → 403, HR của công ty
-        bị khoá → 401). Chỉ JD hiện với ứng viên (APPROVED, deadline >= hôm nay giờ Việt Nam, công ty ACTIVE). Sắp publishedAt giảm dần
-        (COALESCE(reviewed_at, updated_at)) rồi id. page từ 1, size tối đa 100 (trang ứng viên gọi size=100).
-      security: []
-      parameters:
-        - { name: page, in: query, required: false, schema: { type: integer, minimum: 1, default: 1 } }
-        - { name: size, in: query, required: false, schema: { type: integer, minimum: 1, maximum: 100, default: 20 } }
-      responses:
-        '200':
-          description: Trang JD đang tuyển
-          content:
-            application/json:
-              schema: { $ref: '#/components/schemas/PublicJobPage' }
-        '400':
-          description: BAD_REQUEST - page/size ngoài khoảng
-          content:
-            application/json:
-              schema: { $ref: '#/components/schemas/Error' }
     post:
       tags: [job]
       summary: HR tạo JD
@@ -945,28 +919,37 @@ paths:
               schema: { $ref: '#/components/schemas/Error' }
   /jobs/{id}:
     get:
-      tags: [public-job]
-      summary: Trang việc làm - chi tiết JD (công khai, DN-07)
+      tags: [job]
+      summary: HR xem chi tiết JD của công ty mình
       description: |
-        Không cần đăng nhập. Chỉ JD hiện với ứng viên; JD chờ duyệt, nháp, bị trả lại, đã đóng, quá hạn, của công ty bị khoá hoặc id không tồn tại
-        đều trả cùng một 404. Không có status, rejectReason, reviewedBy, createdBy. Kỹ năng chỉ có skillId (ghép tên với GET /skills).
-        Chi tiết JD của HR chuyển sang GET /companies/me/jobs/{id} (DN-07).
-      security: []
+        Vai trò HR (DN-02). Chỉ JD của công ty mình (lấy từ company_hr theo userId của token), mọi trạng thái kể cả DRAFT.
+        Đường dẫn công khai của trang việc làm là GET /public/jobs/{id} (UI-01), không phải đường này.
+      security: [{ bearerAuth: [] }]
       parameters:
         - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
       responses:
         '200':
-          description: Chi tiết JD kèm kỹ năng và thông tin công ty
+          description: Chi tiết JD kèm kỹ năng
           content:
             application/json:
-              schema: { $ref: '#/components/schemas/PublicJobDetail' }
+              schema: { $ref: '#/components/schemas/JobResponse' }
         '400':
           description: BAD_REQUEST - id không phải UUID
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Error' }
+        '401':
+          description: UNAUTHORIZED; ACCOUNT_DISABLED - HR bị cán bộ khoá hoặc công ty của HR đang bị khoá
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '403':
+          description: FORBIDDEN (không phải HR) hoặc MUST_CHANGE_PASSWORD
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
         '404':
-          description: 'NOT_FOUND - "Không tìm thấy JD" (JD không hiện với ứng viên hoặc không tồn tại)'
+          description: NOT_FOUND - không có JD, hoặc JD của công ty khác (cùng một lỗi)
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Error' }
@@ -1230,6 +1213,108 @@ paths:
               schema: { $ref: '#/components/schemas/Error' }
         '503':
           description: EXTERNAL_UNAVAILABLE - profile-service, recruitment-service hoặc danh mục kỹ năng không trả lời
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+  /public/jobs:
+    get:
+      tags: [public-job]
+      summary: Trang việc làm - tìm việc làm (công khai, UI-01)
+      description: |
+        Không cần đăng nhập; token thiếu hoặc sai vẫn 200. Token hợp lệ vẫn đi qua các bộ lọc chung: token mustChangePassword
+        → 403, token của HR thuộc công ty đang bị khoá → 401 ACCOUNT_DISABLED (HrLockedFilter chạy trước controller; phía web
+        axios đưa về /login). Chỉ JD hiện với ứng viên (APPROVED, deadline >= hôm nay giờ Việt Nam hoặc không ghi hạn, công ty
+        ACTIVE). q khớp tiêu đề, vị trí hoặc tên công ty; hoặc JD có một trong skillIds (frontend đổi từ khoá thành id kỹ năng
+        theo GET /skills). city khớp một phần, không phân biệt hoa thường. salaryFrom/salaryTo (VND) lọc khoảng lương giao nhau;
+        JD không ghi lương bị loại khi có lọc lương. sort: newest (mặc định, createdAt giảm dần) hoặc salary. page từ 1,
+        size tối đa 100.
+      security: []
+      parameters:
+        - { name: q, in: query, required: false, schema: { type: string } }
+        - { name: skillIds, in: query, required: false, schema: { type: array, items: { type: string, format: uuid } }, style: form, explode: true }
+        - { name: city, in: query, required: false, schema: { type: string } }
+        - { name: level, in: query, required: false, schema: { $ref: '#/components/schemas/JobLevel' } }
+        - { name: workMode, in: query, required: false, schema: { $ref: '#/components/schemas/WorkMode' } }
+        - { name: type, in: query, required: false, schema: { $ref: '#/components/schemas/JobType' } }
+        - { name: salaryFrom, in: query, required: false, schema: { type: integer, format: int64 } }
+        - { name: salaryTo, in: query, required: false, schema: { type: integer, format: int64 } }
+        - { name: companyId, in: query, required: false, schema: { type: string, format: uuid } }
+        - { name: sort, in: query, required: false, schema: { type: string, enum: [newest, salary], default: newest } }
+        - { name: page, in: query, required: false, schema: { type: integer, minimum: 1, default: 1 } }
+        - { name: size, in: query, required: false, schema: { type: integer, minimum: 1, maximum: 100, default: 20 } }
+      responses:
+        '200':
+          description: Trang tin đang tuyển
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PublicJobPage' }
+        '400':
+          description: BAD_REQUEST - page/size ngoài khoảng, enum sai giá trị hoặc sort không hợp lệ
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+  /public/jobs/{id}:
+    get:
+      tags: [public-job]
+      summary: Trang việc làm - chi tiết tin (công khai, UI-01)
+      description: |
+        Không cần đăng nhập. Chỉ JD hiện với ứng viên; JD chờ duyệt, nháp, bị trả lại, đã đóng, quá hạn, của công ty bị khoá
+        hoặc id không tồn tại đều trả cùng một 404. Không có status, rejectReason, reviewedBy, createdBy. Kỹ năng chỉ có
+        skillId (ghép tên với GET /skills). Chi tiết JD của HR là GET /jobs/{id} (DN-02).
+      security: []
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        '200':
+          description: Chi tiết tin kèm kỹ năng và thông tin công ty
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PublicJobDetail' }
+        '400':
+          description: BAD_REQUEST - id không phải UUID
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '404':
+          description: 'NOT_FOUND - "Không tìm thấy tin tuyển dụng hoặc tin đã hết hạn."'
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+  /public/companies:
+    get:
+      tags: [public-job]
+      summary: Trang việc làm - danh sách công ty (công khai, UI-01)
+      description: Không cần đăng nhập. Mọi công ty ACTIVE kèm openJobs (số tin đang hiện với ứng viên); nhiều tin trước, rồi theo tên. Không phân trang.
+      security: []
+      responses:
+        '200':
+          description: Danh sách công ty
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/PublicCompanyItem' }
+  /public/companies/{id}:
+    get:
+      tags: [public-job]
+      summary: Trang việc làm - hồ sơ công ty (công khai, UI-01)
+      description: Không cần đăng nhập. Không có mã số thuế, trạng thái hay tài khoản HR. Công ty không tồn tại hoặc đang LOCKED đều trả 404. Tin đang tuyển lấy qua GET /public/jobs?companyId=.
+      security: []
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        '200':
+          description: Hồ sơ công khai của công ty
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PublicCompanyDetail' }
+        '400':
+          description: BAD_REQUEST - id không phải UUID
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '404':
+          description: 'NOT_FOUND - "Không tìm thấy công ty." (không tồn tại hoặc đang bị khoá)'
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Error' }
@@ -1541,15 +1626,9 @@ components:
         total: { type: integer, format: int64 }
         page: { type: integer, description: Bắt đầu từ 1 }
         size: { type: integer }
-    PublicCompanyRef:
+    PublicCompanySummary:
       type: object
-      properties:
-        id: { type: string, format: uuid }
-        name: { type: string }
-        logoUrl: { type: string, nullable: true }
-    PublicCompanyInfo:
-      type: object
-      description: Chỉ thông tin giới thiệu; không có taxCode, status.
+      description: Thông tin công ty đi kèm một tin tuyển dụng công khai.
       properties:
         id: { type: string, format: uuid }
         name: { type: string }
@@ -1557,10 +1636,34 @@ components:
         industry: { type: string, nullable: true }
         size: { type: string, nullable: true }
         city: { type: string, nullable: true }
+    PublicCompanyItem:
+      type: object
+      description: Một dòng trong GET /public/companies.
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string }
+        logoUrl: { type: string, nullable: true }
+        industry: { type: string, nullable: true }
+        size: { type: string, nullable: true }
+        city: { type: string, nullable: true }
+        openJobs: { type: integer, format: int64, description: Số tin đang hiện với ứng viên }
+    PublicCompanyDetail:
+      type: object
+      description: 'GET /public/companies/{id}: hồ sơ công khai, không có taxCode, status hay tài khoản HR.'
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string }
+        logoUrl: { type: string, nullable: true }
+        industry: { type: string, nullable: true }
+        size: { type: string, nullable: true }
+        city: { type: string, nullable: true }
+        address: { type: string, nullable: true }
         website: { type: string, nullable: true }
         description: { type: string, nullable: true }
-    PublicJobSummary:
+        openJobs: { type: integer, format: int64 }
+    PublicJobItem:
       type: object
+      description: Một dòng trong GET /public/jobs.
       properties:
         id: { type: string, format: uuid }
         title: { type: string }
@@ -1570,54 +1673,61 @@ components:
         city: { type: string, nullable: true }
         salaryMin: { type: integer, format: int64, nullable: true }
         salaryMax: { type: integer, format: int64, nullable: true }
-        deadline: { type: string, format: date }
-        publishedAt: { type: string, format: date-time, description: 'reviewedAt, thiếu thì updatedAt' }
-        company: { $ref: '#/components/schemas/PublicCompanyRef' }
+        deadline: { type: string, format: date, nullable: true }
+        createdAt: { type: string, format: date-time, description: Thời điểm HR tạo JD; cũng là khoá sắp xếp của sort=newest }
+        skills:
+          type: array
+          description: Sắp required trước, rồi minScore giảm dần; không có tên kỹ năng
+          items: { $ref: '#/components/schemas/JobSkill' }
+        company: { $ref: '#/components/schemas/PublicCompanySummary' }
     PublicJobPage:
       type: object
       properties:
-        items: { type: array, items: { $ref: '#/components/schemas/PublicJobSummary' } }
+        items: { type: array, items: { $ref: '#/components/schemas/PublicJobItem' } }
         total: { type: integer, format: int64 }
         page: { type: integer, description: Bắt đầu từ 1 }
         size: { type: integer }
     PublicJobDetail:
       type: object
-      description: Không có status, rejectReason, reviewedBy, createdBy.
+      description: Không có status, rejectReason, reviewedBy, reviewedAt, createdBy.
       properties:
         id: { type: string, format: uuid }
         title: { type: string }
         position: { type: string, nullable: true }
         level: { allOf: [{ $ref: '#/components/schemas/JobLevel' }], nullable: true }
         type: { allOf: [{ $ref: '#/components/schemas/JobType' }], nullable: true }
-        workMode: { allOf: [{ $ref: '#/components/schemas/WorkMode' }], nullable: true }
         quantity: { type: integer, nullable: true }
         city: { type: string, nullable: true }
         address: { type: string, nullable: true }
+        workMode: { allOf: [{ $ref: '#/components/schemas/WorkMode' }], nullable: true }
         salaryMin: { type: integer, format: int64, nullable: true }
         salaryMax: { type: integer, format: int64, nullable: true }
-        deadline: { type: string, format: date, nullable: true }
-        publishedAt: { type: string, format: date-time }
         description: { type: string, nullable: true }
         requirements: { type: string, nullable: true }
         benefits: { type: string, nullable: true }
+        deadline: { type: string, format: date, nullable: true }
+        createdAt: { type: string, format: date-time }
         skills:
           type: array
           description: Sắp required trước, rồi minScore giảm dần; không có tên kỹ năng
           items: { $ref: '#/components/schemas/JobSkill' }
-        company: { $ref: '#/components/schemas/PublicCompanyInfo' }
+        company: { $ref: '#/components/schemas/PublicCompanySummary' }
     StaffJobItem:
       type: object
+      description: Một dòng trong GET /staff/jobs; không bao giờ là JD nháp.
       properties:
         id: { type: string, format: uuid }
         title: { type: string }
+        level: { allOf: [{ $ref: '#/components/schemas/JobLevel' }], nullable: true }
         status: { $ref: '#/components/schemas/JobStatus' }
         deadline: { type: string, format: date, nullable: true }
         submittedAt: { type: string, format: date-time, description: 'updatedAt của JD (với PENDING là lúc gửi duyệt)' }
-        company:
-          type: object
-          properties:
-            id: { type: string, format: uuid }
-            name: { type: string }
+        reviewedAt: { type: string, format: date-time, nullable: true, description: Lần cán bộ xử lý gần nhất }
+        requiredSkillCount: { type: integer, description: Số kỹ năng bắt buộc của JD }
+        rejectReason: { type: string, nullable: true, description: Chỉ khác null khi status = REJECTED }
+        companyId: { type: string, format: uuid }
+        companyName: { type: string, nullable: true }
+        companyStatus: { allOf: [{ $ref: '#/components/schemas/CompanyStatus' }], nullable: true, description: LOCKED = công ty đang bị khoá (DN-07) }
     StaffJobPage:
       type: object
       properties:
@@ -1625,19 +1735,39 @@ components:
         total: { type: integer, format: int64 }
         page: { type: integer, description: Bắt đầu từ 1 }
         size: { type: integer }
+    StaffJobSummary:
+      type: object
+      properties:
+        total: { type: integer, format: int64, description: Tổng JD không tính DRAFT }
+        byStatus:
+          type: object
+          description: Đủ 4 khoá, giá trị 0 vẫn có mặt; không có DRAFT
+          properties:
+            PENDING: { type: integer, format: int64 }
+            APPROVED: { type: integer, format: int64 }
+            REJECTED: { type: integer, format: int64 }
+            CLOSED: { type: integer, format: int64 }
     StaffJobDetail:
       type: object
-      description: Nội dung JD (dạng ứng viên thấy, lồng trong job) cộng thông tin duyệt. publishedAt trong job vẫn tính như trang công khai dù JD chưa duyệt.
+      description: 'Nội dung JD như HR thấy (lồng trong job, gồm status / rejectReason / reviewedAt) cộng công ty và người xử lý gần nhất.'
       properties:
-        job: { $ref: '#/components/schemas/PublicJobDetail' }
-        status: { $ref: '#/components/schemas/JobStatus' }
-        rejectReason: { type: string, nullable: true, description: Chỉ khác null khi REJECTED }
-        reviewedAt: { type: string, format: date-time, nullable: true }
+        job: { $ref: '#/components/schemas/JobResponse' }
         reviewedBy:
-          allOf: [{ $ref: '#/components/schemas/StaffRef' }]
+          type: string
+          format: uuid
           nullable: true
-          description: null khi JD chưa được cán bộ xử lý (kể cả JD seed và dữ liệu backfill)
-        companyLocked: { type: boolean, description: 'Công ty của JD đang LOCKED (nhãn "Công ty đang bị khoá")' }
+          description: userId của cán bộ xử lý gần nhất (duyệt, trả lại hoặc đóng); null khi chưa ai xử lý. Tên cán bộ xem ở lịch sử công ty.
+        company:
+          type: object
+          nullable: true
+          properties:
+            id: { type: string, format: uuid }
+            name: { type: string }
+            status: { $ref: '#/components/schemas/CompanyStatus' }
+            industry: { type: string, nullable: true }
+            size: { type: string, nullable: true }
+            city: { type: string, nullable: true }
+            logoUrl: { type: string, nullable: true }
     MatchSkill:
       type: object
       required: [skill, required, minScore, candidateScore]
