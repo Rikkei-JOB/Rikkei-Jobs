@@ -22,7 +22,7 @@ Cán bộ tuyển dụng (STAFF) kiểm soát JD trước khi ứng viên thấy
 2. Trả lại không có lý do → 400; HR thấy lý do, sửa và gửi lại được (phần HR đã có từ DN-02).
 3. Khoá công ty A → JD của A biến khỏi trang việc làm, hr1 không đăng nhập được; mở khoá → hiện lại.
 4. Lịch sử ghi người làm, thời điểm, lý do.
-5. Duyệt JD đang `DRAFT` → lỗi, không duyệt được. **Cập nhật 27/11:** `StaffJobService` của UI-01 coi JD nháp là không tồn tại với cán bộ nên trả **404** `NOT_FOUND` thay vì 409 (`GET /staff/jobs` cũng không liệt kê JD nháp); 409 `INVALID_JOB_STATUS` dành cho `REJECTED`/`APPROVED`/`CLOSED`. Tinh thần của tiêu chí vẫn đạt: JD nháp không duyệt được và không ghi lịch sử.
+5. Duyệt JD đang `DRAFT` → lỗi, không duyệt được: **409** `INVALID_JOB_STATUS` "JD vẫn là bản nháp, HR chưa gửi duyệt nên cán bộ không xử lý được.", giống `REJECTED`/`APPROVED`/`CLOSED`, và áp dụng cho cả `reject` và `close`. **404 chỉ dành cho id không có trong DB.** Phần *xem* giữ nguyên hành vi của UI-01: JD nháp không có trong `GET /staff/jobs`, không tính vào `/staff/jobs/summary`, và `GET /staff/jobs/{id}` của JD nháp vẫn trả 404 (cán bộ không được xem bản nháp của HR). Lỗi ném trước khi đổi dữ liệu nên không ghi dòng `company_actions` nào. **Cập nhật 27/11 (lần 2):** bản UI-01 trả 404 cho cả thao tác; DN-07 sửa `StaffJobService` tách hai cách đọc JD (`visibleJob` cho phần xem, `reviewableJob` cho phần thao tác) để đúng tiêu chí này, kéo theo sửa test `draftsAreHiddenAndOnlyStaffAllowed` của UI-01.
 6. PR vào `test` có cách chạy, dữ liệu mẫu, ảnh màn hình; OpenAPI cập nhật endpoint mới. Làm đủ DB, BE, FE.
 
 ### Phạm vi
@@ -118,28 +118,28 @@ Một JD **hiện với ứng viên** khi và chỉ khi: `status = APPROVED` **v
 
 ### 4.4 Cán bộ xử lý JD — **UI-01 là nền, DN-07 bổ sung `close` + lịch sử + `JOB_EXPIRED`**
 
-Mọi endpoint `/staff/jobs/**` là `@PreAuthorize(Roles.STAFF_OR_ADMIN)` (UI-01, theo ma trận quyền NT-01); token HR/CANDIDATE → 403. Cán bộ **không thấy JD nháp**: `GET /staff/jobs` chỉ liệt kê `PENDING`/`APPROVED`/`REJECTED`/`CLOSED`, còn mọi thao tác trên JD `DRAFT` trả 404 `NOT_FOUND` "Không tìm thấy JD.". Mỗi thao tác chạy trong một transaction, `saveAndFlush` để xung đột `@Version` của `jobs` lộ ra ngay (→ 409 `CONFLICT`, handler đã có), ghi `reviewed_by = principal.userId()`, `reviewed_at = now`, và **một** dòng `company_actions` trong cùng transaction (phần DN-07 thêm vào UI-01).
+Mọi endpoint `/staff/jobs/**` là `@PreAuthorize(Roles.STAFF_OR_ADMIN)` (UI-01, theo ma trận quyền NT-01); token HR/CANDIDATE → 403. Cán bộ **không thấy JD nháp**: `GET /staff/jobs` chỉ liệt kê `PENDING`/`APPROVED`/`REJECTED`/`CLOSED` và `GET /staff/jobs/{id}` của JD nháp trả 404 `NOT_FOUND` "Không tìm thấy JD." (`visibleJob`). Nhưng **thao tác** trên JD nháp đang tồn tại trả 409 `INVALID_JOB_STATUS` (`reviewableJob`), vì JD có thật, chỉ sai trạng thái; 404 dành cho id không có trong DB (tiêu chí 5). Mỗi thao tác chạy trong một transaction, `saveAndFlush` để xung đột `@Version` của `jobs` lộ ra ngay (→ 409 `CONFLICT`, handler đã có), ghi `reviewed_by = principal.userId()`, `reviewed_at = now`, và **một** dòng `company_actions` trong cùng transaction (phần DN-07 thêm vào UI-01).
 
 **`GET /staff/jobs?status=&q=&companyId=&page=1&size=20`** → `200` `PageResponse<StaffJobItem>`. `status` tuỳ chọn (bỏ trống = mọi trạng thái trừ `DRAFT`, dùng cho tab "JD của công ty"); `status=DRAFT` → 400 "Cán bộ không xem được JD nháp."; `q` tìm theo tiêu đề, vị trí, tên công ty; `companyId` tuỳ chọn, sai → 400. Sắp: `status=PENDING` theo `updated_at` **tăng dần** (gửi sớm nhất trước — JD đang `PENDING` không sửa được nên `updated_at` chính là lúc gửi); các trường hợp khác `updated_at` giảm dần. `StaffJobItem`: `id, title, level, status, deadline, submittedAt` (= `updatedAt`), `reviewedAt, requiredSkillCount, rejectReason` (chỉ khác null khi `REJECTED`), `companyId, companyName, companyStatus`.
 
 **`GET /staff/jobs/summary`** → `200` `{total, byStatus}` với đủ 4 khoá `PENDING`/`APPROVED`/`REJECTED`/`CLOSED` (số JD toàn hệ thống, không tính `DRAFT`); màn Duyệt JD lấy số trên tab từ đây.
 
-**`GET /staff/jobs/{id}`** → `200` `StaffJobDetail` = `{job: JobResponse (như HR thấy, gồm status, rejectReason, reviewedAt), reviewedBy: UUID | null, company {id, name, status, industry, size, city, logoUrl}}`. Mọi trạng thái trừ `DRAFT`, mọi công ty (kể cả công ty bị khoá — `company.status = LOCKED` là nguồn của nhãn "Công ty đang bị khoá"). Không tồn tại hoặc nháp → 404. `reviewedBy` là **UUID**, không kèm tên: màn hình tra tên cán bộ qua tab Lịch sử thao tác.
+**`GET /staff/jobs/{id}`** → `200` `StaffJobDetail` = `{job: JobResponse (như HR thấy, gồm status, rejectReason, reviewedAt), reviewedBy: UUID | null, company {id, name, status, industry, size, city, logoUrl}}`. Mọi trạng thái trừ `DRAFT`, mọi công ty (kể cả công ty bị khoá — `company.status = LOCKED` là nguồn của nhãn "Công ty đang bị khoá"). Không tồn tại hoặc nháp → 404 (chỉ phần xem; thao tác trên JD nháp là 409 — xem dưới). `reviewedBy` là **UUID**, không kèm tên: màn hình tra tên cán bộ qua tab Lịch sử thao tác.
 
 **`POST /staff/jobs/{id}/approve`** (không body) → `200` `StaffJobDetail`.
-- Chỉ từ `PENDING` → `APPROVED`; `REJECTED`/`APPROVED`/`CLOSED` → **409** `INVALID_JOB_STATUS` "JD không ở trạng thái chờ duyệt (có thể cán bộ khác vừa xử lý)."; `DRAFT` → **404** (tiêu chí 5).
+- Chỉ từ `PENDING` → `APPROVED`; `REJECTED`/`APPROVED`/`CLOSED` → **409** `INVALID_JOB_STATUS` "JD không ở trạng thái chờ duyệt (có thể cán bộ khác vừa xử lý)."; `DRAFT` → **409** `INVALID_JOB_STATUS` "JD vẫn là bản nháp, HR chưa gửi duyệt nên cán bộ không xử lý được." (tiêu chí 5); id không có → 404.
 - `deadline < hôm nay` → **409** `JOB_EXPIRED` (mã mới của DN-07, message "Hạn nộp của JD đã qua. Hãy trả lại để HR cập nhật hạn nộp trước khi duyệt.").
 - Xoá `reject_reason`. Ghi `APPROVE_JD`, `reason` NULL.
 - Công ty bị khoá vẫn duyệt được; JD chỉ hiện khi công ty được mở khoá (chốt).
 
 **`POST /staff/jobs/{id}/reject`** body `{reason}` → `200` `StaffJobDetail`.
 - `reason` bắt buộc, trim, 1–1000 ký tự; thiếu, rỗng hoặc chỉ khoảng trắng → **400** `VALIDATION_ERROR`, `errors.reason` (tiêu chí 2).
-- Chỉ từ `PENDING` → `REJECTED`; khác → 409 `INVALID_JOB_STATUS` (`DRAFT` → 404).
+- Chỉ từ `PENDING` → `REJECTED`; khác → 409 `INVALID_JOB_STATUS` (kể cả `DRAFT`, với thông báo riêng của bản nháp); id không có → 404.
 - Ghi `reject_reason = reason`, action `REJECT_JD` kèm lý do. HR thấy lý do trên form DN-02 và gửi lại được (đã có).
 
 **`POST /staff/jobs/{id}/close`** body `{reason}` → `200` `StaffJobDetail` (endpoint của DN-07).
 - `reason` bắt buộc như trên (người thiết kế chọn: đóng do vi phạm phải có lý do).
-- Chỉ từ `APPROVED` → `CLOSED`; khác → 409 `INVALID_JOB_STATUS` "Chỉ đóng được JD đang đăng (đã duyệt)." (`DRAFT` → 404). Ghi `CLOSE_JD` kèm lý do. `reject_reason` không đổi.
+- Chỉ từ `APPROVED` → `CLOSED`; khác → 409 `INVALID_JOB_STATUS` "Chỉ đóng được JD đang đăng (đã duyệt)." (`DRAFT` cũng 409, với thông báo riêng của bản nháp); id không có → 404. Ghi `CLOSE_JD` kèm lý do. `reject_reason` không đổi.
 - Đóng JD **ghi đè `reviewed_by`/`reviewed_at`** bằng người đóng và thời điểm đóng (dùng chung đường `review(...)` với duyệt / trả lại): người duyệt trước đó chỉ còn trong `company_actions`. Lý do đóng cũng chỉ nằm trong lịch sử, không có trong `StaffJobDetail`.
 
 **Lý do (`ReasonRules`, dùng chung cho `reject`, `close`, `lock`)**: strip hai đầu rồi kiểm; chuỗi chỉ gồm khoảng trắng (kể cả khoảng trắng không ngắt U+00A0, U+2007, U+202F) coi như thiếu → `errors.reason` = "Vui lòng nhập lý do"; dài hơn 1000 ký tự sau khi strip → "Lý do tối đa 1000 ký tự". Hai thông điệp này là bản chuẩn; `RejectJobRequest` của UI-01 dùng cùng chuỗi (trước 27/11 nó ghi "Vui lòng nhập lý do trả lại." / "Lý do tối đa 1.000 ký tự.").
@@ -250,7 +250,7 @@ Test backend không cần Postgres (H2 + Flyway như các service hiện có). G
 | 1 | `GET /public/jobs`: chỉ JD `APPROVED`, còn hạn (ranh giới hôm nay theo giờ VN), công ty `ACTIVE`; JD `PENDING`/`DRAFT`/`REJECTED`/`CLOSED`/quá hạn/công ty khoá không có; gọi không token → 200; bộ lọc và phân trang (UI-01 đã có test) | company | 1 |
 | 2 | `GET /public/jobs/{id}`: JD hiện → 200 không có `status`/`rejectReason`; mọi trường hợp không hiện → cùng 404 | company | 1 |
 | 3 | Duyệt JD `PENDING` → 200, `APPROVED`, `reviewedBy/At`, có dòng `APPROVE_JD`; sau đó xuất hiện ở `GET /public/jobs` | company | 1, 4 |
-| 4 | Duyệt JD `REJECTED`/`APPROVED`/`CLOSED` → 409 `INVALID_JOB_STATUS`, JD `DRAFT` → 404; duyệt JD `PENDING` đã quá hạn → 409 `JOB_EXPIRED`; không ghi lịch sử | company | 5 |
+| 4 | Duyệt JD `REJECTED`/`APPROVED`/`CLOSED` → 409 `INVALID_JOB_STATUS`; `approve`/`reject`/`close` trên JD `DRAFT` → 409 `INVALID_JOB_STATUS` (bản nháp), id không có → 404, `GET /staff/jobs/{id}` của JD nháp → 404; duyệt JD `PENDING` đã quá hạn → 409 `JOB_EXPIRED`; không ghi lịch sử | company | 5 |
 | 5 | Trả lại thiếu / rỗng / > 1000 lý do → 400 `errors.reason`; hợp lệ → `REJECTED`, `rejectReason`; HR `GET /jobs/{id}` thấy lý do, sửa và `submit` → `PENDING` | company | 2 |
 | 6 | Đóng JD `APPROVED` có lý do → `CLOSED`, dòng `CLOSE_JD`; đóng JD khác → 409; thiếu lý do → 400 | company | 4 |
 | 7 | Khoá công ty A: `LOCKED`, dòng `LOCK` kèm lý do, identity nhận đúng danh sách HR (lô ≤ 100) với `locked: true`; JD của A biến khỏi `GET /public/jobs`, JD của B còn; `GET /public/jobs/{idA}` → 404; HR của A gọi API company-service → 401 `ACCOUNT_DISABLED`; mở khoá → `ACTIVE`, `UNLOCK`, identity `locked: false`, JD hiện lại | company | 3, 4 |
@@ -268,7 +268,7 @@ Test backend không cần Postgres (H2 + Flyway như các service hiện có). G
 
 Frontend: `npm run type-check`, `npm run lint`, `npm run build`. `web/` có Playwright e2e (`npm run test:e2e`, `web/e2e/*.spec.ts`, cần stack chạy thật); không bắt buộc thêm e2e cho DN-07, nếu thêm thì một kịch bản duyệt JD → hiện ở trang việc làm.
 
-Kiểm tra tay toàn luồng (dùng cho ảnh màn hình PR): Postgres, MailHog, mock, identity (dev), profile, company (dev), gateway, web. hr1 gửi duyệt một JD → staff1 mở `/staff/jobs` → thấy JD chờ của A và B → mở JD, trả lại không nhập lý do (bị chặn), nhập lý do → trả lại → hr1 thấy lý do trên `/hr/jobs/{id}`, sửa, gửi lại → staff1 duyệt → JD xuất hiện ở trang việc làm `/jobs` (trước khi duyệt thì không) → staff1 đóng một JD đang tuyển (nhập lý do) → staff1 khoá Công ty A (nhập lý do) → JD của A biến khỏi `/jobs` (JD của B còn), hr1 đăng nhập bị từ chối, phiên hr1 đang mở bị đưa về `/login` ở request kế tiếp → tab Lịch sử thao tác có đủ người, thời điểm, lý do → mở khoá → JD hiện lại, hr1 đăng nhập được → duyệt JD `DRAFT` qua API → 404. Ca job tự đóng kiểm bằng test (hoặc gọi tay phương thức qua test).
+Kiểm tra tay toàn luồng (dùng cho ảnh màn hình PR): Postgres, MailHog, mock, identity (dev), profile, company (dev), gateway, web. hr1 gửi duyệt một JD → staff1 mở `/staff/jobs` → thấy JD chờ của A và B → mở JD, trả lại không nhập lý do (bị chặn), nhập lý do → trả lại → hr1 thấy lý do trên `/hr/jobs/{id}`, sửa, gửi lại → staff1 duyệt → JD xuất hiện ở trang việc làm `/jobs` (trước khi duyệt thì không) → staff1 đóng một JD đang tuyển (nhập lý do) → staff1 khoá Công ty A (nhập lý do) → JD của A biến khỏi `/jobs` (JD của B còn), hr1 đăng nhập bị từ chối, phiên hr1 đang mở bị đưa về `/login` ở request kế tiếp → tab Lịch sử thao tác có đủ người, thời điểm, lý do → mở khoá → JD hiện lại, hr1 đăng nhập được → duyệt JD `DRAFT` qua API → 409 (và `GET /staff/jobs/{id}` của JD đó → 404). Ca job tự đóng kiểm bằng test (hoặc gọi tay phương thức qua test).
 
 ## 8. Tài liệu bàn giao
 

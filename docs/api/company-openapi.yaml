@@ -16,7 +16,7 @@ tags:
   - name: public-job
     description: 'Trang việc làm công khai (UI-01), không cần đăng nhập, ở /public/**. Một JD hiện với ứng viên khi và chỉ khi status = APPROVED, deadline >= hôm nay theo Asia/Ho_Chi_Minh (hoặc không ghi hạn nộp) và công ty ACTIVE - quy tắc viết một chỗ ở PublicJobSpecifications.visible. Điểm khớp (matchScore, sort=match) chưa làm.'
   - name: staff-job
-    description: Cán bộ duyệt / trả lại / đóng JD (role STAFF hoặc ADMIN; hàng chờ và duyệt / trả lại của UI-01, đóng JD của DN-07). Mỗi thao tác ghi reviewedBy/At và một dòng lịch sử company_actions trong cùng transaction (phần DN-07). JD nháp không hiện với cán bộ và trả 404.
+    description: Cán bộ duyệt / trả lại / đóng JD (role STAFF hoặc ADMIN; hàng chờ và duyệt / trả lại của UI-01, đóng JD của DN-07). Mỗi thao tác ghi reviewedBy/At và một dòng lịch sử company_actions trong cùng transaction (phần DN-07). JD nháp không hiện với cán bộ - không có trong danh sách / summary và xem chi tiết trả 404, nhưng duyệt / trả lại / đóng một JD nháp trả 409 INVALID_JOB_STATUS (JD có thật, chỉ sai trạng thái).
   - name: match
     description: Điểm khớp ứng viên với JD theo kỹ năng (DN-06). CANDIDATE xem của mình, HR/STAFF xem của ứng viên. Công thức ở docs/matching.md.
   - name: internal
@@ -411,7 +411,7 @@ paths:
             application/json:
               schema: { $ref: '#/components/schemas/Error' }
         '404':
-          description: NOT_FOUND - không có JD, hoặc JD đang là nháp (DRAFT)
+          description: NOT_FOUND - không có JD, hoặc JD đang là nháp (DRAFT - cán bộ không xem được bản nháp; riêng approve/reject/close trả 409 cho JD nháp)
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Error' }
@@ -448,12 +448,12 @@ paths:
             application/json:
               schema: { $ref: '#/components/schemas/Error' }
         '404':
-          description: NOT_FOUND - không có JD, hoặc JD đang là nháp (DRAFT)
+          description: NOT_FOUND - không có JD nào với id này
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Error' }
         '409':
-          description: 'INVALID_JOB_STATUS - JD không ở PENDING (REJECTED, APPROVED, CLOSED); JOB_EXPIRED - "Hạn nộp của JD đã qua. Hãy trả lại để HR cập nhật hạn nộp trước khi duyệt."; CONFLICT - JD vừa được xử lý ở nơi khác (@Version)'
+          description: 'INVALID_JOB_STATUS - JD không ở PENDING (DRAFT, REJECTED, APPROVED, CLOSED); JD nháp trả "JD vẫn là bản nháp, HR chưa gửi duyệt nên cán bộ không xử lý được."; JOB_EXPIRED - "Hạn nộp của JD đã qua. Hãy trả lại để HR cập nhật hạn nộp trước khi duyệt."; CONFLICT - JD vừa được xử lý ở nơi khác (@Version)'
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Error' }
@@ -493,12 +493,12 @@ paths:
             application/json:
               schema: { $ref: '#/components/schemas/Error' }
         '404':
-          description: NOT_FOUND - không có JD, hoặc JD đang là nháp (DRAFT)
+          description: NOT_FOUND - không có JD nào với id này
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Error' }
         '409':
-          description: INVALID_JOB_STATUS - JD không ở PENDING; CONFLICT - JD vừa được xử lý ở nơi khác
+          description: 'INVALID_JOB_STATUS - JD không ở PENDING (JD nháp cũng vào đây: "JD vẫn là bản nháp, HR chưa gửi duyệt nên cán bộ không xử lý được."); CONFLICT - JD vừa được xử lý ở nơi khác'
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Error' }
@@ -540,12 +540,12 @@ paths:
             application/json:
               schema: { $ref: '#/components/schemas/Error' }
         '404':
-          description: NOT_FOUND - không có JD, hoặc JD đang là nháp (DRAFT)
+          description: NOT_FOUND - không có JD nào với id này
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Error' }
         '409':
-          description: 'INVALID_JOB_STATUS - "Chỉ đóng được JD đang đăng (đã duyệt)."; CONFLICT - JD vừa được xử lý ở nơi khác'
+          description: 'INVALID_JOB_STATUS - "Chỉ đóng được JD đang đăng (đã duyệt)."; JD nháp trả "JD vẫn là bản nháp, HR chưa gửi duyệt nên cán bộ không xử lý được."; CONFLICT - JD vừa được xử lý ở nơi khác'
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Error' }

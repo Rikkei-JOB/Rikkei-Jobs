@@ -8,7 +8,9 @@
 # Nen tang la UI-01: trang viec lam cong khai nam o GET /public/jobs, /public/jobs/{id}, /public/companies[/{id}];
 # chi tiet JD cua HR van la GET /jobs/{id} (DN-02). Hang cho + duyet / tra lai la /staff/jobs** cua UI-01
 # (quyen STAFF hoac ADMIN); DN-07 them POST /staff/jobs/{id}/close, ghi lich su company_actions va ma JOB_EXPIRED.
-# Can bo khong thay JD nhap: moi thao tac tren JD DRAFT tra 404 (khong phai 409).
+# Can bo khong thay JD nhap: danh sach / summary bo JD DRAFT va GET /staff/jobs/{id} tra 404.
+# Nhung approve / reject / close tren mot JD DRAFT dang ton tai tra 409 INVALID_JOB_STATUS (tieu chi 5);
+# 404 chi danh cho id khong co trong DB.
 
 @gw = http://localhost:8080/api/v1
 @identity = http://localhost:8081
@@ -151,8 +153,26 @@ Authorization: Bearer {{hr1Login.response.body.accessToken}}
 POST {{gw}}/jobs/{{jdPendingA}}/submit
 Authorization: Bearer {{hr1Login.response.body.accessToken}}
 
-### 4e. Duyet JD nhap -> 404 NOT_FOUND "Không tìm thấy JD." (can bo khong thay ban nhap), khong ghi lich su
+### 4e. Duyet JD nhap -> 409 INVALID_JOB_STATUS "JD vẫn là bản nháp, HR chưa gửi duyệt nên cán bộ không xử lý được.", khong ghi lich su
 POST {{gw}}/staff/jobs/{{jdDraftA}}/approve
+Authorization: Bearer {{staffSso.response.body.accessToken}}
+
+### 4e-2. Tra lai JD nhap -> 409 INVALID_JOB_STATUS (cung thong bao), khong ghi lich su
+POST {{gw}}/staff/jobs/{{jdDraftA}}/reject
+Authorization: Bearer {{staffSso.response.body.accessToken}}
+Content-Type: application/json
+
+{ "reason": "Thu tra lai ban nhap" }
+
+### 4e-3. Dong JD nhap -> 409 INVALID_JOB_STATUS (cung thong bao), khong ghi lich su
+POST {{gw}}/staff/jobs/{{jdDraftA}}/close
+Authorization: Bearer {{staffSso.response.body.accessToken}}
+Content-Type: application/json
+
+{ "reason": "Thu dong ban nhap" }
+
+### 4e-4. Duyet mot id khong ton tai -> 404 NOT_FOUND "Không tìm thấy JD."
+POST {{gw}}/staff/jobs/00000000-0000-0000-0000-0000000000ff/approve
 Authorization: Bearer {{staffSso.response.body.accessToken}}
 
 ### 4f. Duyet JD cho duyet -> 200 APPROVED, rejectReason null, reviewedAt moi

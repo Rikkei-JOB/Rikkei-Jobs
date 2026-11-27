@@ -63,7 +63,8 @@ public class StaffJobController {
     }
 
     @Operation(summary = "Chi tiết JD (cán bộ)", description = "Vai trò: STAFF hoặc ADMIN. Mọi công ty, kể cả công ty đang bị khoá "
-            + "(company.status = LOCKED). JD nháp trả 404. reviewedBy là userId cán bộ xử lý gần nhất, null khi chưa ai xử lý.")
+            + "(company.status = LOCKED). JD nháp trả 404 (cán bộ không xem được bản nháp của HR; riêng approve/reject/close trả 409). "
+            + "reviewedBy là userId cán bộ xử lý gần nhất, null khi chưa ai xử lý.")
     @ApiResponse(responseCode = "404", description = "NOT_FOUND: không có JD hoặc JD đang là nháp")
     @GetMapping("/{id}")
     public StaffJobDetail get(@PathVariable UUID id) {
@@ -74,9 +75,9 @@ public class StaffJobController {
             + "ghi lịch sử công ty APPROVE_JD (DN-07). JD quá hạn nộp không duyệt được. JD của công ty bị khoá vẫn duyệt được nhưng "
             + "chỉ hiện ở trang việc làm khi công ty được mở khoá.")
     @ApiResponse(responseCode = "403", description = "FORBIDDEN: không phải STAFF/ADMIN")
-    @ApiResponse(responseCode = "404", description = "NOT_FOUND: không có JD hoặc JD đang là nháp")
-    @ApiResponse(responseCode = "409", description = "INVALID_JOB_STATUS: JD không chờ duyệt hoặc cán bộ khác vừa xử lý; "
-            + "JOB_EXPIRED: hạn nộp đã qua; CONFLICT: JD vừa được cập nhật ở nơi khác")
+    @ApiResponse(responseCode = "404", description = "NOT_FOUND: không có JD với id này")
+    @ApiResponse(responseCode = "409", description = "INVALID_JOB_STATUS: JD không chờ duyệt (kể cả JD nháp: HR chưa gửi duyệt) "
+            + "hoặc cán bộ khác vừa xử lý; JOB_EXPIRED: hạn nộp đã qua; CONFLICT: JD vừa được cập nhật ở nơi khác")
     @PostMapping("/{id}/approve")
     public StaffJobDetail approve(@PathVariable UUID id, @AuthenticationPrincipal AuthPrincipal principal) {
         return service.approve(principal.getUserId(), id);
@@ -86,8 +87,9 @@ public class StaffJobController {
             + "1-1000 ký tự), ghi lịch sử công ty REJECT_JD (DN-07). HR thấy lý do trên form JD và gửi duyệt lại được.")
     @ApiResponse(responseCode = "400", description = "VALIDATION_ERROR: thiếu hoặc quá dài lý do (errors.reason)")
     @ApiResponse(responseCode = "403", description = "FORBIDDEN: không phải STAFF/ADMIN")
-    @ApiResponse(responseCode = "404", description = "NOT_FOUND: không có JD hoặc JD đang là nháp")
-    @ApiResponse(responseCode = "409", description = "INVALID_JOB_STATUS: JD không chờ duyệt; CONFLICT: JD vừa được cập nhật ở nơi khác")
+    @ApiResponse(responseCode = "404", description = "NOT_FOUND: không có JD với id này")
+    @ApiResponse(responseCode = "409", description = "INVALID_JOB_STATUS: JD không chờ duyệt (kể cả JD nháp); "
+            + "CONFLICT: JD vừa được cập nhật ở nơi khác")
     @PostMapping("/{id}/reject")
     public StaffJobDetail reject(@PathVariable UUID id, @AuthenticationPrincipal AuthPrincipal principal,
                                  @Valid @RequestBody RejectJobRequest request) {
@@ -101,8 +103,9 @@ public class StaffJobController {
     @ApiResponse(responseCode = "400", description = "VALIDATION_ERROR: thiếu hoặc quá dài lý do (errors.reason)")
     @ApiResponse(responseCode = "401", description = "UNAUTHORIZED: thiếu hoặc sai token")
     @ApiResponse(responseCode = "403", description = "FORBIDDEN: không phải STAFF/ADMIN")
-    @ApiResponse(responseCode = "404", description = "NOT_FOUND: không có JD hoặc JD đang là nháp")
-    @ApiResponse(responseCode = "409", description = "INVALID_JOB_STATUS: JD không ở APPROVED; CONFLICT: JD vừa được cập nhật ở nơi khác")
+    @ApiResponse(responseCode = "404", description = "NOT_FOUND: không có JD với id này")
+    @ApiResponse(responseCode = "409", description = "INVALID_JOB_STATUS: JD không ở APPROVED (kể cả JD nháp); "
+            + "CONFLICT: JD vừa được cập nhật ở nơi khác")
     @PostMapping("/{id}/close")
     public StaffJobDetail close(@PathVariable UUID id, @AuthenticationPrincipal AuthPrincipal principal,
                                 @Valid @RequestBody ReasonRequest request) {

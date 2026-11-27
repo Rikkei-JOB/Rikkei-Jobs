@@ -209,8 +209,19 @@ class StaffJobReviewApiTest extends CompanyApiTestSupport {
     @Test
     void draftsAreHiddenAndOnlyStaffAllowed() throws Exception {
         Job draft = jobs.findAll().stream().filter(j -> j.getStatus() == JobStatus.DRAFT).findFirst().orElseThrow();
+        // Xem chi tiết JD nháp: cán bộ không thấy bản nháp nên vẫn 404.
         mvc.perform(get("/staff/jobs/" + draft.getId()).header("Authorization", staff())).andExpect(status().isNotFound());
-        mvc.perform(post("/staff/jobs/" + draft.getId() + "/approve").header("Authorization", staff())).andExpect(status().isNotFound());
+        // DN-07: JD nháp vẫn tồn tại nên thao tác duyệt / trả lại / đóng trả 409, không phải 404.
+        mvc.perform(post("/staff/jobs/" + draft.getId() + "/approve").header("Authorization", staff()))
+                .andExpect(status().isConflict()).andExpect(jsonPath("$.code").value("INVALID_JOB_STATUS"));
+        reject(draft.getId(), "{\"reason\":\"Thiếu mức lương\"}")
+                .andExpect(status().isConflict()).andExpect(jsonPath("$.code").value("INVALID_JOB_STATUS"));
+        close(draft.getId(), "{\"reason\":\"Vi phạm\"}")
+                .andExpect(status().isConflict()).andExpect(jsonPath("$.code").value("INVALID_JOB_STATUS"));
+        assertThat(jobs.findById(draft.getId()).orElseThrow().getStatus()).isEqualTo(JobStatus.DRAFT);
+        // id không có trong DB mới là 404.
+        mvc.perform(post("/staff/jobs/" + UUID.randomUUID() + "/approve").header("Authorization", staff()))
+                .andExpect(status().isNotFound());
         mvc.perform(get("/staff/jobs")).andExpect(status().isUnauthorized());
         mvc.perform(get("/staff/jobs").header("Authorization", "Bearer " + token(Role.HR))).andExpect(status().isForbidden());
         // Ma trận quyền NT-01: quản trị cũng duyệt được JD.

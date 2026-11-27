@@ -43,6 +43,8 @@ import org.springframework.transaction.annotation.Transactional;
  * DN-07: cán bộ duyệt hoặc trả lại JD đang chờ (PENDING), đóng JD đang đăng. Cán bộ không thấy bản nháp của HR.
  * Duyệt: PENDING -> APPROVED, ghi reviewedBy/At, xoá lý do cũ. Trả lại: PENDING -> REJECTED kèm lý do.
  * Đóng: APPROVED -> CLOSED kèm lý do. Mỗi thao tác ghi một dòng company_actions trong cùng transaction.
+ * JD nháp: không có trong danh sách / summary và xem chi tiết trả 404, nhưng duyệt / trả lại / đóng trả
+ * 409 INVALID_JOB_STATUS (JD tồn tại, chỉ sai trạng thái); 404 dành riêng cho id không có trong DB.
  * Hai cán bộ thao tác cùng lúc: @Version của Job làm người sau nhận 409.
  */
 @Service
@@ -138,7 +140,7 @@ public class StaffJobService {
     @Transactional
     public StaffJobDetail close(UUID staffId, UUID id, String reason) {
         String cleaned = ReasonRules.clean(reason);
-        Job job = visibleJob(id);
+        Job job = reviewableJob(id);
         if (job.getStatus() != JobStatus.APPROVED) {
             throw new CompanyException(CompanyErrorCode.INVALID_JOB_STATUS, "Chỉ đóng được JD đang đăng (đã duyệt).");
         }
@@ -159,13 +161,27 @@ public class StaffJobService {
     }
 
     private Job pending(UUID id) {
-        Job job = visibleJob(id);
+        Job job = reviewableJob(id);
         if (job.getStatus() != JobStatus.PENDING) {
             throw new CompanyException(CompanyErrorCode.INVALID_JOB_STATUS, "JD không ở trạng thái chờ duyệt (có thể cán bộ khác vừa xử lý).");
         }
         return job;
     }
 
+    /**
+     * Đọc JD để duyệt / trả lại / đóng: JD nháp vẫn tồn tại nên trả 409 INVALID_JOB_STATUS (DN-07),
+     * 404 chỉ dành cho id không có trong DB. Khác với {@link #visibleJob(UUID)} dùng cho phần xem.
+     */
+    private Job reviewableJob(UUID id) {
+        Job job = jobRepository.findById(id).orElseThrow(() -> new ResourceNotFoundException(NOT_FOUND));
+        if (job.getStatus() == JobStatus.DRAFT) {
+            throw new CompanyException(CompanyErrorCode.INVALID_JOB_STATUS,
+                    "JD vẫn là bản nháp, HR chưa gửi duyệt nên cán bộ không xử lý được.");
+        }
+        return job;
+    }
+
+    /** Đọc JD để xem chi tiết: cán bộ không thấy bản nháp của HR, nên JD nháp trả 404 như id không tồn tại. */
     private Job visibleJob(UUID id) {
         return jobRepository.findById(id).filter(job -> job.getStatus() != JobStatus.DRAFT)
                 .orElseThrow(() -> new ResourceNotFoundException(NOT_FOUND));
