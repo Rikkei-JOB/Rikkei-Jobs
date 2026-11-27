@@ -109,6 +109,14 @@ body:has(.hr-shell) {
     --input: oklch(0.929 0.013 256);
 }
 
+/* Trang Hồ sơ/CV ứng viên: Button mặc định dùng đỏ thương hiệu; body:has để dialog portal ra body cũng nhận.
+   shortcut: chỉ áp cho trang có .candidate-brand, khi chuyển cả khu ứng viên sang theme chung thì gộp vào khối trên. */
+body:has(.candidate-brand) {
+    --primary: oklch(0.5 0.185 24);
+    --primary-foreground: oklch(1 0 0);
+    --ring: oklch(0.5 0.185 24);
+}
+
 .dark {
     --background: oklch(0.145 0 0);
     --foreground: oklch(0.985 0 0);
