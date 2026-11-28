@@ -186,7 +186,7 @@ paths:
         theo lô 100 cho mọi HR trong company_hr (kể cả HR đang bị khoá riêng) TRƯỚC khi commit. identity lỗi (tắt, timeout, 4xx, 5xx) → 503,
         transaction rollback, công ty và lịch sử không đổi; các lô đã gửi được gọi bù locked=false. Công ty không có HR thì không gọi identity.
         Sau khi khoá, HR không đăng nhập được (403 ACCOUNT_DISABLED ở identity), token đang còn hạn bị chặn 401 ACCOUNT_DISABLED ở identity,
-        company-service (HrLockedFilter) và recruitment-service; JD APPROVED biến khỏi GET /jobs, GET /jobs/{id} trả 404; application-context
+        company-service (HrLockedFilter) và recruitment-service; JD APPROVED biến khỏi GET /public/jobs, GET /public/jobs/{id} trả 404; application-context
         trả companyLocked = true. JD giữ nguyên trạng thái, mở khoá là hiện lại. Tạo HR mới cho công ty bị khoá trả 403 COMPANY_LOCKED.
       security: [{ bearerAuth: [] }]
       parameters:
@@ -240,7 +240,7 @@ paths:
       description: |
         Vai trò STAFF. Không có body. Chỉ từ LOCKED → ACTIVE; ghi lịch sử UNLOCK (reason null) và gọi identity company-lock {locked: false} cho mọi HR
         của công ty, lỗi xử lý như khoá (503, không đổi gì). HR đang bị khoá riêng (DN-05) vẫn bị khoá sau khi mở khoá công ty. JD APPROVED còn hạn
-        hiện lại ở GET /jobs.
+        hiện lại ở GET /public/jobs.
       security: [{ bearerAuth: [] }]
       parameters:
         - { name: id, in: path, required: true, schema: { type: string, format: uuid } }

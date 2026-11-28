@@ -243,7 +243,7 @@ Authorization: Bearer {{hr1Login.response.body.accessToken}}
 GET {{gw}}/jobs/{{jdApproved}}
 
 ### 6e. (UI-01) Trang viec lam cong khai la GET /public/jobs/{id}, khong token -> 200 voi JD dang tuyen, 404 voi JD chua duyet
-GET {{gw}}/jobs/{{jdApproved}}
+GET {{gw}}/public/jobs/{{jdApproved}}
 
 ############################## 7. API noi bo cho UT-01 (KHONG qua gateway) ##############################
 
