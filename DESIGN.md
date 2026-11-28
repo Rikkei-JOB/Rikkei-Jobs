@@ -230,3 +230,4 @@ Các bản đặc tả riêng trong `docs/superpowers/specs/` giải thích từ
 | 1.3 | 26/11/2026 | Mỗi vai trò làm việc một bố cục điều hướng riêng trên nền sáng (Mentor sidebar, Cán bộ rail icon, Quản trị sidebar nhóm + breadcrumb); bỏ `WorkspaceShell`/`ManagerShell`. |
 | 1.4 | 26/11/2026 | Làm lại trang đăng nhập (2 cột, `?tab=hr`, nút đỏ qua `.auth-theme`); sửa trạng thái tab đang chọn theo `aria-selected`. |
 | 1.5 | 26/11/2026 | Gộp `test` (HS-04, UT-03): màn liên hệ UT-03 mở đầu bằng `TaskBanner`, dropdown dùng `SelectMenu`; mục "Mở liên hệ"/"Nhật ký liên hệ" vào rail cán bộ, "Lịch sử xem liên hệ" vào nhóm Hồ sơ của ứng viên. |
+| 1.6 | 26/11/2026 | Hồ sơ `/candidate/profile` và CV `/candidate/cvs` mở đầu bằng `TaskBanner`; lớp `.candidate-brand` (qua `body:has`) đổi `--primary` sang đỏ cho Button mặc định và dialog của hai trang; thanh bậc kỹ năng theo thang đỏ; card Kinh nghiệm theo chuẩn card hồ sơ, rỗng có hướng dẫn và liên kết tìm việc. |

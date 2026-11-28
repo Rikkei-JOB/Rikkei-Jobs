@@ -19,29 +19,30 @@ import type { SkillProfileItem, SkillEvidence, SkillLevel, SkillSource } from "@
 import { getErrorMessage } from "@/services/api";
 import { BADGE, META, SECONDARY_CTA, SECTION_TITLE, TONE } from "@/app/components/profile/display";
 
+// Bậc kỹ năng theo thang đỏ thương hiệu (DESIGN.md: không thêm màu ngoài bảng màu).
 const LEVEL_CONFIG: Record<
   NonNullable<SkillLevel>,
   { label: string; badgeClass: string; barClass: string }
 > = {
   EXCELLENT: {
     label: "Xuất sắc",
-    badgeClass: "bg-purple-100 text-purple-800 border-purple-200 dark:bg-purple-950/60 dark:text-purple-300 dark:border-purple-800",
-    barClass: "bg-purple-600",
+    badgeClass: "bg-[#B4232D] text-white border-[#B4232D]",
+    barClass: "bg-[#941C25]",
   },
   GOOD: {
     label: "Tốt",
-    badgeClass: "bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-950/60 dark:text-blue-300 dark:border-blue-800",
-    barClass: "bg-blue-600",
+    badgeClass: "bg-[#FFF1F2] text-[#941C25] border-[#FECDD3]",
+    barClass: "bg-[#B4232D]",
   },
   FAIR: {
     label: "Khá",
-    badgeClass: "bg-sky-100 text-sky-800 border-sky-200 dark:bg-sky-950/60 dark:text-sky-300 dark:border-sky-800",
-    barClass: "bg-sky-500",
+    badgeClass: "bg-[#FFF7F7] text-[#B4232D] border-[#FBD5D8]",
+    barClass: "bg-[#E07A82]",
   },
   BASIC: {
     label: "Cơ bản",
-    badgeClass: "bg-slate-100 text-slate-800 border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700",
-    barClass: "bg-slate-500",
+    badgeClass: "bg-slate-100 text-slate-700 border-slate-200",
+    barClass: "bg-slate-400",
   },
 };
 

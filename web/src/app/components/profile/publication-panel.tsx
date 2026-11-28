@@ -10,7 +10,6 @@ import { ApiError, getErrorMessage } from "@/services/api";
 import type { CandidateProfile } from "@/interface/candidate-profile";
 
 const statuses = { PRIVATE: "Riêng tư", PENDING: "Chờ duyệt", PUBLIC: "Đã công khai", REJECTED: "Đã trả lại" };
-const actions = { SUBMIT: "Gửi duyệt", APPROVE: "Duyệt công khai", REJECT: "Trả lại", WITHDRAW: "Rút yêu cầu công khai" };
 
 export function PublicationPanel({ initialProfile }: { initialProfile: CandidateProfile }) {
   const client = useQueryClient();
@@ -18,6 +17,7 @@ export function PublicationPanel({ initialProfile }: { initialProfile: Candidate
   const key = ["profile-publication", initialProfile.userId];
   const profile = useQuery({ queryKey: key, queryFn: service.getOwn, initialData: initialProfile,
     staleTime: 0, refetchOnMount: false, refetchOnWindowFocus: true });
+  // Lịch sử không hiển thị nữa, chỉ dùng để lấy lý do trả lại gần nhất.
   const history = useQuery({ queryKey: [...key, "history"], queryFn: service.history,
     staleTime: 0, refetchOnWindowFocus: true });
   const visibility = profile.data.visibility;
@@ -55,21 +55,9 @@ export function PublicationPanel({ initialProfile }: { initialProfile: Candidate
             {mutation.isPending ? "Đang xử lý…" : ({ PRIVATE: "Gửi duyệt", REJECTED: "Gửi lại", PENDING: "Rút yêu cầu", PUBLIC: "Rút công khai" })[visibility]}
           </Button>
           {mutation.error && <Alert variant="destructive">{getErrorMessage(mutation.error)}</Alert>}
-          <h3 className="border-t pt-4 text-sm font-semibold">Lịch sử xét duyệt</h3>
           {(profile.isError || history.isError) && <Alert variant="destructive">
             Chưa tải được dữ liệu mới nhất. <Button variant="outline" onClick={() => client.invalidateQueries({ queryKey: key })}>Tải lại</Button>
           </Alert>}
-          {history.isPending && <p className="text-sm">Đang tải lịch sử…</p>}
-          {history.data?.length === 0 && <p className="text-sm text-muted-foreground">Chưa có lần gửi duyệt nào.</p>}
-          <ol className="space-y-3 text-sm">
-            {history.data?.map(event => <li key={event.id} className="border-l-2 pl-3">
-              <strong>{actions[event.action]}</strong> · {event.actorId === initialProfile.userId ? "Bạn" : "Cán bộ"}
-              <time dateTime={event.createdAt} className="block text-xs text-muted-foreground">
-                {new Date(event.createdAt).toLocaleString("vi-VN")}
-              </time>
-              {event.reason && <p className="break-words">{event.reason}</p>}
-            </li>)}
-          </ol>
         </CardContent>
       </Card>
     </section>

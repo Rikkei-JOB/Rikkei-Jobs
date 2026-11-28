@@ -10,7 +10,7 @@ import { skillService } from "@/services/skill.service";
 import { getErrorMessage } from "@/services/api";
 import type { Skill, SkillProfileItem } from "@/interface/skill";
 
-import { SECTION_TITLE } from "@/app/components/profile/display";
+import { PRIMARY_CTA, SECONDARY_CTA, SECTION_TITLE } from "@/app/components/profile/display";
 import { SelectMenu } from "@/app/components/ui/select-menu";
 
 type Row = { skillId: string; score: string };
@@ -65,7 +65,7 @@ export function SelfSkills({ onSaved }: { onSaved: () => void }) {
   return <Card>
     <CardHeader>
       <h2 className={SECTION_TITLE}>Kỹ năng tự đánh giá</h2>
-      <p className="text-xs text-muted-foreground">Điểm tự khai từ 0–100, không làm thay đổi điểm xác minh từ LMS hoặc các nguồn khác.</p>
+      <p className="text-xs text-muted-foreground">Điểm tự khai từ 0–100, không làm thay đổi điểm xác minh từ LMS hoặc các nguồn khác. Thang tham chiếu: dưới 40 Cơ bản · 40–69 Khá · 70–84 Tốt · từ 85 Xuất sắc.</p>
     </CardHeader>
     <CardContent className="space-y-4">
       {loadError ? <div className="space-y-2"><Alert variant="destructive">{loadError}</Alert>
@@ -87,11 +87,11 @@ export function SelfSkills({ onSaved }: { onSaved: () => void }) {
                   aria-describedby={errors[index]?.score ? `self-score-${index}-error` : undefined}
                   onChange={event => change(rows.map((item, at) => at === index ? { ...item, score: event.target.value } : item))} />
               </FormField>
-              <Button type="button" variant="outline" className="sm:mt-6" aria-label={`Bỏ kỹ năng ${index + 1}`} onClick={() => change(rows.filter((_, at) => at !== index))}>Bỏ</Button>
+              <Button type="button" variant="outline" className={`sm:mt-6 ${SECONDARY_CTA}`} aria-label={`Bỏ kỹ năng ${index + 1}`} onClick={() => change(rows.filter((_, at) => at !== index))}>Bỏ</Button>
             </div>)}
             <div className="flex flex-wrap gap-2">
-              <Button type="button" variant="outline" disabled={catalog.length === 0 || rows.length >= catalog.length} onClick={() => change([...rows, { skillId: "", score: "" }])}>Thêm kỹ năng tự khai</Button>
-              <Button type="submit" disabled={catalog.length === 0}>{saving ? "Đang lưu..." : "Lưu kỹ năng tự khai"}</Button>
+              <Button type="button" variant="outline" className={SECONDARY_CTA} disabled={catalog.length === 0 || rows.length >= catalog.length} onClick={() => change([...rows, { skillId: "", score: "" }])}>Thêm kỹ năng tự khai</Button>
+              <Button type="submit" className={PRIMARY_CTA} disabled={catalog.length === 0}>{saving ? "Đang lưu..." : "Lưu kỹ năng tự khai"}</Button>
             </div>
           </fieldset>
           {saveError ? <Alert variant="destructive">{saveError}</Alert> : null}
