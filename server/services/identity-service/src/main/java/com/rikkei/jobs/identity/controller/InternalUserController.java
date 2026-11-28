@@ -1,5 +1,6 @@
 package com.rikkei.jobs.identity.controller;
 
+import com.rikkei.jobs.identity.dto.request.InternalCompanyLockRequest;
 import com.rikkei.jobs.identity.dto.request.InternalCreateUserRequest;
 import com.rikkei.jobs.identity.dto.request.InternalLockUserRequest;
 import com.rikkei.jobs.identity.dto.request.InternalUserLookupRequest;
@@ -66,6 +67,11 @@ public class InternalUserController {
     @PatchMapping("/{id}/unlock")
     public InternalUserStatusResponse unlock(@PathVariable UUID id) {
         return internalUserService.unlockHr(id);
+    }
+
+    @PostMapping("/company-lock")
+    public List<InternalUserStatusResponse> companyLock(@Valid @RequestBody InternalCompanyLockRequest request) {
+        return internalUserService.setCompanyLock(request.getUserIds(), request.getLocked());
     }
 
     @PostMapping("/lookup")

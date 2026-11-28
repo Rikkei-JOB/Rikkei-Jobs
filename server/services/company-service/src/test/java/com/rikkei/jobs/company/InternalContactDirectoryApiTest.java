@@ -12,7 +12,7 @@ class InternalContactDirectoryApiTest {
         var companies=mock(CompanyRepository.class);var identity=mock(IdentityClient.class);
         UUID company=UUID.randomUUID(),hr=UUID.randomUUID();var entity=new Company();entity.setId(company);entity.setName("Công ty A");
         when(companies.findAllById(Set.of(company))).thenReturn(List.of(entity));
-        when(identity.lookupUsers(List.of(hr))).thenReturn(List.of(new IdentityUserStatus(hr,"private@test","HR A","ACTIVE",null,null,null)));
+        when(identity.lookupUsers(List.of(hr))).thenReturn(List.of(new IdentityUserStatus(hr,"private@test","HR A","ACTIVE",null,null,null,false)));
         var result=new InternalContactDirectoryController(companies,identity).lookup(new InternalContactDirectoryController.Lookup(Set.of(company),Set.of(hr)));
         assertThat(result.companies()).containsEntry(company,"Công ty A");
         assertThat(result.hrs()).containsEntry(hr,"HR A");

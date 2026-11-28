@@ -10,14 +10,18 @@ import com.rikkei.jobs.company.dto.response.StaffJobDtos.StaffJobDetail;
 import com.rikkei.jobs.company.dto.response.StaffJobDtos.StaffJobItem;
 import com.rikkei.jobs.company.dto.response.StaffJobDtos.StaffJobSummary;
 import com.rikkei.jobs.company.entity.Company;
+import com.rikkei.jobs.company.entity.CompanyAction;
+import com.rikkei.jobs.company.entity.CompanyActionType;
 import com.rikkei.jobs.company.entity.Job;
 import com.rikkei.jobs.company.entity.JobStatus;
 import com.rikkei.jobs.company.mapper.JobMapper;
+import com.rikkei.jobs.company.repository.CompanyActionRepository;
 import com.rikkei.jobs.company.repository.CompanyRepository;
 import com.rikkei.jobs.company.repository.JobRepository;
 import com.rikkei.jobs.company.repository.JobSkillRepository;
 import com.rikkei.jobs.company.repository.PublicJobSpecifications;
 import com.rikkei.jobs.company.util.JobRules;
+import com.rikkei.jobs.company.util.ReasonRules;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.EnumMap;
@@ -36,8 +40,11 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * DN-07: cán bộ duyệt hoặc trả lại JD đang chờ (PENDING). Cán bộ không thấy bản nháp của HR.
+ * DN-07: cán bộ duyệt hoặc trả lại JD đang chờ (PENDING), đóng JD đang đăng. Cán bộ không thấy bản nháp của HR.
  * Duyệt: PENDING -> APPROVED, ghi reviewedBy/At, xoá lý do cũ. Trả lại: PENDING -> REJECTED kèm lý do.
+ * Đóng: APPROVED -> CLOSED kèm lý do. Mỗi thao tác ghi một dòng company_actions trong cùng transaction.
+ * JD nháp: không có trong danh sách / summary và xem chi tiết trả 404, nhưng duyệt / trả lại / đóng trả
+ * 409 INVALID_JOB_STATUS (JD tồn tại, chỉ sai trạng thái); 404 dành riêng cho id không có trong DB.
  * Hai cán bộ thao tác cùng lúc: @Version của Job làm người sau nhận 409.
  */
 @Service
@@ -50,6 +57,7 @@ public class StaffJobService {
     private final JobRepository jobRepository;
     private final JobSkillRepository jobSkillRepository;
     private final CompanyRepository companyRepository;
+    private final CompanyActionRepository companyActionRepository;
     private final JobMapper jobMapper;
     private final Clock clock;
 
@@ -111,36 +119,69 @@ public class StaffJobService {
     public StaffJobDetail approve(UUID staffId, UUID id) {
         Job job = pending(id);
         if (job.getDeadline() != null && job.getDeadline().isBefore(JobRules.today(clock))) {
-            throw new CompanyException(CompanyErrorCode.INVALID_JOB_STATUS,
+            throw new CompanyException(CompanyErrorCode.JOB_EXPIRED,
                     "Hạn nộp của JD đã qua. Hãy trả lại để HR cập nhật hạn nộp trước khi duyệt.");
         }
         job.setStatus(JobStatus.APPROVED);
         job.setRejectReason(null);
-        return review(staffId, job);
+        return review(staffId, job, CompanyActionType.APPROVE_JD, null);
     }
 
     @Transactional
     public StaffJobDetail reject(UUID staffId, UUID id, String reason) {
+        String cleaned = ReasonRules.clean(reason);
         Job job = pending(id);
         job.setStatus(JobStatus.REJECTED);
-        job.setRejectReason(reason);
-        return review(staffId, job);
+        job.setRejectReason(cleaned);
+        return review(staffId, job, CompanyActionType.REJECT_JD, cleaned);
     }
 
-    private StaffJobDetail review(UUID staffId, Job job) {
+    /** DN-07: đóng JD đang đăng (vi phạm). Chỉ APPROVED; lý do chỉ nằm trong lịch sử, rejectReason giữ nguyên. */
+    @Transactional
+    public StaffJobDetail close(UUID staffId, UUID id, String reason) {
+        String cleaned = ReasonRules.clean(reason);
+        Job job = reviewableJob(id);
+        if (job.getStatus() != JobStatus.APPROVED) {
+            throw new CompanyException(CompanyErrorCode.INVALID_JOB_STATUS, "Chỉ đóng được JD đang đăng (đã duyệt).");
+        }
+        job.setStatus(JobStatus.CLOSED);
+        return review(staffId, job, CompanyActionType.CLOSE_JD, cleaned);
+    }
+
+    /**
+     * Cùng transaction với thao tác: đổi JD rồi ghi một dòng lịch sử công ty (DN-07). Lỗi trạng thái ném trước đó nên
+     * không có dòng lịch sử; saveAndFlush để xung đột @Version lộ ra ngay.
+     */
+    private StaffJobDetail review(UUID staffId, Job job, CompanyActionType action, String reason) {
         job.setReviewedBy(staffId);
         job.setReviewedAt(Instant.now(clock));
-        return detail(jobRepository.saveAndFlush(job));
+        Job saved = jobRepository.saveAndFlush(job);
+        companyActionRepository.save(new CompanyAction(saved.getCompanyId(), action, saved.getId(), reason, staffId));
+        return detail(saved);
     }
 
     private Job pending(UUID id) {
-        Job job = visibleJob(id);
+        Job job = reviewableJob(id);
         if (job.getStatus() != JobStatus.PENDING) {
             throw new CompanyException(CompanyErrorCode.INVALID_JOB_STATUS, "JD không ở trạng thái chờ duyệt (có thể cán bộ khác vừa xử lý).");
         }
         return job;
     }
 
+    /**
+     * Đọc JD để duyệt / trả lại / đóng: JD nháp vẫn tồn tại nên trả 409 INVALID_JOB_STATUS (DN-07),
+     * 404 chỉ dành cho id không có trong DB. Khác với {@link #visibleJob(UUID)} dùng cho phần xem.
+     */
+    private Job reviewableJob(UUID id) {
+        Job job = jobRepository.findById(id).orElseThrow(() -> new ResourceNotFoundException(NOT_FOUND));
+        if (job.getStatus() == JobStatus.DRAFT) {
+            throw new CompanyException(CompanyErrorCode.INVALID_JOB_STATUS,
+                    "JD vẫn là bản nháp, HR chưa gửi duyệt nên cán bộ không xử lý được.");
+        }
+        return job;
+    }
+
+    /** Đọc JD để xem chi tiết: cán bộ không thấy bản nháp của HR, nên JD nháp trả 404 như id không tồn tại. */
     private Job visibleJob(UUID id) {
         return jobRepository.findById(id).filter(job -> job.getStatus() != JobStatus.DRAFT)
                 .orElseThrow(() -> new ResourceNotFoundException(NOT_FOUND));

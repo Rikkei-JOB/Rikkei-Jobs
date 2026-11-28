@@ -7,6 +7,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.rikkei.jobs.common.config.security.principle.Role;
 import com.rikkei.jobs.company.entity.Company;
 import com.rikkei.jobs.company.entity.CompanyStatus;
 import com.rikkei.jobs.company.entity.Job;
@@ -77,6 +78,17 @@ class PublicJobApiTest extends CompanyApiTestSupport {
                 .andExpect(jsonPath("$.items[0].company.name").value("Công ty Sông Hồng"))
                 .andExpect(jsonPath("$.items[0].company.taxCode").doesNotExist())
                 .andExpect(jsonPath("$.items[0].status").doesNotExist());
+    }
+
+    /** DN-07: token sai hay token hợp lệ của ứng viên đều không chặn trang công khai. */
+    @Test
+    void publicListIgnoresMissingOrInvalidToken() throws Exception {
+        mvc.perform(get("/public/jobs").header("Authorization", "Bearer abc"))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.total").value(2));
+        mvc.perform(get("/public/jobs/" + backend.getId()).header("Authorization", "Bearer abc"))
+                .andExpect(status().isOk());
+        mvc.perform(get("/public/jobs").header("Authorization", "Bearer " + token(Role.CANDIDATE)))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.total").value(2));
     }
 
     @Test

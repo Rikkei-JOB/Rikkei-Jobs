@@ -11,7 +11,7 @@ tags:
   - name: dev
     description: Dev/demo only (LMS_DEV_TICKETS_ENABLED=true)
   - name: internal
-    description: API nội bộ cho company-service (DN-01). Không đi qua gateway - gọi thẳng http://localhost:8081, bảo vệ bằng header X-Internal-Key.
+    description: API nội bộ cho company-service (DN-01, DN-05, DN-07 khoá theo công ty). Không đi qua gateway - gọi thẳng http://localhost:8081, bảo vệ bằng header X-Internal-Key.
 paths:
   /auth/sso:
     post:
@@ -35,7 +35,7 @@ paths:
             application/json:
               schema: { $ref: '#/components/schemas/Error' }
         '403':
-          description: ACCOUNT_DISABLED - tài khoản đã bị cán bộ khoá
+          description: 'ACCOUNT_DISABLED - tài khoản đã bị cán bộ khoá riêng ("Tài khoản đã bị khoá"), hoặc HR thuộc công ty đang bị khoá (DN-07, "Công ty của bạn đang bị khoá, liên hệ cán bộ tuyển dụng")'
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Error' }
@@ -60,7 +60,7 @@ paths:
             application/json:
               schema: { $ref: '#/components/schemas/Error' }
         '403':
-          description: ACCOUNT_DISABLED - tài khoản đã bị cán bộ khoá (chỉ báo khi mật khẩu đúng; sai mật khẩu trả 401 INVALID_CREDENTIALS)
+          description: 'ACCOUNT_DISABLED - tài khoản đã bị cán bộ khoá riêng ("Tài khoản đã bị khoá") hoặc công ty của HR đang bị khoá (DN-07, "Công ty của bạn đang bị khoá, liên hệ cán bộ tuyển dụng"). Chỉ báo khi mật khẩu đúng; sai mật khẩu trả 401 INVALID_CREDENTIALS'
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Error' }
@@ -96,7 +96,7 @@ paths:
     post:
       tags: [auth]
       summary: Email a reset link (valid 30 minutes, single use)
-      description: Always 200, whether or not the email exists.
+      description: Always 200, whether or not the email exists. Tài khoản bị cán bộ khoá riêng hoặc khoá theo công ty (DN-07) không nhận token và không có email; reset-password cũng không mở khoá các tài khoản này.
       requestBody:
         required: true
         content:
@@ -361,11 +361,51 @@ paths:
         '400': { description: Danh sách ID không hợp lệ }
         '401': { description: INVALID_SERVICE_KEY }
         '404': { description: Một ID không thuộc user CANDIDATE }
+  /internal/users/company-lock:
+    post:
+      tags: [internal]
+      summary: Bật / tắt khoá theo công ty cho nhiều HR (company-service gọi, DN-07)
+      description: |
+        Không đi qua gateway - gọi thẳng http://localhost:8081/internal/users/company-lock. company-service gọi khi cán bộ khoá / mở khoá công ty,
+        theo lô tối đa 100 id (mọi HR trong company_hr của công ty, kể cả HR đang bị khoá riêng). locked=true đặt users.company_locked_at
+        (đã khoá theo công ty thì giữ nguyên thời điểm cũ); locked=false xoá company_locked_at. Chỉ áp dụng cho user role HR: id không tồn tại
+        hoặc không phải HR bị bỏ qua, id trùng chỉ tính một lần. Gọi lại nhiều lần cho cùng kết quả (idempotent).
+        Cờ này tách khỏi khoá riêng của DN-05 (locked_at): mở khoá theo công ty không mở khoá riêng, unlock riêng không xoá cờ công ty.
+        HR bị khoá theo công ty: đăng nhập và SSO trả 403 ACCOUNT_DISABLED "Công ty của bạn đang bị khoá, liên hệ cán bộ tuyển dụng" (chỉ khi
+        mật khẩu đúng), token đã cấp bị bộ lọc JWT từ chối 401 ACCOUNT_DISABLED, quên mật khẩu không gửi email.
+      servers:
+        - url: http://localhost:8081
+          description: Gọi thẳng identity-service (không qua gateway)
+      security: [{ internalKey: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/InternalCompanyLockRequest' }
+            example: { userIds: ['00000000-0000-0000-0001-000000000001'], locked: true }
+      responses:
+        '200':
+          description: Trạng thái sau khi đổi của các HR được áp dụng (theo thứ tự đầu vào, bỏ id bị bỏ qua)
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/InternalUserStatusResponse' }
+        '400':
+          description: VALIDATION_ERROR - userIds rỗng, quá 100 id, có phần tử null hoặc thiếu locked; BAD_REQUEST - JSON hỏng hoặc id không phải UUID
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '401':
+          description: INVALID_SERVICE_KEY - thiếu hoặc sai X-Internal-Key
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
   /internal/users/lookup:
     post:
       tags: [internal]
       summary: Tra cứu hàng loạt trạng thái tài khoản (company-service gọi)
-      description: Không đi qua gateway - gọi thẳng http://localhost:8081/internal/users/lookup. 1 đến 100 id; id không tồn tại bị bỏ qua, id trùng chỉ trả một lần, giữ thứ tự đầu vào.
+      description: Không đi qua gateway - gọi thẳng http://localhost:8081/internal/users/lookup. 1 đến 100 id; id không tồn tại bị bỏ qua, id trùng chỉ trả một lần, giữ thứ tự đầu vào. HR bị khoá theo công ty trả status LOCKED và companyLocked true (recruitment-service dùng status để chặn HR, DN-07).
       servers:
         - url: http://localhost:8081
           description: Gọi thẳng identity-service (không qua gateway)
@@ -404,7 +444,7 @@ components:
       type: http
       scheme: bearer
       bearerFormat: JWT
-      description: Claims - sub (userId), role, companyId, mustChangePassword (only when true). Expires after 8 hours. A token with mustChangePassword is answered with 403 MUST_CHANGE_PASSWORD by every service outside /auth/**.
+      description: Claims - sub (userId), role, companyId, mustChangePassword (only when true). Expires after 8 hours. A token with mustChangePassword is answered with 403 MUST_CHANGE_PASSWORD by every service outside /auth/**. Token của tài khoản bị cán bộ khoá riêng hoặc khoá theo công ty (DN-07) bị identity-service từ chối 401 ACCOUNT_DISABLED trên mọi đường dẫn, kể cả /auth/**.
   schemas:
     Role:
       type: string
@@ -489,9 +529,15 @@ components:
       required: [userIds]
       properties:
         userIds: { type: array, minItems: 1, maxItems: 100, items: { type: string, format: uuid } }
+    InternalCompanyLockRequest:
+      type: object
+      required: [userIds, locked]
+      properties:
+        userIds: { type: array, minItems: 1, maxItems: 100, items: { type: string, format: uuid } }
+        locked: { type: boolean, description: 'true = khoá theo công ty, false = bỏ khoá theo công ty' }
     InternalUserStatusResponse:
       type: object
-      description: status là LOCKED khi và chỉ khi bị cán bộ khoá (lockedAt khác null), ngược lại ACTIVE. tempLockedUntil chỉ có khi đang khoá tạm do sai mật khẩu còn hạn.
+      description: status là LOCKED khi bị cán bộ khoá riêng (lockedAt khác null) hoặc khoá theo công ty (companyLocked true, DN-07), ngược lại ACTIVE. lockedReason/lockedAt chỉ nói về khoá riêng. tempLockedUntil chỉ có khi đang khoá tạm do sai mật khẩu còn hạn.
       properties:
         userId: { type: string, format: uuid }
         email: { type: string }
@@ -502,6 +548,7 @@ components:
         lockedReason: { type: string, nullable: true }
         lockedAt: { type: string, format: date-time, nullable: true }
         tempLockedUntil: { type: string, format: date-time, nullable: true }
+        companyLocked: { type: boolean, description: 'true khi công ty của HR đang bị cán bộ khoá (users.company_locked_at khác null, DN-07)' }
     Message:
       type: object
       properties:

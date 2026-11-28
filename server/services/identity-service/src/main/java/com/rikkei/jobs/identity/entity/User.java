@@ -58,6 +58,10 @@ public class User {
     @Column(name = "locked_at")
     private Instant lockedAt;
 
+    // Khác null nghĩa là công ty của HR đang bị cán bộ khoá (độc lập với khoá riêng ở locked_at).
+    @Column(name = "company_locked_at")
+    private Instant companyLockedAt;
+
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false, length = 10)
     private UserStatus status;
@@ -81,6 +85,15 @@ public class User {
 
     public boolean isAdminLocked() {
         return lockedAt != null;
+    }
+
+    public boolean isCompanyLocked() {
+        return companyLockedAt != null;
+    }
+
+    /** Bị chặn đăng nhập/token do khoá riêng hoặc khoá theo công ty. */
+    public boolean isLoginBlocked() {
+        return isAdminLocked() || isCompanyLocked();
     }
 
     public boolean isLockedAt(Instant now) {

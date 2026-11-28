@@ -25,7 +25,7 @@ Content-Type: application/json
 
 ############################## 2. Danh sach, tim kiem, chi tiet ##############################
 
-### 2a. Danh sach (trang 1, 20 dong, moi nhat truoc) -> 200 { items, total, page, size }; jdCount = so JD tru DRAFT (DN-02; Cong ty A mau = 4)
+### 2a. Danh sach (trang 1, 20 dong, moi nhat truoc) -> 200 { items, total, page, size }; jdCount = so JD tru DRAFT (DN-02; Cong ty A mau = 6)
 GET {{gw}}/staff/companies
 Authorization: Bearer {{staffSso.response.body.accessToken}}
 

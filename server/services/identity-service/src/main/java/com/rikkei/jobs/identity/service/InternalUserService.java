@@ -28,6 +28,12 @@ public interface InternalUserService {
     /** Mở khoá cán bộ và xoá luôn khoá tạm; tài khoản không bị cán bộ khoá thì giữ nguyên. */
     InternalUserStatusResponse unlockHr(UUID id);
 
+    /**
+     * Đặt/bỏ cờ khoá theo công ty cho các HR trong danh sách; id không phải HR hoặc không tồn tại bị bỏ qua.
+     * Khoá lại khi đã khoá giữ nguyên thời điểm cũ. Không đụng tới khoá riêng.
+     */
+    List<InternalUserStatusResponse> setCompanyLock(List<UUID> ids, boolean locked);
+
     /** Tra cứu trạng thái nhiều tài khoản theo thứ tự id đầu vào, bỏ id trùng và id không tồn tại. */
     List<InternalUserStatusResponse> lookup(List<UUID> ids);
 }

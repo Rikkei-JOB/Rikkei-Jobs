@@ -9,7 +9,8 @@ public enum CompanyErrorCode {
     INVALID_FILE_TYPE(HttpStatus.BAD_REQUEST, "Chỉ chấp nhận ảnh JPG hoặc PNG"),
     EXTERNAL_UNAVAILABLE(HttpStatus.SERVICE_UNAVAILABLE, "Không kết nối được dịch vụ tài khoản, vui lòng thử lại"),
     JOB_NOT_EDITABLE(HttpStatus.CONFLICT, "JD đang chờ duyệt hoặc đã đóng, không sửa được"),
-    INVALID_JOB_STATUS(HttpStatus.CONFLICT, "Trạng thái JD không cho phép thao tác này");
+    INVALID_JOB_STATUS(HttpStatus.CONFLICT, "Trạng thái JD không cho phép thao tác này"),
+    JOB_EXPIRED(HttpStatus.CONFLICT, "JD đã quá hạn nộp, hãy trả lại để HR sửa hạn nộp");
 
     private final HttpStatus status;
     private final String defaultMessage;

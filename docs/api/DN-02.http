@@ -1,8 +1,13 @@
 # DN-02 - request mau (IntelliJ HTTP Client hoac VS Code REST Client).
 # Chay truoc: Postgres, mock (9000), identity, profile, company-service (profile dev), gateway (8080).
 # Xem docs/api/DN-02-jobs.md muc 6 "Cach chay". Moi request doi chieu voi muc 8 "Ca kiem thu" cua DN-02-jobs.md.
-# JD mau (DevDataSeeder, Cong ty A): ...0003-000000000001 REJECTED, ...002 PENDING, ...003 APPROVED, ...004 DRAFT, ...005 CLOSED.
-# Muon dat lai 5 JD mau: xoa cac dong cua company.job_skills va company.jobs roi khoi dong lai company-service voi profile dev.
+# JD mau (DevDataSeeder, Cong ty A): ...0003-000000000001 REJECTED, ...002 PENDING, ...003 APPROVED, ...004 DRAFT, ...005 CLOSED,
+# ...006/...007 APPROVED (DN-06); Cong ty B: ...008 APPROVED, ...009 PENDING (DN-07).
+# Muon dat lai JD mau: xoa cac dong cua company.match_scores, company.company_actions, company.job_skills, company.jobs
+# roi khoi dong lai company-service voi profile dev.
+# Chi tiet JD cua HR la GET /jobs/{id} (khong doi tu DN-02). Trang viec lam cong khai cua UI-01 nam o
+# GET /public/jobs, /public/jobs/{id}. Duyet / tra lai / dong JD bang API cua can bo, xem DN-07.http.
+# HR cua cong ty bi khoa nhan 401 ACCOUNT_DISABLED o moi request cua company-service (DN-07).
 
 @gw = http://localhost:8080/api/v1
 @company = http://localhost:8085
@@ -41,7 +46,7 @@ Authorization: Bearer {{hr1Login.response.body.accessToken}}
 
 ############################## 2. Danh sach JD ##############################
 
-### 2a. Tat ca JD cua Cong ty A -> 200 {items, total = 5, page = 1, size = 20}, moi cap nhat truoc
+### 2a. Tat ca JD cua Cong ty A -> 200 {items, total = 7, page = 1, size = 20}, moi cap nhat truoc
 GET {{gw}}/companies/me/jobs
 Authorization: Bearer {{hr1Login.response.body.accessToken}}
 
@@ -236,6 +241,9 @@ Authorization: Bearer {{hr1Login.response.body.accessToken}}
 
 ### 6d. Khong co token -> 401 UNAUTHORIZED
 GET {{gw}}/jobs/{{jdApproved}}
+
+### 6e. (UI-01) Trang viec lam cong khai la GET /public/jobs/{id}, khong token -> 200 voi JD dang tuyen, 404 voi JD chua duyet
+GET {{gw}}/public/jobs/{{jdApproved}}
 
 ############################## 7. API noi bo cho UT-01 (KHONG qua gateway) ##############################
 

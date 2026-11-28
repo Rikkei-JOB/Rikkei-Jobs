@@ -38,7 +38,7 @@ class InternalJobContextApiTest extends CompanyApiTestSupport {
     private static final String KEY_VALUE = "test-internal-key";
 
     private static IdentityUserStatus user(UUID id, String email, String status) {
-        return new IdentityUserStatus(id, email, "HR", status, null, null, null);
+        return new IdentityUserStatus(id, email, "HR", status, null, null, null, false);
     }
 
     private Job approvedJob(UUID companyId) {

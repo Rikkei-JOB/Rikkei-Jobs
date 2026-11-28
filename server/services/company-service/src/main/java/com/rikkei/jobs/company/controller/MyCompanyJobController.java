@@ -29,7 +29,8 @@ public class MyCompanyJobController {
 
     @Operation(
             summary = "Danh sách JD của công ty mình",
-            description = "Vai trò: HR. Lọc theo trạng thái (tuỳ chọn); page từ 1, size tối đa 100; mới cập nhật trước.")
+            description = "Vai trò: HR. Lọc theo trạng thái (tuỳ chọn); page từ 1, size tối đa 100; mới cập nhật trước. "
+                    + "HR của công ty LOCKED nhận 401 ACCOUNT_DISABLED (DN-07).")
     @ApiResponse(responseCode = "200", description = "Trang JD {items, total, page, size}")
     @ApiResponse(responseCode = "400", description = "BAD_REQUEST: page/size hoặc status không hợp lệ")
     @ApiResponse(responseCode = "401", description = "UNAUTHORIZED: thiếu hoặc sai token; ACCOUNT_DISABLED: HR bị khoá")
@@ -47,7 +48,7 @@ public class MyCompanyJobController {
     @Operation(
             summary = "Tổng hợp JD của công ty mình",
             description = "Vai trò: HR. Số JD theo từng trạng thái (đủ 5 khoá) và số JD APPROVED hết hạn trong 7 ngày tới. "
-                    + "Công ty LOCKED vẫn xem được.")
+                    + "HR của công ty LOCKED nhận 401 ACCOUNT_DISABLED như mọi endpoint khác (DN-07).")
     @ApiResponse(responseCode = "200", description = "{total, byStatus, expiringSoon}")
     @ApiResponse(responseCode = "401", description = "UNAUTHORIZED: thiếu hoặc sai token; ACCOUNT_DISABLED: HR bị khoá")
     @ApiResponse(responseCode = "403", description = "FORBIDDEN: không phải HR")

@@ -1,0 +1,301 @@
+# DN-07 - request mau (IntelliJ HTTP Client hoac VS Code REST Client).
+# Chay truoc: Postgres, mock (9000), identity (profile dev), profile-service, company-service (profile dev), gateway (8080).
+# Xem docs/api/DN-07-job-review.md muc 6 "Cach chay". Moi request doi chieu voi muc 8 "Ca kiem thu".
+# Du lieu mau (DevDataSeeder): Cong ty A ...a1 (hr1, hr-new), Cong ty B ...b2 (hr2).
+# JD: ...0003-000000000002 "Fresher ReactJS" PENDING (A), ...004 DRAFT (A), ...003 APPROVED (A), ...008 APPROVED (B), ...009 PENDING (B).
+# Chay tu tren xuong. Muc 6 khoa Cong ty A, muc 7 mo khoa lai. Dat lai JD mau: xem DN-07-job-review.md muc 6.
+#
+# Nen tang la UI-01: trang viec lam cong khai nam o GET /public/jobs, /public/jobs/{id}, /public/companies[/{id}];
+# chi tiet JD cua HR van la GET /jobs/{id} (DN-02). Hang cho + duyet / tra lai la /staff/jobs** cua UI-01
+# (quyen STAFF hoac ADMIN); DN-07 them POST /staff/jobs/{id}/close, ghi lich su company_actions va ma JOB_EXPIRED.
+# Can bo khong thay JD nhap: danh sach / summary bo JD DRAFT va GET /staff/jobs/{id} tra 404.
+# Nhung approve / reject / close tren mot JD DRAFT dang ton tai tra 409 INVALID_JOB_STATUS (tieu chi 5);
+# 404 chi danh cho id khong co trong DB.
+
+@gw = http://localhost:8080/api/v1
+@identity = http://localhost:8081
+@internalKey = dev-internal-key
+@A = 00000000-0000-0000-0000-0000000000a1
+@B = 00000000-0000-0000-0000-0000000000b2
+@hr1Id = 00000000-0000-0000-0001-000000000001
+@jdPendingA = 00000000-0000-0000-0003-000000000002
+@jdApprovedA = 00000000-0000-0000-0003-000000000003
+@jdDraftA = 00000000-0000-0000-0003-000000000004
+@jdApprovedB = 00000000-0000-0000-0003-000000000008
+@jdPendingB = 00000000-0000-0000-0003-000000000009
+
+############################## 1. Dang nhap ##############################
+
+### 1a. Ve SSO cho staff1 (chi dev)
+# @name staffTicket
+POST {{gw}}/auth/dev/sso-ticket
+Content-Type: application/json
+
+{ "lmsUserId": "lms-st-001" }
+
+### 1b. Doi ve lay token staff1
+# @name staffSso
+POST {{gw}}/auth/sso
+Content-Type: application/json
+
+{ "ticket": "{{staffTicket.response.body.ticket}}" }
+
+### 1c. hr1 (Cong ty A)
+# @name hr1Login
+POST {{gw}}/auth/login
+Content-Type: application/json
+
+{ "email": "hr1@rikkeijobs.test", "password": "Test@123" }
+
+############################## 2. Trang viec lam cong khai (UI-01) ##############################
+
+### 2a. Khong token -> 200 {items, total, page, size}; chi JD APPROVED, con han, cong ty ACTIVE; moi tao truoc
+# Seed: 4 JD (Thuc tap sinh Tester, 2 JD mau DN-06 cua A, Thuc tap sinh Marketing cua B). Khong co "Fresher ReactJS" (PENDING).
+GET {{gw}}/public/jobs?page=1&size=100
+
+### 2b. Token sai van 200 (khach xem duoc)
+GET {{gw}}/public/jobs
+Authorization: Bearer token-sai
+
+### 2c. size = 101 -> 400 BAD_REQUEST; sort=abc cung 400
+GET {{gw}}/public/jobs?size=101
+
+### 2d. Chi tiet tin dang tuyen -> 200 PublicJobDetail (khong co status, rejectReason, reviewedBy, createdBy)
+GET {{gw}}/public/jobs/{{jdApprovedA}}
+
+### 2e. Chi tiet JD cho duyet -> 404 NOT_FOUND "Không tìm thấy tin tuyển dụng hoặc tin đã hết hạn."
+# (giong JD nhap, bi tra lai, da dong, qua han, cong ty khoa, id khong ton tai)
+GET {{gw}}/public/jobs/{{jdPendingA}}
+
+### 2f. Bo loc va sap xep cua UI-01 -> 200; q khop tieu de / vi tri / ten cong ty
+GET {{gw}}/public/jobs?q=java&sort=salary&page=1&size=20
+
+### 2g. Danh sach cong ty cong khai -> 200 mang [{id, name, logoUrl, industry, size, city, openJobs}], nhieu tin truoc
+GET {{gw}}/public/companies
+
+### 2h. Ho so cong ty cong khai -> 200 PublicCompanyDetail; cong ty bi khoa hoac khong ton tai -> 404
+GET {{gw}}/public/companies/{{A}}
+
+############################## 3. Hang cho cua can bo ##############################
+
+### 3a. Hang cho -> 200, 2 JD (A va B), gui som nhat truoc
+GET {{gw}}/staff/jobs?status=PENDING&page=1&size=20
+Authorization: Bearer {{staffSso.response.body.accessToken}}
+
+### 3b. Moi trang thai cua Cong ty A (tab "JD cua cong ty") -> 200, 6 JD (bo 1 JD nhap), moi cap nhat truoc
+GET {{gw}}/staff/jobs?companyId={{A}}
+Authorization: Bearer {{staffSso.response.body.accessToken}}
+
+### 3c. status sai -> 400 BAD_REQUEST; status=DRAFT -> 400 "Cán bộ không xem được JD nháp."
+GET {{gw}}/staff/jobs?status=PAUSED
+Authorization: Bearer {{staffSso.response.body.accessToken}}
+
+### 3c-2. So JD theo trang thai (so tren tab cua man Duyet JD) -> 200 {total, byStatus} du 4 khoa, khong co DRAFT
+GET {{gw}}/staff/jobs/summary
+Authorization: Bearer {{staffSso.response.body.accessToken}}
+
+### 3d. Chi tiet cho can bo -> 200 StaffJobDetail {job: {... status PENDING, rejectReason null}, reviewedBy null, company {status ACTIVE}}
+GET {{gw}}/staff/jobs/{{jdPendingA}}
+Authorization: Bearer {{staffSso.response.body.accessToken}}
+
+### 3d-2. Chi tiet JD nhap -> 404 NOT_FOUND "Không tìm thấy JD." (can bo khong thay ban nhap cua HR)
+GET {{gw}}/staff/jobs/{{jdDraftA}}
+Authorization: Bearer {{staffSso.response.body.accessToken}}
+
+### 3e. Token HR goi API can bo -> 403 FORBIDDEN (token ADMIN thi DUOC: /staff/jobs/** la STAFF_OR_ADMIN)
+GET {{gw}}/staff/jobs
+Authorization: Bearer {{hr1Login.response.body.accessToken}}
+
+### 3f. Token ADMIN: /staff/jobs/** DUOC (STAFF_OR_ADMIN) nhung /staff/companies/** -> 403 FORBIDDEN (chi STAFF).
+# Lay token admin1 (SSO, lms-ad-001) nhu muc 1a/1b roi doi lmsUserId thanh "lms-ad-001", dung token do cho hai request duoi.
+# @name adminTicket
+POST {{gw}}/auth/dev/sso-ticket
+Content-Type: application/json
+
+{ "lmsUserId": "lms-ad-001" }
+
+### 3f-2. Doi ve lay token admin1
+# @name adminSso
+POST {{gw}}/auth/sso
+Content-Type: application/json
+
+{ "ticket": "{{adminTicket.response.body.ticket}}" }
+
+### 3f-3. ADMIN xem hang cho -> 200 (duoc phep)
+GET {{gw}}/staff/jobs?status=PENDING
+Authorization: Bearer {{adminSso.response.body.accessToken}}
+
+### 3f-4. ADMIN xem chi tiet cong ty -> 403 FORBIDDEN (/staff/companies/** chi STAFF)
+GET {{gw}}/staff/companies/{{A}}
+Authorization: Bearer {{adminSso.response.body.accessToken}}
+
+############################## 4. Tra lai, HR sua, duyet ##############################
+
+### 4a. Tra lai khong co ly do -> 400 VALIDATION_ERROR, errors.reason = "Vui lòng nhập lý do"
+POST {{gw}}/staff/jobs/{{jdPendingA}}/reject
+Authorization: Bearer {{staffSso.response.body.accessToken}}
+Content-Type: application/json
+
+{ "reason": "   " }
+
+### 4b. Tra lai co ly do -> 200 REJECTED, rejectReason, reviewedBy {id, fullName "Hoàng Thu Hà"}
+POST {{gw}}/staff/jobs/{{jdPendingA}}/reject
+Authorization: Bearer {{staffSso.response.body.accessToken}}
+Content-Type: application/json
+
+{ "reason": "Mô tả công việc còn sơ sài, bổ sung phần quyền lợi và mức lương cụ thể." }
+
+### 4c. HR thay ly do tra lai (chi tiet JD cua HR la GET /jobs/{id}, DN-02) -> 200 REJECTED, rejectReason
+GET {{gw}}/jobs/{{jdPendingA}}
+Authorization: Bearer {{hr1Login.response.body.accessToken}}
+
+### 4d. HR gui duyet lai (giao dien: sua roi Gui duyet) -> 200 PENDING, rejectReason null
+POST {{gw}}/jobs/{{jdPendingA}}/submit
+Authorization: Bearer {{hr1Login.response.body.accessToken}}
+
+### 4e. Duyet JD nhap -> 409 INVALID_JOB_STATUS "JD vẫn là bản nháp, HR chưa gửi duyệt nên cán bộ không xử lý được.", khong ghi lich su
+POST {{gw}}/staff/jobs/{{jdDraftA}}/approve
+Authorization: Bearer {{staffSso.response.body.accessToken}}
+
+### 4e-2. Tra lai JD nhap -> 409 INVALID_JOB_STATUS (cung thong bao), khong ghi lich su
+POST {{gw}}/staff/jobs/{{jdDraftA}}/reject
+Authorization: Bearer {{staffSso.response.body.accessToken}}
+Content-Type: application/json
+
+{ "reason": "Thu tra lai ban nhap" }
+
+### 4e-3. Dong JD nhap -> 409 INVALID_JOB_STATUS (cung thong bao), khong ghi lich su
+POST {{gw}}/staff/jobs/{{jdDraftA}}/close
+Authorization: Bearer {{staffSso.response.body.accessToken}}
+Content-Type: application/json
+
+{ "reason": "Thu dong ban nhap" }
+
+### 4e-4. Duyet mot id khong ton tai -> 404 NOT_FOUND "Không tìm thấy JD."
+POST {{gw}}/staff/jobs/00000000-0000-0000-0000-0000000000ff/approve
+Authorization: Bearer {{staffSso.response.body.accessToken}}
+
+### 4f. Duyet JD cho duyet -> 200 APPROVED, rejectReason null, reviewedAt moi
+POST {{gw}}/staff/jobs/{{jdPendingA}}/approve
+Authorization: Bearer {{staffSso.response.body.accessToken}}
+
+### 4g. Duyet lan hai -> 409 INVALID_JOB_STATUS
+POST {{gw}}/staff/jobs/{{jdPendingA}}/approve
+Authorization: Bearer {{staffSso.response.body.accessToken}}
+
+### 4h. Trang viec lam nay co "Fresher ReactJS" -> 200, total 5
+GET {{gw}}/public/jobs?size=100
+
+############################## 5. Dong JD dang tuyen ##############################
+
+### 5a. Dong JD cho duyet -> 409 INVALID_JOB_STATUS
+POST {{gw}}/staff/jobs/{{jdPendingB}}/close
+Authorization: Bearer {{staffSso.response.body.accessToken}}
+Content-Type: application/json
+
+{ "reason": "Thu dong JD chua duyet" }
+
+### 5b. Dong JD dang tuyen co ly do -> 200 CLOSED; JD bien khoi GET /public/jobs.
+# Luu y: dong JD ghi de reviewedBy/reviewedAt bang nguoi dong; nguoi duyet truoc do chi con trong lich su (muc 6i).
+POST {{gw}}/staff/jobs/{{jdApprovedA}}/close
+Authorization: Bearer {{staffSso.response.body.accessToken}}
+Content-Type: application/json
+
+{ "reason": "Tin trùng với đợt tuyển thực tập đã kết thúc." }
+
+############################## 6. Khoa Cong ty A ##############################
+
+### 6a. Khoa khong ly do -> 400 VALIDATION_ERROR, errors.reason; cong ty khong doi
+POST {{gw}}/staff/companies/{{A}}/lock
+Authorization: Bearer {{staffSso.response.body.accessToken}}
+Content-Type: application/json
+
+{ "reason": "" }
+
+### 6b. Khoa co ly do -> 200 StaffCompanyDetail, status LOCKED, lock {lockedAt, reason, lockedBy}, moi hrAccounts companyLocked = true
+POST {{gw}}/staff/companies/{{A}}/lock
+Authorization: Bearer {{staffSso.response.body.accessToken}}
+Content-Type: application/json
+
+{ "reason": "Đăng tin tuyển dụng sai sự thật nhiều lần, chờ xác minh lại giấy phép." }
+
+### 6c. Khoa lan hai -> 409 CONFLICT "Công ty đã bị khoá"
+POST {{gw}}/staff/companies/{{A}}/lock
+Authorization: Bearer {{staffSso.response.body.accessToken}}
+Content-Type: application/json
+
+{ "reason": "Khoa lai" }
+
+### 6d. Trang viec lam chi con JD cua Cong ty B
+GET {{gw}}/public/jobs?size=100
+
+### 6e. JD da duyet cua A -> 404; ho so cong khai cua A cung 404 va A bien khoi GET /public/companies
+GET {{gw}}/public/jobs/{{jdPendingA}}
+
+### 6f. Token cu cua hr1 -> 401 ACCOUNT_DISABLED "Công ty của bạn đang bị khoá, liên hệ cán bộ tuyển dụng" (company-service)
+GET {{gw}}/companies/me/jobs
+Authorization: Bearer {{hr1Login.response.body.accessToken}}
+
+### 6f-2. Token cu cua hr1 tren duong CONG KHAI cung 401 (HrLockedFilter chay truoc controller) - chap nhan co chu dich
+GET {{gw}}/public/jobs
+Authorization: Bearer {{hr1Login.response.body.accessToken}}
+
+### 6g. Token cu cua hr1 o identity -> 401 ACCOUNT_DISABLED
+GET {{gw}}/auth/me
+Authorization: Bearer {{hr1Login.response.body.accessToken}}
+
+### 6h. hr1 dang nhap dung mat khau -> 403 ACCOUNT_DISABLED "Công ty của bạn đang bị khoá, liên hệ cán bộ tuyển dụng"
+# (sai mat khau van 401 INVALID_CREDENTIALS, khong lo email nao dang bi khoa)
+POST {{gw}}/auth/login
+Content-Type: application/json
+
+{ "email": "hr1@rikkeijobs.test", "password": "Test@123" }
+
+### 6i. Lich su -> 200, moi nhat truoc: LOCK, CLOSE_JD, APPROVE_JD, REJECT_JD; staff.fullName, job.title, reason
+GET {{gw}}/staff/companies/{{A}}/history?page=1&size=20
+Authorization: Bearer {{staffSso.response.body.accessToken}}
+
+### 6j. (noi bo, KHONG qua gateway) lookup -> status LOCKED, companyLocked true
+POST {{identity}}/internal/users/lookup
+X-Internal-Key: {{internalKey}}
+Content-Type: application/json
+
+{ "userIds": ["{{hr1Id}}"] }
+
+### 6k. (noi bo) application-context cua JD cua A -> companyLocked true
+GET http://localhost:8085/internal/jobs/{{jdPendingA}}/application-context
+X-Internal-Key: {{internalKey}}
+
+############################## 7. Mo khoa ##############################
+
+### 7a. Mo khoa -> 200, status ACTIVE, lock null, hrAccounts companyLocked = false
+POST {{gw}}/staff/companies/{{A}}/unlock
+Authorization: Bearer {{staffSso.response.body.accessToken}}
+
+### 7b. Mo khoa lan hai -> 409 CONFLICT "Công ty không bị khoá"
+POST {{gw}}/staff/companies/{{A}}/unlock
+Authorization: Bearer {{staffSso.response.body.accessToken}}
+
+### 7c. JD cua A hien lai
+GET {{gw}}/public/jobs?size=100
+
+### 7d. hr1 dang nhap lai duoc -> 200
+POST {{gw}}/auth/login
+Content-Type: application/json
+
+{ "email": "hr1@rikkeijobs.test", "password": "Test@123" }
+
+############################## 8. API noi bo company-lock cua identity (KHONG qua gateway) ##############################
+
+### 8a. Thieu khoa -> 401 INVALID_SERVICE_KEY
+POST {{identity}}/internal/users/company-lock
+Content-Type: application/json
+
+{ "userIds": ["{{hr1Id}}"], "locked": true }
+
+### 8b. Danh sach rong -> 400 VALIDATION_ERROR
+POST {{identity}}/internal/users/company-lock
+X-Internal-Key: {{internalKey}}
+Content-Type: application/json
+
+{ "userIds": [], "locked": true }

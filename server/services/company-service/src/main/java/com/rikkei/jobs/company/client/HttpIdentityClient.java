@@ -127,6 +127,36 @@ public class HttpIdentityClient implements IdentityClient {
                 .body(new ParameterizedTypeReference<List<IdentityUserStatus>>() { }));
     }
 
+    @Override
+    public List<IdentityUserStatus> setCompanyLock(List<UUID> userIds, boolean locked) {
+        // Body luôn do company-service dựng (1–100 id HR), nên 4xx cũng là "không cập nhật được", không phải lỗi
+        // dữ liệu của cán bộ: mọi lỗi đều thành 503 để nơi gọi rollback và gọi bù.
+        try {
+            List<IdentityUserStatus> result = restClient.post()
+                    .uri("/internal/users/company-lock")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(Map.of("userIds", userIds, "locked", locked))
+                    .retrieve()
+                    .body(new ParameterizedTypeReference<List<IdentityUserStatus>>() { });
+            if (result == null) {
+                log.error("identity trả phản hồi company-lock rỗng");
+                throw companyLockFailed();
+            }
+            return result;
+        } catch (RestClientResponseException e) {
+            log.error("identity company-lock lỗi với mã trạng thái {}", e.getStatusCode().value());
+            throw companyLockFailed();
+        } catch (RestClientException e) {
+            log.error("Không kết nối được identity-service: {}", e.getMessage());
+            throw companyLockFailed();
+        }
+    }
+
+    private static CompanyException companyLockFailed() {
+        return new CompanyException(CompanyErrorCode.EXTERNAL_UNAVAILABLE,
+                "Không cập nhật được tài khoản HR, vui lòng thử lại.");
+    }
+
     /** Gọi identity và đổi lỗi HTTP/mạng sang ngoại lệ của service; phản hồi rỗng coi như identity lỗi. */
     private <T> T callStatus(Supplier<T> call) {
         try {

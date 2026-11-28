@@ -177,10 +177,11 @@ class JobLifecycleApiTest extends CompanyApiTestSupport {
         Job approved = job(a.getId(), JobStatus.APPROVED, true);
         a.setStatus(CompanyStatus.LOCKED);
         companies.save(a);
-        submit(draft.getId()).andExpect(status().isForbidden())
-                .andExpect(jsonPath("$.code").value("COMPANY_LOCKED"));
-        close(approved.getId()).andExpect(status().isForbidden())
-                .andExpect(jsonPath("$.code").value("COMPANY_LOCKED"));
+        // DN-07: HR của công ty bị khoá bị chặn 401 ACCOUNT_DISABLED trước controller.
+        submit(draft.getId()).andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.code").value("ACCOUNT_DISABLED"));
+        close(approved.getId()).andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.code").value("ACCOUNT_DISABLED"));
         assertThat(statusOf(draft)).isEqualTo(JobStatus.DRAFT);
         assertThat(statusOf(approved)).isEqualTo(JobStatus.APPROVED);
     }

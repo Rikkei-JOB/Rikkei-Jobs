@@ -15,6 +15,7 @@
 - **Cán bộ (`STAFF`)** xem danh sách công ty (tìm theo tên hoặc mã số thuế, lọc trạng thái, phân trang), mở chi tiết một công ty, **khoá / mở khoá** từng tài khoản HR (khoá bắt buộc có lý do) và thêm HR mới.
 - **HR** sửa hồ sơ công ty, đổi logo (có xem trước ngay và báo trạng thái lưu) và nút **"Xem như ứng viên"** để xem trang công ty như ứng viên thấy.
 - HR bị cán bộ khoá thì mất quyền ngay, kể cả khi token còn hạn: gọi API bị 401 `ACCOUNT_DISABLED`, giao diện đưa về `/login`; đăng nhập báo "Tài khoản đã bị khoá".
+- **Cập nhật DN-07**: cán bộ khoá / mở khoá **cả công ty** trên cùng trang chi tiết (banner, tab "JD của công ty" và "Lịch sử thao tác"); xem [DN-07-job-review.md](DN-07-job-review.md). Mục này chỉ ghi phần chạm vào màn và hợp đồng của DN-05.
 
 ## 2. Cơ sở dữ liệu
 
@@ -39,16 +40,17 @@ Qua gateway `http://localhost:8080/api/v1` (gateway bỏ `/api/v1`). Route `comp
 | Endpoint | Vai trò | Thành công | Lỗi chính |
 | --- | --- | --- | --- |
 | `GET /staff/companies?q=&status=&page=&size=` | `STAFF` | 200 `PageResponse<StaffCompanyItem>` (thêm `logoUrl`, `city`, `size` để hiện logo và dòng phụ) | 400 `BAD_REQUEST` (page/size/status sai) |
-| `GET /staff/companies/{id}` | `STAFF` | 200 `StaffCompanyDetail` (kèm `hrAccounts`) | 404 `NOT_FOUND`, 503 `EXTERNAL_UNAVAILABLE` |
+| `GET /staff/companies/{id}` | `STAFF` | 200 `StaffCompanyDetail` (kèm `hrAccounts`; DN-07 thêm `lock`) | 404 `NOT_FOUND`, 503 `EXTERNAL_UNAVAILABLE` |
 | `POST /staff/hr-accounts/{userId}/lock` body `{reason}` | `STAFF` | 200 `StaffHrAccount` | 400 `VALIDATION_ERROR` (lý do trống / > 500 ký tự), 404 `NOT_FOUND`, 503 |
 | `POST /staff/hr-accounts/{userId}/unlock` | `STAFF` | 200 `StaffHrAccount` | 404 `NOT_FOUND`, 503 |
+| DN-07: `POST /staff/companies/{id}/lock` body `{reason}`, `POST /staff/companies/{id}/unlock`, `GET /staff/companies/{id}/history` | `STAFF` | 200 `StaffCompanyDetail` / `PageResponse<CompanyActionItem>` | xem [DN-07](DN-07-job-review.md) |
 
 Các endpoint DN-01 (`POST /staff/companies`, `POST /staff/companies/{id}/hr-accounts`, `GET|PUT /companies/me`, logo) giữ nguyên, xem [DN-01](DN-01-company-hr.md). Mọi endpoint còn có 401 `UNAUTHORIZED`, 403 `FORBIDDEN` (không phải STAFF), 403 `MUST_CHANGE_PASSWORD`.
 
 Quy tắc dữ liệu:
 
 - **Danh sách**: `q` tìm theo tên hoặc mã số thuế, không phân biệt hoa thường nhưng **phân biệt dấu tiếng Việt**; `%` và `_` trong `q` được thoát nên tìm đúng nghĩa đen. `status` là `ACTIVE` hoặc `LOCKED` (trạng thái **công ty**). `page` từ 1 (mặc định 1), `size` mặc định 20, tối đa 100. Sắp xếp `createdAt` giảm dần. `hrCount` là số HR của công ty; `jdCount` là số JD của công ty ở **mọi trạng thái trừ `DRAFT`** (từ DN-02, đếm bằng một truy vấn gom nhóm cho cả trang, xem [DN-02](DN-02-jobs.md)); trước DN-02 trường này luôn 0.
-- **Chi tiết**: gồm mọi field của `CompanyResponse` và `hrAccounts[]` (`userId`, `email`, `fullName`, `status`, `lockedReason`, `lockedAt`, `tempLockedUntil`), sắp xếp theo email. company-service lấy trạng thái từ identity qua API nội bộ; HR có trong `company_hr` nhưng không còn ở identity bị bỏ khỏi danh sách (ghi log WARN).
+- **Chi tiết**: gồm mọi field của `CompanyResponse` và `hrAccounts[]` (`userId`, `email`, `fullName`, `status`, `lockedReason`, `lockedAt`, `tempLockedUntil`, và từ DN-07 `companyLocked`), sắp xếp theo email. Từ DN-07, `status` của HR chỉ nói về **khoá riêng** (`LOCKED` khi và chỉ khi `lockedAt != null`; company-service không chép thẳng `status` của identity nữa vì ở đó `LOCKED` gồm cả khoá theo công ty), còn `companyLocked` là cờ khoá theo công ty; chi tiết có thêm `lock {lockedAt, reason, lockedBy {id, fullName}}` (null khi công ty `ACTIVE`). company-service lấy trạng thái từ identity qua API nội bộ; HR có trong `company_hr` nhưng không còn ở identity bị bỏ khỏi danh sách (ghi log WARN).
 - **Khoá**: `reason` bắt buộc, cắt khoảng trắng rồi không được rỗng, tối đa 500 ký tự. Khoá lại tài khoản đã khoá vẫn trả 200 (cập nhật lý do). `userId` không phải HR của một công ty nào → 404.
 - **Mở khoá**: xoá `locked_reason`, `locked_at`, `locked_until`, đưa bộ đếm sai mật khẩu về 0. Tài khoản không bị cán bộ khoá thì không đổi gì và trả 200.
 - **Thứ tự ghi**: identity trước, rồi chép `locked_at` về `company_hr`. Identity lỗi thì bản sao không đổi (503). Cả hai bước nằm ngoài transaction.
@@ -62,8 +64,9 @@ Cùng khoá `X-Internal-Key` như DN-01 (thiếu hoặc sai → 401 `INVALID_SER
 | `PATCH /internal/users/{id}/lock` body `{reason}` | Khoá HR, trả `InternalUserStatusResponse` | 400 `VALIDATION_ERROR`, 404 `NOT_FOUND` (không có user), 409 `CONFLICT` (không phải HR) |
 | `PATCH /internal/users/{id}/unlock` | Mở khoá HR, trả `InternalUserStatusResponse` | 404, 409 như trên |
 | `POST /internal/users/lookup` body `{userIds}` | Tra cứu hàng loạt, trả mảng `InternalUserStatusResponse` | 400 `VALIDATION_ERROR` (rỗng hoặc > 100 id); id không có bị bỏ qua |
+| DN-07: `POST /internal/users/company-lock` body `{userIds, locked}` | Bật / tắt cờ khoá theo công ty (`users.company_locked_at`) cho 1–100 HR, trả mảng `InternalUserStatusResponse`; id không phải HR bị bỏ qua | 400 `VALIDATION_ERROR` |
 
-`POST /internal/users` (tạo HR) vẫn trả `InternalUserResponse` như DN-01; chỉ ba endpoint trên dùng `InternalUserStatusResponse` (`userId`, `email`, `fullName`, `role`, `companyId`, `status`, `lockedReason`, `lockedAt`, `tempLockedUntil`).
+`POST /internal/users` (tạo HR) vẫn trả `InternalUserResponse` như DN-01; các endpoint trên dùng `InternalUserStatusResponse` (`userId`, `email`, `fullName`, `role`, `companyId`, `status`, `lockedReason`, `lockedAt`, `tempLockedUntil`, `companyLocked`). Từ DN-07, `status` ở đây là `LOCKED` khi bị khoá riêng **hoặc** khoá theo công ty; `unlock` riêng không xoá cờ khoá theo công ty.
 
 ### Mã lỗi `ACCOUNT_DISABLED` ("Tài khoản đã bị khoá")
 
@@ -71,7 +74,9 @@ Cùng khoá `X-Internal-Key` như DN-01 (thiếu hoặc sai → 401 `INVALID_SER
 | --- | --- |
 | `POST /auth/login` (chỉ khi mật khẩu đúng), `POST /auth/sso` | **403** |
 | Bộ lọc JWT của identity-service (mọi đường dẫn, kể cả `/auth/**`, đọc DB mỗi request) | **401** |
-| `HrLockedFilter` của company-service (đọc `company_hr.locked_at` mỗi request) | **401** |
+| `HrLockedFilter` của company-service (đọc `company_hr.locked_at` và từ DN-07 cả `companies.status` mỗi request, một truy vấn join) | **401** |
+
+Từ DN-07, HR thuộc công ty bị khoá cũng nhận `ACCOUNT_DISABLED` ở mọi điểm trên; message khi đăng nhập / SSO là "Công ty của bạn đang bị khoá, liên hệ cán bộ tuyển dụng" (khoá riêng giữ "Tài khoản đã bị khoá"), quên mật khẩu cũng bị chặn như khoá riêng.
 
 Đăng nhập sai mật khẩu vào tài khoản bị cán bộ khoá trả 401 `INVALID_CREDENTIALS` và tăng bộ đếm như mọi tài khoản khác, để không ai dò được email nào đang bị khoá. Mở khoá đưa bộ đếm về 0.
 
@@ -88,7 +93,7 @@ Quên mật khẩu với tài khoản bị khoá vẫn trả 200 nhưng **không
 | Trang | Vai trò | Nội dung |
 | --- | --- | --- |
 | `/staff/companies` | STAFF | Danh sách gọn: mỗi dòng có logo, tên, dòng phụ (thành phố, quy mô), MST, trạng thái, số HR, số JD; ô tìm debounce 300 ms, lọc trạng thái, phân trang 20 dòng; `q`, `status`, `page` nằm trên URL; nút **"+ Tạo công ty"** mở hộp thoại (Tên công ty *, Mã số thuế * 10 hoặc 13 chữ số, Ngành, Quy mô, Địa chỉ, Thành phố, Website, Giới thiệu) gọi `POST /staff/companies` của DN-01; trùng mã số thuế báo "Mã số thuế đã tồn tại" ngay trong hộp; tạo xong chuyển sang trang chi tiết để thêm HR |
-| `/staff/companies/[id]` | STAFF | `CompanyHeader`, thông tin công ty, mục "Tài khoản HR (n)" với trạng thái (tab "JD của công ty" làm ở DN-07); nút Khoá (hộp thoại bắt buộc lý do), Mở khoá, Thêm HR |
+| `/staff/companies/[id]` | STAFF | `CompanyHeader`, thông tin công ty, mục "Tài khoản HR (n)" với trạng thái; nút Khoá (hộp thoại bắt buộc lý do), Mở khoá, Thêm HR. **DN-07**: nút "Khoá công ty" / "Mở khoá" cạnh "+ Thêm HR"; banner đỏ khi công ty bị khoá; ba tab "Tài khoản HR (n)" (thêm nhãn "Khoá theo công ty"; nút khoá / mở khoá riêng vẫn theo `status` riêng), "JD của công ty", "Lịch sử thao tác", tab lưu trên URL `?tab=hr\|jobs\|history` |
 | `/hr/company` | HR | `CompanyHeader` rồi ba tab Giới thiệu / Thông tin liên hệ / Việc làm đang tuyển (n), chung một form và một thanh lưu dính đáy; logo xem trước ngay khi chọn, báo trạng thái lưu; nút "Xem như ứng viên". Công ty bị khoá hiện "Công ty đang bị khoá, ứng viên hiện không thấy việc làm" |
 | `/hr/company/preview` | HR | Trang công ty như ứng viên thấy (cùng `CompanyHeader`, danh sách việc làm đang tuyển thật), luôn tải lại bản đã lưu |
 
@@ -176,7 +181,7 @@ Tiêu chí 3 (mở khoá rồi đăng nhập lại) không chụp lại; đã ki
 - Phân trang sai (`page < 1`, `size < 1` hoặc `> 100`) trả 400 `BAD_REQUEST` (`BadRequestException`), không phải `VALIDATION_ERROR`; `status` không hợp lệ cũng 400.
 - Lock / unlock / lookup nội bộ trả `InternalUserStatusResponse`; chỉ `POST /internal/users` giữ `InternalUserResponse`.
 - Chỉ identity và company-service chặn HR bị khoá (xem khung ở mục 3).
-- Chưa có thao tác khoá cả công ty trên giao diện cán bộ; `status` của công ty chỉ dùng để lọc và hiển thị.
+- Khoá cả công ty chưa có ở DN-05 (lúc đó `status` của công ty chỉ dùng để lọc và hiển thị); DN-07 đã thêm, xem [DN-07-job-review.md](DN-07-job-review.md).
 
 ## 9. Checklist nộp PR
 

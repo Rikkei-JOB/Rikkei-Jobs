@@ -26,4 +26,10 @@ public interface IdentityClient {
 
     /** Tra trạng thái nhiều tài khoản (tối đa 100 id); id lạ bị bỏ qua. */
     List<IdentityUserStatus> lookupUsers(List<UUID> userIds);
+
+    /**
+     * Bật / tắt cờ khoá theo công ty cho nhiều HR (1–100 id mỗi lần); id không phải HR bị identity bỏ qua.
+     * Mọi lỗi (mạng, timeout, 4xx, 5xx) ném CompanyException(EXTERNAL_UNAVAILABLE) với message riêng.
+     */
+    List<IdentityUserStatus> setCompanyLock(List<UUID> userIds, boolean locked);
 }

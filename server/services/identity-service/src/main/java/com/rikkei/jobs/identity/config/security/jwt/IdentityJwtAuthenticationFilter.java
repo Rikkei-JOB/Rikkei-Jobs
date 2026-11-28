@@ -44,7 +44,7 @@ public class IdentityJwtAuthenticationFilter extends OncePerRequestFilter {
             Optional<User> user = userRepository.findById(principal.getUserId());
             if (user.isPresent()) {
                 // Khoá bởi cán bộ có hiệu lực ngay với token đã cấp, trên mọi đường dẫn kể cả /auth/**.
-                if (user.get().isAdminLocked()) {
+                if (user.get().isLoginBlocked()) {
                     writeAccountDisabled(response);
                     return;
                 }

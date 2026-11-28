@@ -49,7 +49,7 @@ class StaffHrAccountLockApiTest extends CompanyApiTestSupport {
 
     private IdentityUserStatus userStatus(String status, Instant lockedAt) {
         return new IdentityUserStatus(HR2, "hr2@x.vn", "HR Hai", status,
-                lockedAt == null ? null : "Nghỉ việc", lockedAt, null);
+                lockedAt == null ? null : "Nghỉ việc", lockedAt, null, false);
     }
 
     @Test
@@ -108,6 +108,24 @@ class StaffHrAccountLockApiTest extends CompanyApiTestSupport {
         assertThat(companyHrs.findById(HR2).orElseThrow().getLockedAt()).isNull();
         mvc.perform(get("/companies/me").header("Authorization", "Bearer " + token(HR2, Role.HR)))
                 .andExpect(status().isOk());
+    }
+
+    @Test
+    void lockAndUnlockHrOfLockedCompanyKeepStatusSeparate() throws Exception {
+        // DN-07: status của StaffHrAccount chỉ nói về khoá riêng; identity trả LOCKED cả khi chỉ khoá theo công ty.
+        Instant t = Instant.now().truncatedTo(ChronoUnit.MILLIS);
+        when(identity.lockUser(HR2, "Nghỉ việc")).thenReturn(
+                new IdentityUserStatus(HR2, "hr2@x.vn", "HR Hai", "LOCKED", "Nghỉ việc", t, null, true));
+        when(identity.unlockUser(HR2)).thenReturn(
+                new IdentityUserStatus(HR2, "hr2@x.vn", "HR Hai", "LOCKED", null, null, null, true));
+
+        lock(HR2, "{\"reason\":\"Nghỉ việc\"}").andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("LOCKED"))
+                .andExpect(jsonPath("$.companyLocked").value(true));
+        unlock(HR2).andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("ACTIVE"))
+                .andExpect(jsonPath("$.companyLocked").value(true));
+        assertThat(companyHrs.findById(HR2).orElseThrow().getLockedAt()).isNull();
     }
 
     @Test

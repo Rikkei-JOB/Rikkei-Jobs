@@ -22,6 +22,8 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class LoginServiceImpl implements LoginService {
 
+    static final String COMPANY_LOCKED_MESSAGE = "Công ty của bạn đang bị khoá, liên hệ cán bộ tuyển dụng";
+
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final AppProperties properties;
@@ -72,10 +74,15 @@ public class LoginServiceImpl implements LoginService {
         }
 
         user.setFailedLoginCount(0);
-        // Khoá bởi cán bộ chỉ được báo khi mật khẩu đúng. Báo sớm hơn thì ai cũng dò được email nào đang bị khoá.
+        // Khoá bởi cán bộ (riêng tài khoản hoặc theo công ty) chỉ được báo khi mật khẩu đúng.
+        // Báo sớm hơn thì ai cũng dò được email nào đang bị khoá.
         if (user.isAdminLocked()) {
             userRepository.save(user);
             throw new ApiException(ErrorCode.ACCOUNT_DISABLED);
+        }
+        if (user.isCompanyLocked()) {
+            userRepository.save(user);
+            throw new ApiException(ErrorCode.ACCOUNT_DISABLED, COMPANY_LOCKED_MESSAGE);
         }
         return userRepository.save(user);
     }

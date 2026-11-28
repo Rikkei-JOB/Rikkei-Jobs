@@ -12,6 +12,8 @@ erDiagram
     companies ||--o{ company_hr : "company_id"
     companies ||--o{ jobs : "company_id"
     jobs ||--o{ job_skills : "job_id (ON DELETE CASCADE)"
+    companies ||--o{ company_actions : "company_id"
+    jobs ||..o{ company_actions : "target_id (*_JD, không FK)"
     skills ||..o{ job_skills : "skill_id (profile-service)"
     users ||..o| company_hr : "user_id (HR)"
     users ||..o{ skill_evidences : "user_id"
@@ -72,13 +74,23 @@ erDiagram
         TEXT benefits
         DATE deadline "giờ Asia/Ho_Chi_Minh"
         VARCHAR status "DRAFT | PENDING | APPROVED | REJECTED | CLOSED"
-        UUID reviewed_by "DN-07"
-        TIMESTAMPTZ reviewed_at "DN-07"
-        VARCHAR reject_reason "DN-07"
+        UUID reviewed_by "cán bộ xử lý gần nhất (DN-07)"
+        TIMESTAMPTZ reviewed_at "DN-07; V6 backfill = updated_at"
+        VARCHAR reject_reason "chỉ khi REJECTED"
         UUID created_by "HR tạo"
         TIMESTAMPTZ created_at
         TIMESTAMPTZ updated_at
         BIGINT version "khoá lạc quan"
+    }
+
+    company_actions {
+        UUID id PK
+        UUID company_id FK
+        VARCHAR action "LOCK | UNLOCK | APPROVE_JD | REJECT_JD | CLOSE_JD"
+        UUID target_id "jobs.id với *_JD; NULL với LOCK/UNLOCK"
+        VARCHAR reason "1..1000; bắt buộc ở API với LOCK, REJECT_JD, CLOSE_JD"
+        UUID staff_id "cán bộ (identity users.id)"
+        TIMESTAMPTZ created_at
     }
 
     job_skills {
@@ -229,6 +241,9 @@ erDiagram
         BOOLEAN must_change_password
         INT failed_login_count
         TIMESTAMPTZ locked_until
+        TIMESTAMPTZ locked_at "DN-05, cán bộ khoá riêng"
+        VARCHAR locked_reason "DN-05"
+        TIMESTAMPTZ company_locked_at "DN-07, khoá theo công ty"
         VARCHAR status "ACTIVE | LOCKED"
         TIMESTAMPTZ created_at
     }
@@ -255,6 +270,8 @@ erDiagram
 | company-service | `company` | `companies`, `company_hr` | `V1__company_init.sql` | DN-01 |
 | company-service | `company` | thêm `locked_at` vào `company_hr` | `V2__company_hr_lock.sql` | DN-05 |
 | company-service | `company` | `jobs`, `job_skills` | `V3__jobs.sql` | DN-02 |
+| company-service | `company` | `company_actions` (lịch sử thao tác của cán bộ, chỉ thêm); chỉ mục `idx_jobs_status_deadline (status, deadline)`; backfill `jobs.reviewed_at` | `V6__job_review.sql` | DN-07 |
+| identity-service | `public` | thêm `company_locked_at` vào `users` (khoá theo công ty, tách khỏi `locked_at` khoá riêng) | `V3__company_lock.sql` | DN-07 |
 | profile-service | `profile` | `skills`, `skill_mappings`, `skill_evidences`, `skill_scores`, `external_records`, `skill_profile_states` | `V1__skill_profile.sql` → `V3__external_records_and_profile_state.sql` | HS-01 |
 | profile-service | `profile` | `manual_overrides`, `sync_runs`; thêm `source_key`, `payload`, `synced_at` vào `external_records` | `V8__nt05_external_sync.sql` | NT-05 |
 | recruitment-service | `recruitment` | `applications`, `application_status_history`, `application_notification_outbox`, `interview_rounds`, `interview_round_revisions`, `application_status_notification_outbox` | `V1__applications.sql` → `V3__status_notification_outbox.sql` | UT-01, UT-02 |

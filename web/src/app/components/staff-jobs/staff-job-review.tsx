@@ -1,10 +1,10 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
-import { AlertCircle, AlertTriangle, ArrowLeft, ArrowRight, Briefcase, Building2, CalendarClock, CheckCircle2, CircleDollarSign, Layers, MapPin, Undo2, Users, XCircle } from "lucide-react";
+import { AlertCircle, AlertTriangle, ArrowLeft, ArrowRight, Ban, Briefcase, Building2, CalendarClock, CheckCircle2, CircleDollarSign, Layers, MapPin, Undo2, Users, XCircle } from "lucide-react";
 import { Button } from "@/app/components/ui/button";
 import { LEVEL_LABEL, TYPE_LABEL, WORK_MODE_LABEL, formatDate } from "@/app/components/job/job-labels";
 import { CompanyMark } from "@/app/components/company/company-mark";
@@ -24,6 +24,16 @@ const QUICK_REASONS = [
   "Hạn nộp hồ sơ quá ngắn, cần ít nhất 7 ngày.",
   "Nội dung có thông tin liên hệ ngoài nền tảng.",
 ];
+
+/** Giới hạn lý do khớp backend (ReasonRules): bắt buộc, cắt khoảng trắng hai đầu rồi tối đa 1000 ký tự. */
+const REASON_MAX = 1000;
+
+/** Lỗi theo trường `errors.reason` của backend (400 VALIDATION_ERROR), nếu có. */
+function reasonFieldError(error: unknown): string | null {
+  if (!(error instanceof ApiError) || !error.errors || typeof error.errors !== "object") return null;
+  const message = (error.errors as Record<string, unknown>).reason;
+  return typeof message === "string" ? message : null;
+}
 
 function RichText({ text }: { text: string | null }) {
   if (!text?.trim()) return <p className="sjr-missing">Chưa có nội dung.</p>;
@@ -113,9 +123,14 @@ function DecisionPanel({ detail, now }: { detail: StaffJobDetail; now: number })
   const router = useRouter();
   const base = useJobsBase();
   const review = useReviewStaffJob(job.id);
-  const [mode, setMode] = useState<"idle" | "confirm-approve" | "reject">("idle");
+  const [mode, setMode] = useState<"idle" | "confirm-approve" | "reject" | "close">("idle");
   const [reason, setReason] = useState("");
   const [opening, setOpening] = useState(false);
+  // Thao tác vừa làm xong trong phiên này; dùng để quyết định có mời mở JD chờ duyệt tiếp theo hay không
+  // (không dùng review.isSuccess vì mở rồi huỷ một ô xác nhận khác sẽ reset mutation).
+  const [justDid, setJustDid] = useState<"approve" | "reject" | "close" | null>(null);
+  // Lỗi 400 theo trường hiện ngay dưới ô lý do; lỗi khác (409 INVALID_JOB_STATUS, JOB_EXPIRED, CONFLICT) hiện ở trên.
+  const fieldError = reasonFieldError(review.error);
 
   const expired = job.deadline ? daysLeft(job.deadline, now) < 0 : false;
   const checks = [
@@ -126,6 +141,25 @@ function DecisionPanel({ detail, now }: { detail: StaffJobDetail; now: number })
     { ok: company?.status !== "LOCKED", label: "Công ty đang hoạt động" },
   ];
 
+  /** Mở một ô xác nhận: xoá lý do cũ và lỗi của lần gửi trước để hộp mới luôn sạch. */
+  function startMode(next: "confirm-approve" | "reject" | "close") {
+    setReason("");
+    review.reset();
+    setMode(next);
+  }
+
+  /** Gửi quyết định một lần; thành công thì đóng ô nhập và nhớ thao tác vừa làm. */
+  function submit(action: { type: "approve" } | { type: "reject"; reason: string } | { type: "close"; reason: string }) {
+    if (review.isPending) return;
+    review.mutate(action, {
+      onSuccess: () => {
+        setReason("");
+        setMode("idle");
+        setJustDid(action.type);
+      },
+    });
+  }
+
   async function openNext() {
     setOpening(true);
     try {
@@ -134,14 +168,46 @@ function DecisionPanel({ detail, now }: { detail: StaffJobDetail; now: number })
     } catch { router.push(base); }
   }
 
+  const errorLine = review.isError && !fieldError
+    ? <p role="alert" className="sjr-error"><AlertCircle aria-hidden="true" />{getErrorMessage(review.error)}</p>
+    : null;
+
+  /** Ô lý do bắt buộc dùng cho Trả lại và Đóng JD: đếm ký tự, lỗi theo trường ngay dưới ô. */
+  const reasonField = (id: string, label: string, placeholder: string, quick?: ReactNode) => <>
+    <label className="sjr-label" htmlFor={id}>
+      <span className="sjr-label-name">{label} <span className="sjr-required">*</span></span>
+      <span>{reason.length}/{REASON_MAX}</span>
+    </label>
+    {quick}
+    <textarea id={id} rows={4} maxLength={REASON_MAX} required value={reason} onChange={event => setReason(event.target.value)}
+      disabled={review.isPending} aria-invalid={fieldError ? true : undefined} aria-describedby={fieldError ? `${id}-error` : undefined}
+      placeholder={placeholder} className="sjr-textarea" />
+    {fieldError && <p id={`${id}-error`} role="alert" className="sjr-error"><AlertCircle aria-hidden="true" />{fieldError}</p>}
+  </>;
+
   if (job.status !== "PENDING") {
     const reviewed = job.reviewedAt ? formatDateTime(job.reviewedAt) : null;
     return <section className="sjr-panel sjr-decision" aria-label="Kết quả duyệt">
       <h2>Kết quả duyệt</h2>
       {job.status === "REJECTED" ? <div className="sjr-result" data-tone="rejected"><XCircle aria-hidden="true" /><div><strong>Đã trả lại</strong>{reviewed && <span>{reviewed}</span>}</div></div>
-        : <div className="sjr-result" data-tone="approved"><CheckCircle2 aria-hidden="true" /><div><strong>{job.status === "CLOSED" ? "Đã duyệt, HR đã đóng JD" : "Đã duyệt, đang hiển thị"}</strong>{reviewed && <span>{reviewed}</span>}</div></div>}
+        : <div className="sjr-result" data-tone="approved"><CheckCircle2 aria-hidden="true" /><div><strong>{job.status === "CLOSED" ? "Đã duyệt, JD đã đóng" : "Đã duyệt, đang hiển thị"}</strong>{reviewed && <span>{reviewed}</span>}</div></div>}
       {job.rejectReason && <blockquote className="sjr-reason">{job.rejectReason}</blockquote>}
-      {review.isSuccess && <Button className="w-full" disabled={opening} onClick={openNext}>{opening ? "Đang mở…" : "Mở JD chờ duyệt tiếp theo"}<ArrowRight aria-hidden="true" /></Button>}
+
+      {errorLine}
+
+      {job.status === "APPROVED" && (mode === "close" ? <div className="space-y-3">
+        {reasonField("close-reason", "Lý do đóng JD", "Nêu rõ vì sao JD phải ngừng tuyển, ví dụ nội dung vi phạm quy định…")}
+        <div className="flex gap-2">
+          <Button variant="outline" className="flex-1" disabled={review.isPending} onClick={() => setMode("idle")}>Huỷ</Button>
+          <Button className="flex-1 sjr-btn-danger" disabled={!reason.trim() || review.isPending}
+            onClick={() => submit({ type: "close", reason: reason.trim() })}><Ban aria-hidden="true" />{review.isPending ? "Đang đóng…" : "Đóng JD"}</Button>
+        </div>
+      </div> : <div className="grid gap-2">
+        <Button variant="outline" className="sjr-btn-outline-danger" onClick={() => startMode("close")}><Ban aria-hidden="true" />Đóng JD</Button>
+        <p className="sjr-hint">Đóng JD khi nội dung vi phạm: JD ngừng hiển thị cho ứng viên và không thể mở lại — HR cũng không sửa hay gửi duyệt lại JD này được nữa, muốn tuyển tiếp phải tạo JD mới. Lý do được ghi vào lịch sử doanh nghiệp.</p>
+      </div>)}
+
+      {justDid && justDid !== "close" && <Button className="w-full" disabled={opening} onClick={openNext}>{opening ? "Đang mở…" : "Mở JD chờ duyệt tiếp theo"}<ArrowRight aria-hidden="true" /></Button>}
       <Link href={base} className="sjr-back justify-center">Về danh sách</Link>
     </section>;
   }
@@ -152,29 +218,27 @@ function DecisionPanel({ detail, now }: { detail: StaffJobDetail; now: number })
       {check.ok ? <CheckCircle2 aria-hidden="true" /> : <AlertTriangle aria-hidden="true" />}<span>{check.label}</span></li>)}</ul>
     <p className="sjr-hint">Danh sách tự kiểm tra chỉ để tham khảo; bạn vẫn quyết định duyệt hay trả lại.</p>
 
-    {review.isError && <p role="alert" className="sjr-error"><AlertCircle aria-hidden="true" />{getErrorMessage(review.error)}</p>}
+    {errorLine}
 
     {mode === "reject" ? <div className="space-y-3">
-      <label className="sjr-label" htmlFor="reject-reason">Lý do trả lại <span>{reason.length}/1000</span></label>
-      <div className="sjr-quick">{QUICK_REASONS.map(text => <button key={text} type="button" onClick={() => setReason(current => current ? `${current}\n${text}` : text)}>{text}</button>)}</div>
-      <textarea id="reject-reason" rows={4} maxLength={1000} value={reason} onChange={event => setReason(event.target.value)}
-        placeholder="Nêu rõ điểm cần sửa để HR chỉnh lại và gửi duyệt lần nữa…" className="sjr-textarea" />
+      {reasonField("reject-reason", "Lý do trả lại", "Nêu rõ điểm cần sửa để HR chỉnh lại và gửi duyệt lần nữa…",
+        <div className="sjr-quick">{QUICK_REASONS.map(text => <button key={text} type="button" onClick={() => setReason(current => current ? `${current}\n${text}` : text)}>{text}</button>)}</div>)}
       <div className="flex gap-2">
         <Button variant="outline" className="flex-1" disabled={review.isPending} onClick={() => setMode("idle")}>Huỷ</Button>
         <Button className="flex-1 sjr-btn-danger" disabled={!reason.trim() || review.isPending}
-          onClick={() => review.mutate({ type: "reject", reason: reason.trim() })}><Undo2 aria-hidden="true" />{review.isPending ? "Đang gửi…" : "Trả lại JD"}</Button>
+          onClick={() => submit({ type: "reject", reason: reason.trim() })}><Undo2 aria-hidden="true" />{review.isPending ? "Đang gửi…" : "Trả lại JD"}</Button>
       </div>
     </div> : mode === "confirm-approve" ? <div className="space-y-3">
       <p className="sjr-confirm">Duyệt JD này? JD sẽ hiển thị ngay trên trang việc làm cho ứng viên.</p>
       <div className="flex gap-2">
         <Button variant="outline" className="flex-1" disabled={review.isPending} onClick={() => setMode("idle")}>Huỷ</Button>
-        <Button className="flex-1 sjr-btn-success" disabled={review.isPending} onClick={() => review.mutate({ type: "approve" })}>
+        <Button className="flex-1 sjr-btn-success" disabled={review.isPending} onClick={() => submit({ type: "approve" })}>
           <CheckCircle2 aria-hidden="true" />{review.isPending ? "Đang duyệt…" : "Xác nhận duyệt"}</Button>
       </div>
     </div> : <div className="grid gap-2">
-      <Button className="sjr-btn-success" disabled={expired} onClick={() => setMode("confirm-approve")}><CheckCircle2 aria-hidden="true" />Duyệt JD</Button>
+      <Button className="sjr-btn-success" disabled={expired} onClick={() => startMode("confirm-approve")}><CheckCircle2 aria-hidden="true" />Duyệt JD</Button>
       {expired && <p className="sjr-hint">Hạn nộp đã qua nên không thể duyệt; hãy trả lại để HR cập nhật hạn nộp.</p>}
-      <Button variant="outline" className="sjr-btn-outline-danger" onClick={() => setMode("reject")}><Undo2 aria-hidden="true" />Trả lại cho doanh nghiệp</Button>
+      <Button variant="outline" className="sjr-btn-outline-danger" onClick={() => startMode("reject")}><Undo2 aria-hidden="true" />Trả lại cho doanh nghiệp</Button>
     </div>}
   </section>;
 }

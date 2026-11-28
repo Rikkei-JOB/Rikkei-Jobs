@@ -46,10 +46,26 @@ class DevDataSeederTest extends CompanyApiTestSupport {
     }
 
     private void assertSeededJobs() {
-        assertThat(jobs.count()).isEqualTo(7);
+        assertThat(jobs.count()).isEqualTo(9);
         List<Job> aJobs = jobs.findAll();
-        assertThat(aJobs).allMatch(j -> A.equals(j.getCompanyId()) && HR1.equals(j.getCreatedBy()));
-        assertThat(aJobs).extracting(Job::getStatus).containsExactlyInAnyOrder(
+        assertThat(jobs.findById(jobId(8)).orElseThrow()).satisfies(j -> {
+            assertThat(j.getCompanyId()).isEqualTo(B);
+            assertThat(j.getStatus()).isEqualTo(JobStatus.APPROVED);
+            assertThat(j.getCreatedBy()).isEqualTo(HR2);
+            assertThat(j.getType()).isEqualTo(JobType.INTERNSHIP);
+            assertThat(jobSkills.findByJobId(j.getId())).hasSize(1);
+        });
+        assertThat(jobs.findById(jobId(9)).orElseThrow()).satisfies(j -> {
+            assertThat(j.getCompanyId()).isEqualTo(B);
+            assertThat(j.getStatus()).isEqualTo(JobStatus.PENDING);
+            assertThat(j.getCreatedBy()).isEqualTo(HR2);
+            assertThat(j.getType()).isEqualTo(JobType.FULLTIME);
+            assertThat(jobSkills.findByJobId(j.getId())).hasSize(1);
+        });
+        assertThat(aJobs).filteredOn(j -> j.getStatus() == JobStatus.APPROVED || j.getStatus() == JobStatus.REJECTED || j.getStatus() == JobStatus.CLOSED)
+                .isNotEmpty().allMatch(j -> j.getReviewedAt() != null);
+        assertThat(aJobs.stream().filter(j -> A.equals(j.getCompanyId())).toList()).hasSize(7).allMatch(j -> HR1.equals(j.getCreatedBy()));
+        assertThat(aJobs.stream().filter(j -> A.equals(j.getCompanyId())).toList()).extracting(Job::getStatus).containsExactlyInAnyOrder(
                 JobStatus.REJECTED, JobStatus.PENDING, JobStatus.APPROVED, JobStatus.DRAFT, JobStatus.CLOSED,
                 JobStatus.APPROVED, JobStatus.APPROVED);
 

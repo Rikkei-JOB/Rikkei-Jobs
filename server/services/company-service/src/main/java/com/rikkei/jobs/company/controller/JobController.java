@@ -137,7 +137,9 @@ public class JobController {
 
     @Operation(
             summary = "Xem JD",
-            description = "Vai trò: HR (DN-02). Chỉ JD của công ty mình; công ty LOCKED vẫn xem được.")
+            description = "Vai trò: HR (DN-02). Chỉ JD của công ty mình, mọi trạng thái. HR của công ty LOCKED nhận "
+                    + "401 ACCOUNT_DISABLED ở đây như ở mọi endpoint khác (DN-07). Đường dẫn công khai của trang việc "
+                    + "làm là GET /public/jobs/{id} (UI-01), không phải đường này.")
     @ApiResponse(responseCode = "200", description = "Chi tiết JD kèm kỹ năng")
     @ApiResponse(responseCode = "400", description = "BAD_REQUEST: id không phải UUID")
     @ApiResponse(responseCode = "401", description = "UNAUTHORIZED: thiếu hoặc sai token; ACCOUNT_DISABLED: HR bị khoá")

@@ -603,17 +603,19 @@ class JobApiTest extends CompanyApiTestSupport {
                 .andExpect(jsonPath("$.code").value("ACCOUNT_DISABLED"));
         postJob(bearer(lockedHr, Role.HR), body("title", "JD")).andExpect(status().isUnauthorized());
 
-        // Công ty LOCKED: đọc được, ghi thì 403 COMPANY_LOCKED.
+        // Công ty LOCKED (DN-07): HR mất mọi quyền truy cập, kể cả đọc → 401 ACCOUNT_DISABLED trước controller.
         a.setStatus(CompanyStatus.LOCKED);
         companies.save(a);
-        getJob(hr1(), job.getId()).andExpect(status().isOk());
-        listMine(hr1(), "").andExpect(status().isOk());
-        postJob(hr1(), body("title", "JD")).andExpect(status().isForbidden())
-                .andExpect(jsonPath("$.code").value("COMPANY_LOCKED"));
-        putJob(hr1(), job.getId(), body("title", "JD")).andExpect(status().isForbidden())
-                .andExpect(jsonPath("$.code").value("COMPANY_LOCKED"));
-        putSkills(hr1(), job.getId(), List.of(skill(JAVA, true, 50))).andExpect(status().isForbidden())
-                .andExpect(jsonPath("$.code").value("COMPANY_LOCKED"));
+        getJob(hr1(), job.getId()).andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.code").value("ACCOUNT_DISABLED"));
+        listMine(hr1(), "").andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.code").value("ACCOUNT_DISABLED"));
+        postJob(hr1(), body("title", "JD")).andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.code").value("ACCOUNT_DISABLED"));
+        putJob(hr1(), job.getId(), body("title", "JD")).andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.code").value("ACCOUNT_DISABLED"));
+        putSkills(hr1(), job.getId(), List.of(skill(JAVA, true, 50))).andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.code").value("ACCOUNT_DISABLED"));
         verify(skillCatalog, never()).skillIds(any());
         assertThat(jobs.count()).isEqualTo(1);
         assertThat(reload(job).getTitle()).isEqualTo("JD mẫu");

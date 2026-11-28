@@ -76,13 +76,14 @@ class JobSummaryApiTest extends CompanyApiTestSupport {
     }
 
     @Test
-    void summaryForLockedCompanyStillReturns() throws Exception {
+    void summaryForLockedCompanyIs401() throws Exception {
+        // DN-07: HR của công ty bị khoá mất mọi quyền truy cập, kể cả đọc.
         Company a = saveCompany("1000000004", CompanyStatus.LOCKED);
         linkHr(HR1, a.getId());
         saveJob(a.getId(), JobStatus.DRAFT);
 
-        summary(token(HR1, Role.HR)).andExpect(status().isOk())
-                .andExpect(jsonPath("$.total").value(1));
+        summary(token(HR1, Role.HR)).andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.code").value("ACCOUNT_DISABLED"));
     }
 
     @Test

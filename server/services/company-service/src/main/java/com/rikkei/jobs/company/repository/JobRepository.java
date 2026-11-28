@@ -2,6 +2,7 @@ package com.rikkei.jobs.company.repository;
 
 import com.rikkei.jobs.company.entity.Job;
 import com.rikkei.jobs.company.entity.JobStatus;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.util.Collection;
 import java.util.List;
@@ -10,6 +11,7 @@ import java.util.UUID;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -30,6 +32,16 @@ public interface JobRepository extends JpaRepository<Job, UUID>, JpaSpecificatio
     /** Mỗi dòng là [status, số JD]; trạng thái không có JD sẽ không xuất hiện. */
     @Query("select j.status, count(j) from Job j where j.companyId = :companyId group by j.status")
     List<Object[]> countByStatus(@Param("companyId") UUID companyId);
+
+    /**
+     * Đóng hàng loạt JD APPROVED có hạn nộp trước {@code today}. Truy vấn hàng loạt bỏ qua @Version/@PreUpdate nên
+     * tự tăng version và đặt updatedAt; không đụng reviewed_*. Trả về số dòng đã đóng.
+     */
+    @Modifying
+    @Query("update Job j set j.status = :closed, j.version = j.version + 1, j.updatedAt = :now "
+            + "where j.status = :approved and j.deadline < :today")
+    int closeExpiredApproved(@Param("today") LocalDate today, @Param("now") Instant now,
+                             @Param("approved") JobStatus approved, @Param("closed") JobStatus closed);
 
     long countByCompanyIdAndStatusAndDeadlineBetween(UUID companyId, JobStatus status, LocalDate from, LocalDate to);
 
